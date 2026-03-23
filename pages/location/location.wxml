@@ -1,0 +1,69 @@
+<!-- pages/location/location.wxml -->
+<!-- 位置轨迹页 -->
+
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">📍 位置轨迹</text>
+    <text class="page-subtitle">实时定位 · 活动轨迹 · 安全围栏</text>
+  </view>
+
+  <!-- 地图组件 -->
+  <map
+    id="elderlyMap"
+    class="map-view"
+    latitude="{{location.latitude}}"
+    longitude="{{location.longitude}}"
+    markers="{{markers}}"
+    polyline="{{polyline}}"
+    circles="{{circles}}"
+    show-location
+  ></map>
+
+  <!-- 位置信息卡片 -->
+  <view class="section-wrap">
+
+    <view class="card location-status-card">
+      <view class="card-title-row">
+        <text class="card-title">当前位置</text>
+        <view class="tag {{statusTag}}">{{statusText}}</view>
+      </view>
+      <text class="addr-text">{{location.address}}</text>
+      <text class="time-text">更新于 {{location.updatedAt}}</text>
+    </view>
+
+    <!-- 安全围栏设置 -->
+    <view class="card">
+      <text class="card-title">🔵 安全围栏</text>
+      <view class="fence-row">
+        <view class="fence-info">
+          <text class="fence-name">家（主围栏）</text>
+          <text class="fence-range">半径 500 米</text>
+        </view>
+        <text class="fence-status on">已开启</text>
+      </view>
+      <view class="fence-row">
+        <view class="fence-info">
+          <text class="fence-name">社区公园</text>
+          <text class="fence-range">半径 300 米</text>
+        </view>
+        <text class="fence-status on">已开启</text>
+      </view>
+      <view class="fence-add" bindtap="addFence">＋ 添加安全区域</view>
+    </view>
+
+    <!-- 今日轨迹时间线 -->
+    <view class="card">
+      <text class="card-title">🗓️ 今日轨迹</text>
+      <view wx:for="{{trajectory}}" wx:key="id" class="traj-item">
+        <view class="traj-dot {{item.type}}"></view>
+        <view class="traj-line" wx:if="{{index < trajectory.length - 1}}"></view>
+        <view class="traj-body">
+          <text class="traj-time">{{item.time}}</text>
+          <text class="traj-addr">{{item.address}}</text>
+          <text class="traj-note" wx:if="{{item.note}}">{{item.note}}</text>
+        </view>
+      </view>
+    </view>
+
+  </view>
+</view>

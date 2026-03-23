@@ -1,0 +1,123 @@
+/* app.wxss - 全局样式 */
+
+/* ── 设计变量 ─────────────────────────────── */
+page {
+  --ink:        #0d1b2a;
+  --ink-2:      #1a2d42;
+  --ink-3:      #243d57;
+  --amber:      #f5a623;
+  --amber-light:#ffd07a;
+  --amber-pale: rgba(245,166,35,0.12);
+  --teal:       #3ecfcf;
+  --teal-pale:  rgba(62,207,207,0.1);
+  --red:        #ff5c5c;
+  --red-pale:   rgba(255,92,92,0.1);
+  --green:      #5dd97f;
+  --green-pale: rgba(93,217,127,0.1);
+  --glass:      rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.10);
+  --text:       #e8edf3;
+  --text-dim:   rgba(232,237,243,0.5);
+  --text-faint: rgba(232,237,243,0.25);
+  --radius:     20rpx;
+  --radius-sm:  12rpx;
+
+  background-color: #0d1b2a;
+  color: #e8edf3;
+  font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
+}
+
+/* ── 通用卡片 ─────────────────────────────── */
+.card {
+  background: var(--glass);
+  border: 1rpx solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 28rpx;
+  margin-bottom: 24rpx;
+}
+
+/* ── 状态标签 ─────────────────────────────── */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 22rpx;
+  padding: 8rpx 22rpx;
+  border-radius: 40rpx;
+  font-weight: 600;
+  letter-spacing: 2rpx;
+}
+.tag-safe     { background: var(--green-pale);  color: var(--green); }
+.tag-warning  { background: var(--amber-pale);  color: var(--amber); }
+.tag-danger   { background: var(--red-pale);    color: var(--red);   }
+.tag-teal     { background: var(--teal-pale);   color: var(--teal);  }
+
+/* ── 按钮 ─────────────────────────────────── */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 20rpx 0;
+}
+.btn-primary  { background: var(--amber);  color: #0d1b2a; }
+.btn-danger   { background: var(--red);    color: #fff;    }
+.btn-ghost    { background: var(--glass);  color: var(--text); border: 1rpx solid var(--glass-border); }
+
+/* ── 页面头部 ────────────────────────────── */
+.page-header {
+  padding: 40rpx 32rpx 24rpx;
+}
+.page-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 2rpx;
+}
+.page-subtitle {
+  font-size: 24rpx;
+  color: var(--text-dim);
+  margin-top: 8rpx;
+  letter-spacing: 1rpx;
+}
+
+/* ── 分割线 ──────────────────────────────── */
+.divider {
+  height: 1rpx;
+  background: var(--glass-border);
+  margin: 16rpx 0;
+}
+
+/* ── 列表行 ──────────────────────────────── */
+.list-row {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid var(--glass-border);
+}
+.list-row:last-child { border-bottom: none; }
+
+/* ── 角色切换条 ──────────────────────────── */
+.role-bar {
+  display: flex;
+  background: var(--glass);
+  border: 1rpx solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 6rpx;
+  margin: 24rpx 32rpx;
+}
+.role-btn {
+  flex: 1;
+  text-align: center;
+  padding: 14rpx 0;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+  color: var(--text-dim);
+  transition: all 0.2s;
+}
+.role-btn.active {
+  background: var(--amber);
+  color: #0d1b2a;
+  font-weight: 700;
+}

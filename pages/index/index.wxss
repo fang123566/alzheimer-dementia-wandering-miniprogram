@@ -1,0 +1,82 @@
+/* pages/index/index.wxss */
+
+.container { background: var(--ink); min-height: 100vh; padding-bottom: 120rpx; }
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.avatar {
+  width: 88rpx; height: 88rpx;
+  border-radius: 50%;
+  border: 3rpx solid var(--amber);
+}
+
+/* 状态卡片 */
+.section-wrap { padding: 0 32rpx; }
+.status-card  { border-left: 6rpx solid var(--green); }
+.card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16rpx; }
+.card-title { font-size: 28rpx; font-weight: 600; color: var(--text); }
+.location-address { font-size: 30rpx; font-weight: 600; color: var(--text); display: block; }
+.location-time    { font-size: 22rpx; color: var(--text-dim); margin-top: 6rpx; display: block; }
+.link-text { font-size: 24rpx; color: var(--amber); }
+.mt-16 { margin-top: 16rpx; }
+
+/* 统计格子 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+.stat-card {
+  background: var(--glass);
+  border: 1rpx solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 28rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+}
+.stat-icon  { font-size: 36rpx; margin-bottom: 12rpx; }
+.stat-label { font-size: 22rpx; color: var(--text-dim); margin-bottom: 8rpx; }
+.stat-value { font-size: 40rpx; font-weight: 700; color: var(--text); }
+.val-danger { color: var(--red); }
+.val-warn   { color: var(--amber); }
+
+/* 快捷操作 */
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+.quick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+  background: var(--glass);
+  border: 1rpx solid var(--glass-border);
+  border-radius: var(--radius-sm);
+}
+.quick-icon { font-size: 36rpx; }
+.quick-text { font-size: 20rpx; color: var(--text-dim); margin-top: 8rpx; }
+
+/* SOS */
+.sos-card { border: 2rpx solid rgba(255,92,92,0.4); background: var(--red-pale); }
+.sos-btn  { display: flex; flex-direction: column; align-items: center; padding: 32rpx 0; }
+.sos-icon { font-size: 80rpx; }
+.sos-label { font-size: 40rpx; font-weight: 700; color: var(--red); margin-top: 12rpx; }
+.sos-hint  { font-size: 22rpx; color: var(--text-dim); margin-top: 8rpx; }
+
+/* 预警列表 */
+.alert-row  { display: flex; align-items: center; padding: 18rpx 0; border-bottom: 1rpx solid var(--glass-border); }
+.alert-row:last-child { border-bottom: none; }
+.alert-dot  { width: 16rpx; height: 16rpx; border-radius: 50%; margin-right: 20rpx; flex-shrink: 0; }
+.alert-dot.warning { background: var(--amber); }
+.alert-dot.danger  { background: var(--red); }
+.alert-info { flex: 1; }
+.alert-title { font-size: 26rpx; color: var(--text); display: block; }
+.alert-time  { font-size: 22rpx; color: var(--text-dim); margin-top: 4rpx; display: block; }
+.empty-tip   { text-align: center; font-size: 26rpx; color: var(--text-dim); padding: 32rpx 0; }

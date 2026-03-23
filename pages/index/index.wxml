@@ -1,0 +1,112 @@
+<!-- pages/index/index.wxml -->
+<!-- 首页 · 实时监控 -->
+
+<view class="container">
+
+  <!-- 顶部问候 & 角色切换 -->
+  <view class="page-header">
+    <view class="header-row">
+      <view>
+        <text class="page-title">守护·陪伴</text>
+        <text class="page-subtitle">{{greeting}}，{{role === 'family' ? '家属端' : '老人端'}}</text>
+      </view>
+      <image class="avatar" src="{{elderlyInfo.avatar}}" mode="aspectFill"/>
+    </view>
+  </view>
+
+  <!-- 角色切换条 -->
+  <view class="role-bar">
+    <view class="role-btn {{role === 'elderly' ? 'active' : ''}}" bindtap="switchRole" data-role="elderly">👴 老人端</view>
+    <view class="role-btn {{role === 'family' ? 'active' : ''}}" bindtap="switchRole" data-role="family">👨‍👩‍👧 家属端</view>
+  </view>
+
+  <!-- 实时状态卡片 -->
+  <view class="section-wrap">
+
+    <!-- 位置状态 -->
+    <view class="card status-card">
+      <view class="card-title-row">
+        <text class="card-title">📍 实时位置状态</text>
+        <view class="tag {{statusTag}}">{{statusText}}</view>
+      </view>
+      <view class="location-info">
+        <text class="location-address">{{currentLocation.address}}</text>
+        <text class="location-time">更新于 {{currentLocation.updatedAt}}</text>
+      </view>
+      <view class="btn btn-ghost mt-16" bindtap="goLocation">查看轨迹地图 ›</view>
+    </view>
+
+    <!-- 数据统计卡片组 -->
+    <view class="stat-grid">
+      <view class="stat-card">
+        <text class="stat-icon">🏠</text>
+        <text class="stat-label">离家距离</text>
+        <text class="stat-value">{{stats.distance}} m</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">⚡</text>
+        <text class="stat-label">设备电量</text>
+        <text class="stat-value {{stats.battery < 20 ? 'val-danger' : ''}}">{{stats.battery}}%</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">🛡️</text>
+        <text class="stat-label">今日预警</text>
+        <text class="stat-value {{stats.alerts > 0 ? 'val-warn' : ''}}">{{stats.alerts}} 次</text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">🤖</text>
+        <text class="stat-label">AI对话</text>
+        <text class="stat-value">{{stats.aiChats}} 次</text>
+      </view>
+    </view>
+
+    <!-- 快捷操作（家属端） -->
+    <view class="card" wx:if="{{role === 'family'}}">
+      <text class="card-title">🚀 快捷操作</text>
+      <view class="quick-actions">
+        <view class="quick-btn" bindtap="callEmergency">
+          <text class="quick-icon">📞</text>
+          <text class="quick-text">紧急呼叫</text>
+        </view>
+        <view class="quick-btn" bindtap="goAlert">
+          <text class="quick-icon">🔔</text>
+          <text class="quick-text">预警中心</text>
+        </view>
+        <view class="quick-btn" bindtap="goMemory">
+          <text class="quick-icon">📸</text>
+          <text class="quick-text">记忆相册</text>
+        </view>
+        <view class="quick-btn" bindtap="goSettings">
+          <text class="quick-icon">⚙️</text>
+          <text class="quick-text">设置</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- SOS按钮（老人端） -->
+    <view class="card sos-card" wx:if="{{role === 'elderly'}}">
+      <view class="sos-btn" bindtap="triggerSOS">
+        <text class="sos-icon">🆘</text>
+        <text class="sos-label">紧急求助</text>
+        <text class="sos-hint">长按 3 秒发送位置给家人</text>
+      </view>
+    </view>
+
+    <!-- 最近预警列表 -->
+    <view class="card">
+      <view class="card-title-row">
+        <text class="card-title">🔔 最近预警</text>
+        <text class="link-text" bindtap="goAlert">查看全部</text>
+      </view>
+      <view wx:for="{{recentAlerts}}" wx:key="id" class="alert-row">
+        <view class="alert-dot {{item.level}}"></view>
+        <view class="alert-info">
+          <text class="alert-title">{{item.title}}</text>
+          <text class="alert-time">{{item.time}}</text>
+        </view>
+      </view>
+      <view wx:if="{{recentAlerts.length === 0}}" class="empty-tip">暂无预警，一切正常 ✅</view>
+    </view>
+
+  </view>
+</view>

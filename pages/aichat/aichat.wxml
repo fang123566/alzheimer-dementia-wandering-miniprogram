@@ -1,0 +1,75 @@
+<!-- pages/aichat/aichat.wxml -->
+<!-- AI 伴聊 · 情绪安抚 · 防诈拦截 -->
+
+<view class="container">
+
+  <!-- 顶部信息栏 -->
+  <view class="chat-header">
+    <view class="bot-info">
+      <view class="bot-avatar">🤖</view>
+      <view>
+        <text class="bot-name">小守</text>
+        <text class="bot-status">● 在线 · 方言：四川话</text>
+      </view>
+    </view>
+    <view class="emotion-bar">
+      <view class="emo-tag {{emotion === 'calm' ? 'active-calm' : ''}}" bindtap="setEmotion" data-e="calm">😌 平静</view>
+      <view class="emo-tag {{emotion === 'anxious' ? 'active-anxious' : ''}}" bindtap="setEmotion" data-e="anxious">😟 焦虑</view>
+      <view class="emo-tag {{emotion === 'panic' ? 'active-panic' : ''}}" bindtap="setEmotion" data-e="panic">😰 恐慌</view>
+    </view>
+  </view>
+
+  <!-- 聊天记录 -->
+  <scroll-view class="chat-log" scroll-y scroll-into-view="{{scrollTo}}" scroll-with-animation>
+    <view wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}" class="msg-row {{item.role}}">
+
+      <!-- 机器人头像 -->
+      <view class="msg-avatar" wx:if="{{item.role === 'bot'}}">🤖</view>
+
+      <view class="msg-body">
+        <text class="msg-name">{{item.role === 'bot' ? item.botName || '小守' : '老人'}}</text>
+
+        <!-- 防诈警报气泡 -->
+        <view class="bubble bubble-fraud" wx:if="{{item.isFraudAlert}}">
+          <text class="fraud-title">🚨 检测到诈骗话术！</text>
+          <text class="bubble-text">{{item.text}}</text>
+          <text class="fraud-tip">{{item.tip}}</text>
+        </view>
+
+        <!-- 安抚模式气泡 -->
+        <view class="bubble bubble-soothe" wx:elif="{{item.isSoothe}}">
+          <text class="bubble-text">{{item.text}}</text>
+          <text class="soothe-tag">【安抚模式 · 已推送家属】</text>
+        </view>
+
+        <!-- 普通气泡 -->
+        <view class="bubble {{item.role === 'bot' ? 'bubble-bot' : 'bubble-user'}}" wx:else>
+          <text class="bubble-text">{{item.text}}</text>
+          <!-- 情绪检测注释 -->
+          <text class="emotion-note" wx:if="{{item.emotionNote}}">{{item.emotionNote}}</text>
+        </view>
+
+        <text class="msg-time">{{item.time}}</text>
+      </view>
+
+      <!-- 用户头像 -->
+      <view class="msg-avatar" wx:if="{{item.role === 'user'}}">👴</view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部输入区（家属端监控 / 老人端输入） -->
+  <view class="input-bar">
+    <view class="input-wrap">
+      <input
+        class="text-input"
+        placeholder="{{role === 'elderly' ? '说点什么...' : '发送提醒给老人'}}"
+        value="{{inputText}}"
+        bindinput="onInput"
+        confirm-type="send"
+        bindconfirm="sendMessage"
+      />
+    </view>
+    <view class="send-btn {{inputText ? 'active' : ''}}" bindtap="sendMessage">发送</view>
+  </view>
+
+</view>

@@ -1,0 +1,46 @@
+<!-- pages/alert/alert.wxml -->
+<!-- 预警中心 -->
+
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">🔔 预警中心</text>
+    <text class="page-subtitle">走失预警 · 防诈拦截 · 围栏异常 · 健康提醒</text>
+  </view>
+
+  <!-- 筛选标签 -->
+  <scroll-view class="filter-bar" scroll-x>
+    <view
+      wx:for="{{filters}}" wx:key="key"
+      class="filter-tag {{activeFilter === item.key ? 'active' : ''}}"
+      bindtap="setFilter" data-key="{{item.key}}"
+    >{{item.label}}</view>
+  </scroll-view>
+
+  <!-- 预警列表 -->
+  <view class="alert-list">
+    <view wx:if="{{alerts.length === 0}}" class="empty-wrap">
+      <text class="empty-text">✅ 暂无预警记录</text>
+    </view>
+
+    <view
+      wx:for="{{alerts}}" wx:key="id"
+      class="alert-card level-{{item.level}}"
+      bindtap="viewDetail" data-id="{{item.id}}"
+    >
+      <view class="alert-header">
+        <view class="level-dot level-{{item.level}}"></view>
+        <text class="alert-type">{{item.type}}</text>
+        <text class="alert-time">{{item.time}}</text>
+        <view class="tag tag-{{item.level}}" wx:if="{{!item.read}}">未读</view>
+      </view>
+      <text class="alert-content">{{item.content}}</text>
+      <view class="alert-footer" wx:if="{{item.location}}">
+        <text class="alert-loc">📍 {{item.location}}</text>
+      </view>
+      <view class="alert-actions">
+        <view class="btn btn-ghost btn-sm" catchtap="markRead" data-id="{{item.id}}">已知晓</view>
+        <view class="btn btn-primary btn-sm" catchtap="callBack" data-phone="{{item.phone}}" wx:if="{{item.phone}}">立即回拨</view>
+      </view>
+    </view>
+  </view>
+</view>

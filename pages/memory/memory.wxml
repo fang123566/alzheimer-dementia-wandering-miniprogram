@@ -1,0 +1,47 @@
+<!-- pages/memory/memory.wxml -->
+<!-- 记忆相册 -->
+
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">📸 记忆相册</text>
+    <text class="page-subtitle">家庭照片 · 人脸标注 · AI 记忆辅助</text>
+  </view>
+
+  <!-- 家庭成员快捷标注 -->
+  <scroll-view class="member-bar" scroll-x>
+    <view
+      wx:for="{{members}}" wx:key="id"
+      class="member-chip {{activeMember === item.id ? 'active' : ''}}"
+      bindtap="filterByMember" data-id="{{item.id}}"
+    >
+      <image class="member-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+      <text class="member-name">{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <!-- 相册网格 -->
+  <view class="photo-grid">
+    <view wx:for="{{photos}}" wx:key="id" class="photo-item" bindtap="viewPhoto" data-id="{{item.id}}">
+      <image class="photo-img" src="{{item.thumb}}" mode="aspectFill"/>
+      <view class="photo-caption" wx:if="{{item.caption}}">
+        <text class="caption-text">{{item.caption}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加照片按钮 -->
+  <view class="add-photo-btn" bindtap="addPhoto">
+    <text class="add-icon">＋</text>
+    <text class="add-text">添加照片 / 录制语音记忆</text>
+  </view>
+
+  <!-- 记忆提示卡（AI生成） -->
+  <view class="card memory-hint-card">
+    <text class="card-title">🤖 AI 今日记忆提示</text>
+    <view wx:for="{{memoryHints}}" wx:key="id" class="hint-item">
+      <text class="hint-icon">💬</text>
+      <text class="hint-text">{{item.text}}</text>
+    </view>
+  </view>
+
+</view>

@@ -1,0 +1,29 @@
+/* pages/alert/alert.wxss */
+
+.container   { background: var(--ink); min-height: 100vh; padding-bottom: 120rpx; }
+.filter-bar  { white-space: nowrap; padding: 0 32rpx 24rpx; }
+.filter-tag  { display: inline-block; padding: 12rpx 28rpx; border-radius: 40rpx; font-size: 24rpx; color: var(--text-dim); background: var(--glass); border: 1rpx solid var(--glass-border); margin-right: 16rpx; }
+.filter-tag.active { background: var(--amber-pale); color: var(--amber); border-color: rgba(245,166,35,0.3); }
+
+.alert-list  { padding: 0 32rpx; }
+.alert-card  { border-radius: var(--radius); padding: 28rpx; margin-bottom: 20rpx; border: 1rpx solid var(--glass-border); background: var(--glass); }
+.alert-card.level-danger  { border-left: 6rpx solid var(--red); }
+.alert-card.level-warning { border-left: 6rpx solid var(--amber); }
+.alert-card.level-info    { border-left: 6rpx solid var(--teal); }
+
+.alert-header { display: flex; align-items: center; gap: 12rpx; margin-bottom: 16rpx; }
+.level-dot    { width: 14rpx; height: 14rpx; border-radius: 50%; flex-shrink: 0; }
+.level-dot.level-danger  { background: var(--red); }
+.level-dot.level-warning { background: var(--amber); }
+.level-dot.level-info    { background: var(--teal); }
+.alert-type   { font-size: 26rpx; font-weight: 600; color: var(--text); flex: 1; }
+.alert-time   { font-size: 22rpx; color: var(--text-dim); }
+
+.alert-content { font-size: 26rpx; color: var(--text-dim); line-height: 1.6; display: block; }
+.alert-loc     { font-size: 22rpx; color: var(--teal); margin-top: 10rpx; display: block; }
+
+.alert-actions { display: flex; gap: 16rpx; margin-top: 20rpx; }
+.btn-sm { flex: 1; padding: 14rpx 0; font-size: 24rpx; }
+
+.empty-wrap { text-align: center; padding: 100rpx 0; }
+.empty-text { font-size: 30rpx; color: var(--text-dim); }

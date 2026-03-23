@@ -1,0 +1,46 @@
+/* pages/aichat/aichat.wxss */
+
+.container { background: var(--ink); height: 100vh; display: flex; flex-direction: column; }
+
+/* 顶部 */
+.chat-header   { padding: 24rpx 32rpx 16rpx; background: var(--ink-2); border-bottom: 1rpx solid var(--glass-border); }
+.bot-info      { display: flex; align-items: center; gap: 20rpx; margin-bottom: 16rpx; }
+.bot-avatar    { font-size: 52rpx; }
+.bot-name      { font-size: 30rpx; font-weight: 600; color: var(--text); display: block; }
+.bot-status    { font-size: 22rpx; color: var(--green); display: block; margin-top: 4rpx; }
+
+.emotion-bar   { display: flex; gap: 16rpx; }
+.emo-tag       { font-size: 22rpx; padding: 8rpx 20rpx; border-radius: 40rpx; background: var(--glass); color: var(--text-dim); border: 1rpx solid var(--glass-border); }
+.active-calm   { background: var(--green-pale);  color: var(--green);  border-color: var(--green);  }
+.active-anxious{ background: var(--amber-pale);  color: var(--amber);  border-color: var(--amber);  }
+.active-panic  { background: var(--red-pale);    color: var(--red);    border-color: var(--red);    }
+
+/* 聊天区 */
+.chat-log { flex: 1; padding: 24rpx 32rpx; overflow: hidden; }
+
+.msg-row      { display: flex; gap: 16rpx; margin-bottom: 32rpx; align-items: flex-start; }
+.msg-row.user { flex-direction: row-reverse; }
+.msg-avatar   { font-size: 48rpx; flex-shrink: 0; margin-top: 4rpx; }
+.msg-body     { max-width: 72%; }
+.msg-name     { font-size: 22rpx; color: var(--text-dim); display: block; margin-bottom: 8rpx; }
+.msg-row.user .msg-name { text-align: right; }
+.msg-time     { font-size: 20rpx; color: var(--text-faint); display: block; margin-top: 6rpx; }
+
+/* 气泡 */
+.bubble       { border-radius: 20rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--glass-border); }
+.bubble-text  { font-size: 26rpx; line-height: 1.7; color: var(--text); display: block; white-space: pre-wrap; }
+.bubble-bot   { background: var(--glass); }
+.bubble-user  { background: var(--amber-pale); border-color: rgba(245,166,35,0.2); }
+.bubble-soothe { background: rgba(62,207,207,0.1); border-color: rgba(62,207,207,0.25); }
+.soothe-tag   { font-size: 20rpx; color: var(--teal); display: block; margin-top: 8rpx; }
+.bubble-fraud  { background: var(--red-pale); border-color: rgba(255,92,92,0.25); }
+.fraud-title  { font-size: 24rpx; font-weight: 700; color: var(--red); display: block; margin-bottom: 8rpx; }
+.fraud-tip    { font-size: 20rpx; color: var(--text-dim); display: block; margin-top: 8rpx; }
+.emotion-note { font-size: 20rpx; color: var(--amber); display: block; margin-top: 6rpx; font-style: italic; }
+
+/* 输入栏 */
+.input-bar    { display: flex; align-items: center; gap: 16rpx; padding: 16rpx 32rpx; background: var(--ink-2); border-top: 1rpx solid var(--glass-border); padding-bottom: calc(16rpx + env(safe-area-inset-bottom)); }
+.input-wrap   { flex: 1; background: var(--glass); border: 1rpx solid var(--glass-border); border-radius: var(--radius-sm); padding: 14rpx 20rpx; }
+.text-input   { width: 100%; font-size: 28rpx; color: var(--text); background: transparent; }
+.send-btn     { padding: 14rpx 32rpx; border-radius: var(--radius-sm); background: var(--glass); color: var(--text-dim); font-size: 28rpx; white-space: nowrap; }
+.send-btn.active { background: var(--amber); color: #0d1b2a; font-weight: 700; }

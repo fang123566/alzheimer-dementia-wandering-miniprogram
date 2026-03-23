@@ -1,0 +1,52 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/location/location",
+    "pages/alert/alert",
+    "pages/memory/memory",
+    "pages/aichat/aichat",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#0d1b2a",
+    "navigationBarTitleText": "守护·陪伴",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0d1b2a"
+  },
+  "tabBar": {
+    "color": "#7a8fa6",
+    "selectedColor": "#f5a623",
+    "backgroundColor": "#1a2d42",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "/images/tab-sos.png",
+        "selectedIconPath": "/images/tab-sos.png"
+      },
+      {
+        "pagePath": "pages/location/location",
+        "text": "位置",
+        "iconPath": "/images/tab-sos.png",
+        "selectedIconPath": "/images/tab-sos.png"
+      },
+      {
+        "pagePath": "pages/alert/alert",
+        "text": "预警",
+        "iconPath": "/images/tab-sos.png",
+        "selectedIconPath": "/images/tab-sos.png"
+      },
+
+      {
+        "pagePath": "pages/aichat/aichat",
+        "text": "伴聊",
+        "iconPath": "/images/tab-sos.png",
+        "selectedIconPath": "/images/tab-sos.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
