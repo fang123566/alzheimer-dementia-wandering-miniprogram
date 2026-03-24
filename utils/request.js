@@ -1,6 +1,8 @@
 // utils/request.js
 // Promise 封装 wx.request，统一处理错误和 loading
 
+// ⚠️ 真机调试时，把 localhost 换成你电脑的局域网 IP（如 192.168.1.x）
+// 电脑 CMD 执行 ipconfig 查看 IPv4 地址
 const BASE_URL = 'http://localhost:3000/api'
 
 /**

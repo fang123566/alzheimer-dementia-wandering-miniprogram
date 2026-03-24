@@ -13,17 +13,17 @@
   ],
   "window": {
     "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#0d1b2a",
+    "navigationBarBackgroundColor": "#f7f9fc",
     "navigationBarTitleText": "守护·陪伴",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#0d1b2a"
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f9fc"
   },
   "tabBar": {
     "custom": true,
-    "color": "#7a8fa6",
-    "selectedColor": "#f5a623",
-    "backgroundColor": "#1a2d42",
-    "borderStyle": "black",
+    "color": "#94a3b8",
+    "selectedColor": "#f59e0b",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
     "list": [
       { "pagePath": "pages/index/index",       "text": "首页" },
       { "pagePath": "pages/location/location", "text": "位置" },

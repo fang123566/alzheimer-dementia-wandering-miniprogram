@@ -75,11 +75,6 @@
         <view class="menu-badge" wx:if="{{stats.unreadAlerts > 0}}"><text class="menu-badge-text">{{stats.unreadAlerts}}</text></view>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-row" bindtap="goMemory">
-        <text class="menu-icon">📸</text>
-        <view class="menu-main"><text class="menu-label">记忆相册</text><text class="menu-sub">照片 · AI记忆辅助</text></view>
-        <text class="menu-arrow">›</text>
-      </view>
       <view class="menu-row" bindtap="goLocation">
         <text class="menu-icon">🗺️</text>
         <view class="menu-main"><text class="menu-label">实时位置</text><text class="menu-sub">轨迹 · 安全围栏</text></view>
