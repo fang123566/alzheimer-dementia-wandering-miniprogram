@@ -1,49 +1,40 @@
 // pages/aichat/aichat.js
 const app = getApp()
-
-// 防诈关键词库
-const FRAUD_KEYWORDS = ['转账', '中奖', '公检法', '验证码', '保证金', '陌生账户', '刷单', '贷款']
+const { chatAPI } = require('../../utils/api')
 
 Page({
   data: {
     role: 'family',
-    emotion: 'calm',          // calm / anxious / panic
+    emotion: 'calm',
     inputText: '',
     scrollTo: '',
-    messages: [
-      {
-        id: 1, role: 'bot', botName: '小守',
-        text: '王叔，早上好！今天天气不错，要不要出去走走？记得带好手机哦～',
-        time: '08:00', isSoothe: false, isFraudAlert: false
-      },
-      {
-        id: 2, role: 'user',
-        text: '我不知道这是哪里啊',
-        time: '09:47', emotionNote: '【检测到语速急促、声音颤抖】'
-      },
-      {
-        id: 3, role: 'bot', botName: '小守 · 安抚模式',
-        text: '王叔不用怕，我在这里陪您 🌸\n您就站在这里，建国马上就到～',
-        time: '09:47', isSoothe: true, isFraudAlert: false
-      },
-      {
-        id: 4, role: 'user',
-        text: '刚才有人说我中奖了，叫我转账500块钱',
-        time: '11:07', emotionNote: ''
-      },
-      {
-        id: 5, role: 'bot', botName: '小守 · 反诈拦截',
-        text: '千万别信这个！这是骗子！\n您没有中奖，不能转账，先给建国打个电话问问，好不好？',
-        time: '11:07', isFraudAlert: true,
-        tip: '关键词：中奖、转账 · 已推送家属紧急提醒',
-        isSoothe: false
-      }
-    ]
+    sending: false,
+    messages: []
   },
 
   onLoad() {
+    if (!app.checkLogin()) return
     this.setData({ role: app.globalData.role })
-    this._scrollToBottom()
+    this._fetchHistory()
+  },
+
+  onShow() {
+    this.setData({ role: app.globalData.role })
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().init()
+    }
+  },
+
+  async _fetchHistory() {
+    try {
+      const res = await chatAPI.getHistory()
+      if (res.code === 0) {
+        this.setData({ messages: res.data })
+        this._scrollToBottom()
+      }
+    } catch (e) {
+      // 离线时不显示错误，静默降级
+    }
   },
 
   setEmotion(e) {
@@ -54,41 +45,45 @@ Page({
     this.setData({ inputText: e.detail.value })
   },
 
-  sendMessage() {
+  async sendMessage() {
     const text = this.data.inputText.trim()
-    if (!text) return
+    if (!text || this.data.sending) return
 
-    const msgs = this.data.messages
-    const newId = msgs.length + 1
+    this.setData({ inputText: '', sending: true })
+
+    // 先乐观追加用户气泡
     const now = new Date()
-    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`
-
-    // 添加用户消息
-    const userMsg = { id: newId, role: 'user', text, time, emotionNote: '' }
-    const newMsgs = [...msgs, userMsg]
-
-    // 检测防诈关键词
-    const isFraud = FRAUD_KEYWORDS.some(kw => text.includes(kw))
-
-    // 模拟 AI 回复
-    const botReply = {
-      id: newId + 1,
-      role: 'bot',
-      botName: isFraud ? '小守 · 反诈拦截' : '小守',
-      text: isFraud
-        ? '千万别信！这是骗子！不要转账，先联系家人确认。'
-        : '好的，我听到了～有什么需要帮忙的吗？',
-      time,
-      isFraudAlert: isFraud,
-      tip: isFraud ? '已推送家属紧急提醒' : '',
-      isSoothe: false
-    }
-
-    this.setData({
-      messages: [...newMsgs, botReply],
-      inputText: ''
-    })
+    const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+    const tempId = Date.now()
+    const tempMsg = { id: tempId, role: 'user', text, time, emotionNote: '' }
+    this.setData({ messages: [...this.data.messages, tempMsg] })
     this._scrollToBottom()
+
+    try {
+      const res = await chatAPI.sendMessage(text)
+      if (res.code === 0) {
+        const { userMsg, botMsg, emotion } = res.data
+        // 用服务端返回的正式消息替换临时消息
+        const msgs = this.data.messages.filter(m => m.id !== tempId)
+        this.setData({
+          messages: [...msgs, userMsg, botMsg],
+          emotion: emotion || this.data.emotion
+        })
+        this._scrollToBottom()
+      }
+    } catch (e) {
+      // 网络失败时保留乐观消息，追加本地降级回复
+      const fallback = {
+        id: Date.now(),
+        role: 'bot', botName: '小守',
+        text: '网络好像有点问题，稍后再试试吧～',
+        time, isFraudAlert: false, isSoothe: false, tip: ''
+      }
+      this.setData({ messages: [...this.data.messages, fallback] })
+      this._scrollToBottom()
+    } finally {
+      this.setData({ sending: false })
+    }
   },
 
   _scrollToBottom() {

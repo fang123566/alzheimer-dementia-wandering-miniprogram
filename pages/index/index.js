@@ -1,39 +1,85 @@
 // pages/index/index.js
 const app = getApp()
+const { locationAPI, alertsAPI, statsAPI, sosAPI } = require('../../utils/api')
 
 Page({
   data: {
     role: 'family',
+    userInfo: {},
     greeting: '',
+    currentDate: '',
     elderlyInfo: {},
     currentLocation: {},
     statusTag: 'tag-safe',
     statusText: '安全范围内',
     stats: {
-      distance: 120,
-      battery: 85,
-      alerts: 2,
-      aiChats: 6
+      distance: 0,
+      battery: 0,
+      alerts: 0,
+      aiChats: 0
     },
-    recentAlerts: [
-      { id: 1, level: 'warning', title: '离家超过500米', time: '今天 14:32' },
-      { id: 2, level: 'danger',  title: '检测到疑似诈骗对话', time: '今天 11:07' }
-    ]
+    recentAlerts: []
   },
 
   onLoad() {
+    if (!app.checkLogin()) return
     this.setData({
-      role: app.globalData.role,
+      role:        app.globalData.role,
+      userInfo:    app.globalData.userInfo || {},
       elderlyInfo: app.globalData.elderlyInfo,
-      currentLocation: app.globalData.currentLocation,
-      greeting: this._getGreeting()
+      greeting:    this._getGreeting(),
+      currentDate: this._getDate()
     })
-    this._updateStatusTag()
+    this._fetchData()
   },
 
   onShow() {
-    // 每次显示时刷新角色和位置
-    this.setData({ role: app.globalData.role })
+    if (!app.checkLogin()) return
+    this.setData({
+      role:        app.globalData.role,
+      userInfo:    app.globalData.userInfo || {},
+      currentDate: this._getDate()
+    })
+    this._fetchData()
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().init()
+    }
+  },
+
+  async _fetchData() {
+    try {
+      const [statsRes, alertsRes] = await Promise.all([
+        statsAPI.getStats(),
+        alertsAPI.getAlerts()
+      ])
+      if (statsRes.code === 0) {
+        const d = statsRes.data
+        const loc = d.location
+        app.globalData.currentLocation = loc
+        app.globalData.unreadAlerts = d.unreadAlerts
+        this.setData({
+          currentLocation: loc,
+          'stats.distance': d.distance,
+          'stats.battery':  d.battery,
+          'stats.alerts':   d.unreadAlerts,
+          'stats.aiChats':  d.chatCount
+        })
+        this._updateStatusTag(loc.status)
+      }
+      if (alertsRes.code === 0) {
+        const recent = alertsRes.data.slice(0, 3).map(a => ({
+          id: a.id,
+          level: a.level,
+          title: a.type + '：' + a.content.slice(0, 18) + '…',
+          time: a.timeLabel
+        }))
+        this.setData({ recentAlerts: recent })
+      }
+    } catch (e) {
+      // 网络失败时使用 globalData 缓存数据
+      this.setData({ currentLocation: app.globalData.currentLocation })
+      this._updateStatusTag(app.globalData.currentLocation.status)
+    }
   },
 
   _getGreeting() {
@@ -44,8 +90,13 @@ Page({
     return '晚上好'
   },
 
-  _updateStatusTag() {
-    const status = app.globalData.currentLocation.status
+  _getDate() {
+    const d = new Date()
+    const weeks = ['日', '一', '二', '三', '四', '五', '六']
+    return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日  星期${weeks[d.getDay()]}`
+  },
+
+  _updateStatusTag(status = 'safe') {
     const map = {
       safe:      { tag: 'tag-safe',    text: '安全范围内' },
       warning:   { tag: 'tag-warning', text: '轻微预警'  },
@@ -55,31 +106,57 @@ Page({
     this.setData({ statusTag: s.tag, statusText: s.text })
   },
 
-  switchRole(e) {
-    const role = e.currentTarget.dataset.role
-    app.switchRole(role)
-    this.setData({ role })
-  },
-
   goLocation()  { wx.switchTab({ url: '/pages/location/location' }) },
   goAlert()     { wx.switchTab({ url: '/pages/alert/alert' }) },
-  goMemory()    { wx.switchTab({ url: '/pages/memory/memory' }) },
+  goMemory()    { wx.navigateTo({ url: '/pages/memory/memory' }) },
   goSettings()  { wx.navigateTo({ url: '/pages/settings/settings' }) },
+  goChat()      { wx.switchTab({ url: '/pages/aichat/aichat' }) },
+  goDialect()   { wx.switchTab({ url: '/pages/dialect/dialect' }) },
+
+  // 老人端单次点击 SOS 提示（长按才真正触发）
+  triggerSOSTap() {
+    wx.showToast({ title: '长按 3 秒发送位置', icon: 'none', duration: 2000 })
+  },
 
   callEmergency() {
+    const contact = app.globalData.contacts?.[0]
+    const name  = contact?.name  || '紧急联系人'
+    const phone = contact?.phone || ''
     wx.showModal({
       title: '紧急呼叫',
-      content: '确认立即拨打紧急联系人 王建国？',
+      content: `确认立即拨打 ${name}？`,
       confirmText: '立即呼叫',
       confirmColor: '#ff5c5c',
       success(res) {
-        if (res.confirm) wx.makePhoneCall({ phoneNumber: '138xxxxxxxx' })
+        if (res.confirm && phone) wx.makePhoneCall({ phoneNumber: phone })
       }
     })
   },
 
-  triggerSOS() {
-    wx.showToast({ title: 'SOS 已发送给家人！', icon: 'success' })
-    // TODO: 上报位置 + 推送通知给家属
+  async triggerSOS() {
+    wx.showLoading({ title: 'SOS 发送中…', mask: true })
+    try {
+      wx.getLocation({
+        type: 'wgs84',
+        success: async (loc) => {
+          await sosAPI.trigger({
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            address: app.globalData.currentLocation.address
+          })
+          wx.hideLoading()
+          wx.showToast({ title: 'SOS 已发送给家人！', icon: 'success' })
+          this._updateStatusTag('emergency')
+        },
+        fail: async () => {
+          await sosAPI.trigger({})
+          wx.hideLoading()
+          wx.showToast({ title: 'SOS 已发送给家人！', icon: 'success' })
+        }
+      })
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: 'SOS 发送失败，请重试', icon: 'none' })
+    }
   }
 })

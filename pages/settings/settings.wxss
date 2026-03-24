@@ -23,6 +23,17 @@
 .kw-tag        { font-size: 22rpx; padding: 10rpx 22rpx; border-radius: 40rpx; background: var(--red-pale); color: var(--red); border: 1rpx solid rgba(255,92,92,0.25); }
 .kw-add        { background: var(--amber-pale); color: var(--amber); border-color: rgba(245,166,35,0.3); }
 
+/* 退出登录 */
+.logout-wrap {
+  margin: 0 32rpx 40rpx;
+  background: var(--red-pale);
+  border: 1rpx solid rgba(255,92,92,0.25);
+  border-radius: var(--radius);
+  padding: 28rpx;
+  text-align: center;
+}
+.logout-text { font-size: 28rpx; font-weight: 600; color: var(--red); }
+
 /* 关于 */
 .about-wrap  { text-align: center; padding: 48rpx 0 0; }
 .about-text  { display: block; font-size: 24rpx; color: var(--text-dim); }

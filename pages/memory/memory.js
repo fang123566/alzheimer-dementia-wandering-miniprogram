@@ -1,42 +1,88 @@
 // pages/memory/memory.js
+const { memoryAPI } = require('../../utils/api')
+
 Page({
   data: {
     activeMember: 'all',
-    members: [
-      { id: 'all',  name: '全部',   avatar: '' },
-      { id: 'm1',   name: '建国',   avatar: '/images/tab-home.png' },
-      { id: 'm2',   name: '王丽',   avatar: '/images/tab-sos-active.png' },
-      { id: 'm3',   name: '小孙女', avatar: '/images/tab-sos.png' }
-    ],
-    photos: [
-      { id: 1, thumb: '/images/tab-sos.png', caption: '建国结婚那天，1998年', members: ['m1'] },
-      { id: 2, thumb: '/images/tab-sos.png', caption: '全家去峨眉山，2010年', members: ['m1','m2','m3'] },
-      { id: 3, thumb: '/images/tab-sos.png', caption: '小孙女满月', members: ['m3'] },
-      { id: 4, thumb: '/images/tab-sos.png', caption: '',           members: ['m2'] }
-    ],
-    memoryHints: [
-      { id: 1, text: '王叔，这是您儿子建国，在成都开公司，他每周末来看您。' },
-      { id: 2, text: '这是您孙女小雨，今年上小学三年级，很喜欢唱歌。' },
-      { id: 3, text: '您以前是小学语文老师，教了三十多年，学生都很喜欢您。' }
-    ]
+    members: [{ id: 'all', name: '全部', avatar: '' }],
+    photos: [],
+    memoryHints: [],
+    loading: false
   },
 
-  filterByMember(e) {
-    this.setData({ activeMember: e.currentTarget.dataset.id })
-    // TODO: 按成员筛选照片
+  onLoad() {
+    if (!getApp().checkLogin()) return
+    this._fetchAll()
+  },
+
+  onShow() {
+    if (!getApp().checkLogin()) return
+    this._fetchAll()
+  },
+
+  async _fetchAll() {
+    this.setData({ loading: true })
+    try {
+      const [membersRes, photosRes, hintsRes] = await Promise.all([
+        memoryAPI.getMembers(),
+        memoryAPI.getPhotos(),
+        memoryAPI.getHints()
+      ])
+      if (membersRes.code === 0) {
+        const members = [{ id: 'all', name: '全部', avatar: '' }, ...membersRes.data]
+        this.setData({ members })
+      }
+      if (photosRes.code === 0) {
+        this.setData({ photos: photosRes.data })
+      }
+      if (hintsRes.code === 0) {
+        this.setData({ memoryHints: hintsRes.data })
+      }
+    } catch (e) {
+      wx.showToast({ title: '加载失败', icon: 'none' })
+    } finally {
+      this.setData({ loading: false })
+    }
+  },
+
+  async filterByMember(e) {
+    const id = e.currentTarget.dataset.id
+    this.setData({ activeMember: id })
+    try {
+      const res = await memoryAPI.getPhotos(id === 'all' ? undefined : id)
+      if (res.code === 0) this.setData({ photos: res.data })
+    } catch (e) {
+      wx.showToast({ title: '筛选失败', icon: 'none' })
+    }
   },
 
   viewPhoto(e) {
-    // TODO: 查看照片详情 & 播放语音记忆
+    const id = e.currentTarget.dataset.id
+    const photo = this.data.photos.find(p => p.id === id)
+    if (photo?.thumb) {
+      wx.previewImage({ current: photo.thumb, urls: [photo.thumb] })
+    } else {
+      wx.showToast({ title: photo?.caption || '暂无图片', icon: 'none' })
+    }
   },
 
   addPhoto() {
     wx.chooseMedia({
       count: 9,
       mediaType: ['image'],
-      success(res) {
-        // TODO: 上传图片 & 触发人脸识别标注
-        console.log(res.tempFiles)
+      success: async (res) => {
+        wx.showLoading({ title: '上传中…', mask: true })
+        try {
+          for (const file of res.tempFiles) {
+            await memoryAPI.addPhoto({ thumb: file.tempFilePath, caption: '', members: [] })
+          }
+          wx.hideLoading()
+          wx.showToast({ title: '上传成功', icon: 'success' })
+          this._fetchAll()
+        } catch (e) {
+          wx.hideLoading()
+          wx.showToast({ title: '上传失败', icon: 'none' })
+        }
       }
     })
   }

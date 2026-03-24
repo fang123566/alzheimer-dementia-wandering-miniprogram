@@ -1,65 +1,96 @@
 // pages/location/location.js
 const app = getApp()
+const { locationAPI } = require('../../utils/api')
 
 Page({
   data: {
-    location: {
-      latitude: 30.572815,
-      longitude: 104.066803,
-      address: '成都市锦江区东御街18号',
-      updatedAt: '14:32'
-    },
+    location: {},
     statusTag: 'tag-safe',
     statusText: '安全范围内',
-    markers: [
-      {
-        id: 1,
-        latitude: 30.572815,
-        longitude: 104.066803,
-        title: '王建明（当前）',
-        iconPath: '/images/tab-sos.png',
-        width: 40,
-        height: 40
-      }
-    ],
-    // 今日轨迹折线
-    polyline: [
-      {
-        points: [
-          { latitude: 30.571, longitude: 104.065 },
-          { latitude: 30.572, longitude: 104.066 },
-          { latitude: 30.572815, longitude: 104.066803 }
-        ],
-        color: '#f5a623aa',
-        width: 5,
-        dottedLine: false
-      }
-    ],
-    // 安全围栏圆圈
-    circles: [
-      {
-        latitude: 30.572,
-        longitude: 104.066,
-        radius: 500,
-        color: '#3ecfcf33',
-        fillColor: '#3ecfcf11',
-        strokeWidth: 2
-      }
-    ],
-    trajectory: [
-      { id: 1, type: 'start',   time: '07:20', address: '家（出发）',          note: '' },
-      { id: 2, type: 'normal',  time: '08:15', address: '社区早餐店',           note: '' },
-      { id: 3, type: 'warning', time: '09:47', address: '锦江区东御街（越界）', note: '⚠️ 触发围栏预警' },
-      { id: 4, type: 'normal',  time: '10:30', address: '社区公园',             note: '' },
-      { id: 5, type: 'current', time: '14:32', address: '家附近（当前）',       note: '' }
-    ]
+    markers: [],
+    polyline: [],
+    circles: [],
+    trajectory: [],
+    fences: []
   },
 
   onLoad() {
-    // TODO: 从云端拉取实时位置
+    if (!getApp().checkLogin()) return
+    this._fetchAll()
+  },
+
+  onShow() {
+    if (!getApp().checkLogin()) return
+    this._fetchAll()
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().init()
+    }
+  },
+
+  async _fetchAll() {
+    try {
+      const [locRes, trajRes, fenceRes] = await Promise.all([
+        locationAPI.getLocation(),
+        locationAPI.getTrajectory(),
+        locationAPI.getFences()
+      ])
+
+      if (locRes.code === 0) {
+        const loc = locRes.data
+        const statusMap = {
+          safe:      { tag: 'tag-safe',    text: '安全范围内' },
+          warning:   { tag: 'tag-warning', text: '轻微预警'  },
+          emergency: { tag: 'tag-danger',  text: '紧急！'    }
+        }
+        const s = statusMap[loc.status] || statusMap['safe']
+        this.setData({
+          location: loc,
+          statusTag: s.tag,
+          statusText: s.text,
+          markers: [{
+            id: 1,
+            latitude: loc.latitude,
+            longitude: loc.longitude,
+            title: app.globalData.elderlyInfo.name + '（当前）',
+            width: 40, height: 40
+          }]
+        })
+      }
+
+      if (trajRes.code === 0) {
+        const traj = trajRes.data
+        this.setData({ trajectory: traj })
+        if (traj.length >= 2) {
+          const points = traj.map(t => ({
+            latitude: t.latitude || locRes.data.latitude,
+            longitude: t.longitude || locRes.data.longitude
+          }))
+          this.setData({
+            polyline: [{ points, color: '#f5a623aa', width: 5, dottedLine: false }]
+          })
+        }
+      }
+
+      if (fenceRes.code === 0) {
+        const circles = fenceRes.data
+          .filter(f => f.enabled)
+          .map(f => ({
+            latitude: f.latitude,
+            longitude: f.longitude,
+            radius: f.radius,
+            color: '#3ecfcf33',
+            fillColor: '#3ecfcf11',
+            strokeWidth: 2
+          }))
+        this.setData({ fences: fenceRes.data, circles })
+      }
+    } catch (e) {
+      const loc = app.globalData.currentLocation
+      if (loc) this.setData({ location: loc })
+    }
   },
 
   addFence() {
-    wx.navigateTo({ url: '/pages/settings/settings?tab=fence' })
+    wx.navigateTo({ url: '/pages/settings/settings' })
   }
 })

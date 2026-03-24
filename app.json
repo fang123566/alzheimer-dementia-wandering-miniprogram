@@ -1,10 +1,14 @@
 {
   "pages": [
+    "pages/login/login",
     "pages/index/index",
     "pages/location/location",
     "pages/alert/alert",
-    "pages/memory/memory",
+    "pages/profile/profile",
     "pages/aichat/aichat",
+    "pages/dialect/dialect",
+    "pages/memory/memory",
+    "pages/binding/binding",
     "pages/settings/settings"
   ],
   "window": {
@@ -15,38 +19,32 @@
     "backgroundColor": "#0d1b2a"
   },
   "tabBar": {
+    "custom": true,
     "color": "#7a8fa6",
     "selectedColor": "#f5a623",
     "backgroundColor": "#1a2d42",
     "borderStyle": "black",
     "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "首页",
-        "iconPath": "/images/tab-sos.png",
-        "selectedIconPath": "/images/tab-sos.png"
-      },
-      {
-        "pagePath": "pages/location/location",
-        "text": "位置",
-        "iconPath": "/images/tab-sos.png",
-        "selectedIconPath": "/images/tab-sos.png"
-      },
-      {
-        "pagePath": "pages/alert/alert",
-        "text": "预警",
-        "iconPath": "/images/tab-sos.png",
-        "selectedIconPath": "/images/tab-sos.png"
-      },
-
-      {
-        "pagePath": "pages/aichat/aichat",
-        "text": "伴聊",
-        "iconPath": "/images/tab-sos.png",
-        "selectedIconPath": "/images/tab-sos.png"
-      }
+      { "pagePath": "pages/index/index",       "text": "首页" },
+      { "pagePath": "pages/location/location", "text": "位置" },
+      { "pagePath": "pages/alert/alert",       "text": "预警" },
+      { "pagePath": "pages/profile/profile",   "text": "我的" },
+      { "pagePath": "pages/aichat/aichat",     "text": "伴聊" },
+      { "pagePath": "pages/dialect/dialect",   "text": "方言" }
     ]
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "需要获取您的位置信息，用于实时监测老人安全状态和安全围栏检测"
+    },
+    "scope.userLocationBackground": {
+      "desc": "需要后台持续获取位置，用于老人离开安全区域时及时发出预警"
+    },
+    "scope.record": {
+      "desc": "需要使用麦克风录音，用于方言翻译的语音输入功能"
+    }
+  },
+  "requiredBackgroundModes": ["location"],
   "style": "v2",
   "sitemapLocation": "sitemap.json"
 }

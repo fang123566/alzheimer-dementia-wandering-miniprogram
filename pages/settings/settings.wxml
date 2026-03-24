@@ -120,6 +120,11 @@
     </view>
   </view>
 
+  <!-- 退出登录 -->
+  <view class="logout-wrap" bindtap="logout">
+    <text class="logout-text">退出登录</text>
+  </view>
+
   <!-- 关于 -->
   <view class="about-wrap">
     <text class="about-text">守护·陪伴 v1.0.0</text>
