@@ -49,6 +49,23 @@ App({
     }
     // 未登录时不做跳转，由首页 onLoad 检测后跳转 login
   },
+  onLaunch() {
+    // 初始化云开发（接入后取消注释）
+    wx.cloud.init({ env: 'cloud1-3gzx0vun034c33f9' })
+
+    // 从本地存储恢复登录态
+    const token    = wx.getStorageSync('token')
+    const userInfo = wx.getStorageSync('userInfo')
+    const role     = wx.getStorageSync('role')
+
+    if (token && userInfo) {
+      this.globalData.token    = token
+      this.globalData.userInfo = userInfo
+      this.globalData.role     = role || userInfo.role || 'family'
+      this._loadContacts()
+    }
+    // 未登录时不做跳转，由首页 onLoad 检测后跳转 login
+  },
 
   // 检查是否已登录，供各页面 onLoad 调用
   checkLogin() {
