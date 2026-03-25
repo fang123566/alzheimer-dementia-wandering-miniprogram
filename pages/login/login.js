@@ -1,5 +1,6 @@
 // pages/login/login.js
 const app = getApp()
+const { authAPI } = require('../../utils/api')
 
 Page({
   data: {
@@ -85,16 +86,14 @@ Page({
     this.setData({ loading: true, errorMsg: '' })
 
     try {
-      const { result } = await wx.cloud.callFunction({
-        name: 'auth',
-        data: {
-          action:   mode,           
-          name:     form.name.replace(/\s+/g, ''), // 确保姓名无空格
-          phone:    form.phone.trim(),
-          password: form.password,
-          role:     form.role
-        }
-      })
+      const result = mode === 'login'
+        ? await authAPI.login(form.phone.trim(), form.password)
+        : await authAPI.register(
+          form.name.replace(/\s+/g, ''),
+          form.phone.trim(),
+          form.password,
+          form.role
+        )
 
       if (result.code === 0) {
         const { token, user } = result.data
@@ -121,8 +120,7 @@ Page({
       }
 
     } catch (err) {
-      console.error('云函数调用失败：', err)
-      this.setData({ errorMsg: '网络连接失败，请稍后重试' })
+      this.setData({ errorMsg: err.message || '网络连接失败，请稍后重试' })
     } finally {
       this.setData({ loading: false })
     }

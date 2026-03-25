@@ -3,9 +3,25 @@
 
 <view class="container">
 
+  <view wx:if="{{pageLoading}}" class="loading-card">
+    <text class="loading-text">正在加载绑定状态…</text>
+  </view>
+
+  <block wx:else>
+
   <view class="page-header">
     <text class="page-title">🔗 账号关联</text>
     <text class="page-subtitle">{{role === 'family' ? '绑定您守护的老人账号' : '查看关联的家属信息'}}</text>
+  </view>
+
+  <view class="self-card">
+    <view class="self-avatar">{{role === 'family' ? '👨‍👩‍👧' : '👴'}}</view>
+    <view class="self-info">
+      <text class="self-name">{{userInfo.name || '当前账号'}}</text>
+      <text class="self-role">{{role === 'family' ? '家属端账号' : '老人端账号'}}</text>
+      <text class="self-phone">{{userInfo.phone || ''}}</text>
+    </view>
+    <view class="copy-btn" bindtap="copyPhone" data-target="self">复制号码</view>
   </view>
 
   <!-- ══ 已绑定 ══ -->
@@ -21,10 +37,14 @@
       <view class="linked-avatar">{{role === 'family' ? '👴' : '👨‍👩‍👧'}}</view>
       <view class="linked-info">
         <text class="linked-name">{{linkedUser.name}}</text>
-        <text class="linked-role">{{role === 'family' ? '老人端' : '家属端'}}</text>
+        <text class="linked-role">{{binding.roleLabel}}</text>
         <text class="linked-phone">{{linkedUser.phone}}</text>
       </view>
       <view class="linked-badge">已绑定</view>
+    </view>
+
+    <view class="linked-actions">
+      <view class="minor-btn" bindtap="copyPhone" data-target="linked">复制对方手机号</view>
     </view>
 
     <!-- 绑定时间 -->
@@ -50,7 +70,7 @@
     </view>
 
     <!-- 解绑按钮（仅家属可操作） -->
-    <view class="unbind-btn" bindtap="unbind" wx:if="{{role === 'family'}}">
+    <view class="unbind-btn" bindtap="unbind" wx:if="{{bindingMeta.canUnbind}}">
       <text class="unbind-text">解除关联</text>
     </view>
 
@@ -65,7 +85,7 @@
     </view>
 
     <!-- 家属端：输入老人手机号绑定 -->
-    <block wx:if="{{role === 'family'}}">
+    <block wx:if="{{bindingMeta.canCreateBinding}}">
       <view class="guide-card">
         <text class="guide-title">如何关联老人账号？</text>
         <view class="guide-step"><text class="step-num">①</text><text class="step-text">让老人使用手机号注册老人端账号</text></view>
@@ -105,8 +125,11 @@
         <text class="waiting-title">等待家属关联</text>
         <text class="waiting-desc">请让您的家属使用家属端账号，输入您的手机号完成关联。</text>
         <text class="waiting-phone">您的手机号：{{userInfo.phone}}</text>
+        <view class="copy-btn large" bindtap="copyPhone" data-target="self">复制我的手机号</view>
       </view>
     </block>
+
+  </block>
 
   </block>
 

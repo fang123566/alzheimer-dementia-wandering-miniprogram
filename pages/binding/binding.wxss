@@ -2,6 +2,95 @@
 
 .container { background: var(--ink); min-height: 100vh; padding-bottom: 60rpx; }
 
+.loading-card,
+.self-card,
+.linked-actions {
+  margin: 0 32rpx 24rpx;
+  background: var(--glass);
+  border: 1rpx solid var(--glass-border);
+  border-radius: var(--radius);
+}
+
+.loading-card {
+  padding: 36rpx 28rpx;
+  text-align: center;
+}
+
+.loading-text {
+  font-size: 28rpx;
+  color: var(--text-dim);
+}
+
+.self-card {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  padding: 28rpx;
+}
+
+.self-avatar {
+  font-size: 68rpx;
+  flex-shrink: 0;
+}
+
+.self-info {
+  flex: 1;
+}
+
+.self-name,
+.self-role,
+.self-phone {
+  display: block;
+}
+
+.self-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.self-role {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: var(--amber);
+}
+
+.self-phone {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--text-dim);
+}
+
+.copy-btn,
+.minor-btn {
+  padding: 14rpx 22rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  border: 1rpx solid rgba(245,166,35,0.32);
+}
+
+.copy-btn {
+  color: var(--amber);
+  background: var(--amber-pale);
+}
+
+.copy-btn.large {
+  margin-top: 12rpx;
+}
+
+.linked-actions {
+  padding: 20rpx 28rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.minor-btn {
+  color: var(--text-dim);
+  background: var(--ink-2);
+  border-color: var(--glass-border);
+}
+
 /* ── 状态横幅 ─────────────────────────────────── */
 .status-banner {
   display: flex;

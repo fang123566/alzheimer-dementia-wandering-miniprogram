@@ -8,9 +8,14 @@ Page({
     userInfo: {},
     binding: null,
     linkedUser: null,
+    bindingMeta: {
+      canCreateBinding: false,
+      canUnbind: false
+    },
     elderlyPhone: '',
     errMsg: '',
-    binding_loading: false
+    binding_loading: false,
+    pageLoading: true
   },
 
   onLoad() {
@@ -27,27 +32,39 @@ Page({
     this._fetchBinding()
   },
 
+  async onPullDownRefresh() {
+    await this._fetchBinding()
+    wx.stopPullDownRefresh()
+  },
+
   async _fetchBinding() {
+    this.setData({ pageLoading: true })
     try {
       const res = await bindingAPI.getBinding()
+      const meta = res.meta || {
+        canCreateBinding: this.data.role === 'family',
+        canUnbind: this.data.role === 'family'
+      }
       if (res.code === 0 && res.data) {
         const { binding, linkedUser } = res.data
-        // 格式化绑定时间
         const createdAt = binding.createdAt
           ? new Date(binding.createdAt).toLocaleDateString('zh-CN')
           : ''
         this.setData({
           binding: { ...binding, createdAt },
-          linkedUser
+          linkedUser,
+          bindingMeta: meta,
+          pageLoading: false
         })
-        // 同步 globalData：家属端更新 elderlyInfo
         if (app.globalData.role === 'family') {
           app.globalData.elderlyInfo = linkedUser
         }
       } else {
-        this.setData({ binding: null, linkedUser: null })
+        this.setData({ binding: null, linkedUser: null, bindingMeta: meta, pageLoading: false })
       }
-    } catch (e) {}
+    } catch (e) {
+      this.setData({ pageLoading: false })
+    }
   },
 
   onPhoneInput(e) {
@@ -72,6 +89,10 @@ Page({
         this.setData({
           binding: { ...binding, createdAt },
           linkedUser,
+          bindingMeta: {
+            canCreateBinding: false,
+            canUnbind: true
+          },
           elderlyPhone: ''
         })
         app.globalData.elderlyInfo = linkedUser
@@ -97,7 +118,14 @@ Page({
           const r = await bindingAPI.deleteBinding()
           if (r.code === 0) {
             wx.showToast({ title: '已解除关联', icon: 'success' })
-            this.setData({ binding: null, linkedUser: null })
+            this.setData({
+              binding: null,
+              linkedUser: null,
+              bindingMeta: {
+                canCreateBinding: true,
+                canUnbind: true
+              }
+            })
             app.globalData.elderlyInfo = {}
           } else {
             wx.showToast({ title: r.msg || '操作失败', icon: 'none' })
@@ -107,5 +135,14 @@ Page({
         }
       }
     })
+  },
+
+  copyPhone(e) {
+    const target = e?.currentTarget?.dataset?.target || 'linked'
+    const phone = target === 'self'
+      ? this.data.userInfo?.phone
+      : (this.data.linkedUser?.phone || this.data.userInfo?.phone)
+    if (!phone) return
+    wx.setClipboardData({ data: phone })
   }
 })

@@ -1,6 +1,6 @@
 // pages/profile/profile.js
 const app = getApp()
-const { statsAPI, alertsAPI, settingsAPI, bindingAPI } = require('../../utils/api')
+const { statsAPI, alertsAPI, settingsAPI, bindingAPI, authAPI } = require('../../utils/api')
 
 Page({
   data: {
@@ -50,9 +50,14 @@ Page({
         this.setData({ binding: bindingRes.data })
         if (role === 'family') {
           app.globalData.elderlyInfo = bindingRes.data.linkedUser
+          this.setData({ elderlyInfo: bindingRes.data.linkedUser })
         }
       } else {
         this.setData({ binding: null })
+        if (role === 'family') {
+          app.globalData.elderlyInfo = {}
+          this.setData({ elderlyInfo: {} })
+        }
       }
 
       if (role === 'family') {
@@ -111,8 +116,39 @@ Page({
       content: '确认退出当前账号？',
       confirmText: '退出',
       confirmColor: '#ff5c5c',
-      success: (res) => {
-        if (res.confirm) app.logout()
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          await authAPI.logout()
+        } catch (e) {}
+        app.logout()
+      }
+    })
+  },
+
+  cancelAccount() {
+    wx.showModal({
+      title: '注销账号',
+      content: '注销后当前账号及其绑定关系将被永久删除，且无法恢复，确认继续？',
+      confirmText: '确认注销',
+      confirmColor: '#ff5c5c',
+      success: async (res) => {
+        if (!res.confirm) return
+        try {
+          wx.showLoading({ title: '注销中…' })
+          const result = await authAPI.cancelAccount()
+          if (result.code === 0) {
+            wx.hideLoading()
+            wx.showToast({ title: '账号已注销', icon: 'success' })
+            setTimeout(() => app.logout(), 500)
+          } else {
+            wx.hideLoading()
+            wx.showToast({ title: result.msg || '注销失败', icon: 'none' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          wx.showToast({ title: e.message || '注销失败', icon: 'none' })
+        }
       }
     })
   }

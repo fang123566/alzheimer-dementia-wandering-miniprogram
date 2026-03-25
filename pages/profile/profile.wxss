@@ -223,3 +223,7 @@
   text-align: center;
 }
 .e-logout-text { font-size: 30rpx; font-weight: 600; color: var(--red); }
+.e-cancel-btn {
+  margin-top: 24rpx;
+  background: rgba(255,92,92,0.08);
+}
