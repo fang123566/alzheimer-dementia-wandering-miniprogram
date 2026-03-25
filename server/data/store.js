@@ -9,7 +9,6 @@ const store = {
     address: '成都市锦江区东御街18号',
     status: 'safe', // safe / warning / emergency
     updatedAt: new Date().toISOString(),
-    battery: 85,
     distance: 120
   },
 
@@ -89,10 +88,74 @@ const store = {
 
   // 记忆相册
   photos: [
-    { id: 1, thumb: '', caption: '建国结婚那天，1998年', members: ['m1'], createdAt: '1998-06-15' },
-    { id: 2, thumb: '', caption: '全家去峨眉山，2010年', members: ['m1','m2','m3'], createdAt: '2010-08-10' },
-    { id: 3, thumb: '', caption: '小孙女满月',           members: ['m3'],        createdAt: '2018-03-20' },
-    { id: 4, thumb: '', caption: '',                      members: ['m2'],        createdAt: '2022-01-05' }
+    {
+      id: 1,
+      type: 'image',
+      thumb: '',
+      url: '',
+      cover: '',
+      caption: '建国结婚那天，1998年',
+      story: '那天家里特别热闹，亲戚朋友都来了，您一直笑得很开心。建国穿着西装，和新娘一起给长辈敬茶。',
+      voiceNote: {
+        url: '',
+        duration: 0,
+        text: '这是建国结婚那天，您高兴得一整天都没闲着。'
+      },
+      members: ['m1'],
+      location: '成都',
+      createdAt: '1998-06-15'
+    },
+    {
+      id: 2,
+      type: 'image',
+      thumb: '',
+      url: '',
+      cover: '',
+      caption: '全家去峨眉山，2010年',
+      story: '这是全家第一次一起去峨眉山旅游，路上还下了点小雨，但大家都特别开心。',
+      voiceNote: {
+        url: '',
+        duration: 0,
+        text: '这一年我们一家人一起去了峨眉山，拍了很多照片。'
+      },
+      members: ['m1','m2','m3'],
+      location: '峨眉山',
+      createdAt: '2010-08-10'
+    },
+    {
+      id: 3,
+      type: 'video',
+      thumb: '',
+      url: '',
+      cover: '',
+      caption: '小孙女满月视频',
+      story: '这是小孙女满月时录下的视频，大家围着她唱生日歌，场面特别温馨。',
+      voiceNote: {
+        url: '',
+        duration: 0,
+        text: '这是小孙女小时候满月时的视频，您那天一直抱着她。'
+      },
+      members: ['m3'],
+      location: '家里',
+      createdAt: '2018-03-20'
+    },
+    {
+      id: 4,
+      type: 'image',
+      thumb: '',
+      url: '',
+      cover: '',
+      caption: '一家人吃团圆饭',
+      story: '',
+      voiceNote: {
+        url: '',
+        duration: 0,
+        text: ''
+      },
+      members: ['m2'],
+      location: '家里',
+      createdAt: '2022-01-05'
+    }
   ],
 
   // 家庭成员

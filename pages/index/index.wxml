@@ -66,14 +66,14 @@
         </view>
         <view class="tag {{statusTag}}">{{statusText}}</view>
       </view>
+      <view class="e-loc-refresh-btn {{locating ? 'disabled' : ''}}" bindtap="refreshLocation">
+        <text class="e-loc-refresh-icon">🔄</text>
+        <text class="e-loc-refresh-text">{{locating ? '更新位置中…' : '重新定位'}}</text>
+      </view>
     </view>
 
     <!-- 设备状态 -->
     <view class="e-device-row">
-      <view class="e-device-item">
-        <text class="e-device-icon">⚡</text>
-        <text class="e-device-text">电量 {{stats.battery}}%</text>
-      </view>
       <view class="e-device-item">
         <text class="e-device-icon">🛡️</text>
         <text class="e-device-text">今日预警 {{stats.alerts}} 次</text>
@@ -105,11 +105,6 @@
         <text class="stat-icon">🏠</text>
         <text class="stat-label">离家距离</text>
         <text class="stat-value">{{stats.distance}} m</text>
-      </view>
-      <view class="stat-card">
-        <text class="stat-icon">⚡</text>
-        <text class="stat-label">设备电量</text>
-        <text class="stat-value {{stats.battery < 20 ? 'val-danger' : ''}}">{{stats.battery}}%</text>
       </view>
       <view class="stat-card">
         <text class="stat-icon">🛡️</text>

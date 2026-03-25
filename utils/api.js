@@ -57,6 +57,10 @@ const chatAPI = {
 const memoryAPI = {
   // 获取照片列表，可选 member 筛选
   getPhotos:    (member) => http.get('/memory/photos', member ? { member } : {}),
+  // 获取单条记忆详情
+  getPhoto:     (id)     => http.get(`/memory/photos/${id}`),
+  // 上传媒体文件
+  uploadMedia:  (filePath, mediaType) => http.upload('/memory/upload', filePath, 'file', { mediaType }, true),
   // 新增照片
   addPhoto:     (data)   => http.post('/memory/photos', data),
   // 更新照片说明/标注
@@ -66,6 +70,8 @@ const memoryAPI = {
   // 家庭成员
   getMembers:   ()       => http.get('/memory/members'),
   addMember:    (data)   => http.post('/memory/members', data),
+  updateMember: (id, d)   => http.put(`/memory/members/${id}`, d),
+  deleteMember: (id)      => http.delete(`/memory/members/${id}`),
   // AI 记忆提示
   getHints:     ()       => http.get('/memory/hints'),
   addHint:      (text)   => http.post('/memory/hints', { text }),

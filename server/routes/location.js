@@ -10,7 +10,7 @@ router.get('/', (req, res) => {
 
 // POST /api/location — 上报位置（设备端调用）
 router.post('/', (req, res) => {
-  const { latitude, longitude, address, battery, distance } = req.body
+  const { latitude, longitude, address, distance } = req.body
   if (!latitude || !longitude) {
     return res.status(400).json({ code: 1, msg: '缺少经纬度参数' })
   }
@@ -19,7 +19,6 @@ router.post('/', (req, res) => {
     latitude,
     longitude,
     address: address || store.location.address,
-    battery: battery !== undefined ? battery : store.location.battery,
     distance: distance !== undefined ? distance : store.location.distance,
     updatedAt: new Date().toISOString()
   }

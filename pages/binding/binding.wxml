@@ -81,7 +81,7 @@
             class="phone-input"
             type="number"
             placeholder="请输入老人的手机号"
-            placeholder-class="ph"
+            placeholder-style="color:#94a3b8;font-size:28rpx;"
             value="{{elderlyPhone}}"
             bindinput="onPhoneInput"
             maxlength="11"

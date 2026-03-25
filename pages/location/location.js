@@ -163,7 +163,6 @@ Page({
         latitude: res.latitude,
         longitude: res.longitude,
         address: fallbackAddress,
-        battery: this.data.location.battery,
         distance: this.data.location.distance
       })
 

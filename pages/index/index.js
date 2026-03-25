@@ -1,6 +1,7 @@
 // pages/index/index.js
 const app = getApp()
 const { locationAPI, alertsAPI, statsAPI, sosAPI } = require('../../utils/api')
+const amap = require('../../utils/amap')
 
 Page({
   data: {
@@ -14,11 +15,11 @@ Page({
     statusText: '安全范围内',
     stats: {
       distance: 0,
-      battery: 0,
       alerts: 0,
       aiChats: 0
     },
-    recentAlerts: []
+    recentAlerts: [],
+    locating: false
   },
 
   onLoad() {
@@ -60,7 +61,6 @@ Page({
         this.setData({
           currentLocation: loc,
           'stats.distance': d.distance,
-          'stats.battery':  d.battery,
           'stats.alerts':   d.unreadAlerts,
           'stats.aiChats':  d.chatCount
         })
@@ -157,6 +157,118 @@ Page({
     } catch (e) {
       wx.hideLoading()
       wx.showToast({ title: 'SOS 发送失败，请重试', icon: 'none' })
+    }
+  },
+
+  // 老人端重新定位 - 使用高德API解析地址并上报
+  async refreshLocation() {
+    if (this.data.locating) return
+    this.setData({ locating: true })
+
+    try {
+      const hasPermission = await this._ensureLocationPermission()
+      if (!hasPermission) {
+        this.setData({ locating: false })
+        return
+      }
+
+      console.log('[定位] 开始获取位置...')
+      const res = await this._getWxLocation('gcj02')
+      console.log('[定位] wx.getLocation 成功:', res)
+
+      let address = '当前位置'
+      try {
+        console.log('[定位] 调用高德逆地理编码...')
+        const addrDetail = await amap.regeoDetail(res.latitude, res.longitude)
+        console.log('[定位] 高德解析结果:', addrDetail)
+        if (addrDetail.formatted) address = addrDetail.formatted
+      } catch (e) {
+        console.error('[定位] 高德解析失败:', e)
+      }
+
+      console.log('[定位] 上报位置到后端...', { latitude: res.latitude, longitude: res.longitude, address })
+      const updateRes = await locationAPI.updateLocation({
+        latitude: res.latitude,
+        longitude: res.longitude,
+        address: address,
+        distance: this.data.stats.distance
+      })
+      console.log('[定位] 后端响应:', updateRes)
+
+      if (updateRes.code === 0) {
+        const loc = updateRes.data
+        app.globalData.currentLocation = loc
+        this.setData({
+          currentLocation: loc,
+          'stats.distance': loc.distance || 0
+        })
+        this._updateStatusTag(loc.status)
+        wx.showToast({ title: '位置已更新', icon: 'success' })
+      } else {
+        console.error('[定位] 后端返回错误:', updateRes)
+        wx.showToast({ title: '上报失败: ' + (updateRes.msg || '未知错误'), icon: 'none' })
+      }
+    } catch (e) {
+      console.error('[定位] 整体流程失败:', e)
+      wx.showToast({ title: '定位失败: ' + (e.message || '请检查权限'), icon: 'none' })
+    } finally {
+      this.setData({ locating: false })
+    }
+  },
+
+  _getWxLocation(type = 'gcj02') {
+    return new Promise((resolve, reject) => {
+      wx.getLocation({ type, success: resolve, fail: reject })
+    })
+  },
+
+  async _ensureLocationPermission() {
+    try {
+      const settingRes = await new Promise((resolve, reject) => {
+        wx.getSetting({ success: resolve, fail: reject })
+      })
+      const auth = settingRes.authSetting['scope.userLocation']
+
+      if (auth === true) return true
+
+      if (auth === undefined) {
+        try {
+          await new Promise((resolve, reject) => {
+            wx.authorize({ scope: 'scope.userLocation', success: resolve, fail: reject })
+          })
+          return true
+        } catch (e) {
+          wx.showModal({
+            title: '需要位置权限',
+            content: '定位功能需要获取位置信息，请允许定位授权后重试。',
+            showCancel: false
+          })
+          return false
+        }
+      }
+
+      return await new Promise((resolve) => {
+        wx.showModal({
+          title: '定位权限未开启',
+          content: '请在设置中开启位置权限，才能使用重新定位。',
+          confirmText: '去设置',
+          cancelText: '取消',
+          success: async (res) => {
+            if (!res.confirm) return resolve(false)
+            try {
+              const openRes = await new Promise((resolve, reject) => {
+                wx.openSetting({ success: resolve, fail: reject })
+              })
+              resolve(openRes.authSetting['scope.userLocation'] === true)
+            } catch (e) {
+              resolve(false)
+            }
+          }
+        })
+      })
+    } catch (e) {
+      wx.showToast({ title: '无法检查定位权限', icon: 'none' })
+      return false
     }
   }
 })

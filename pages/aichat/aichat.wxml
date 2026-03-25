@@ -63,6 +63,7 @@
       <input
         class="text-input"
         placeholder="{{role === 'elderly' ? '说点什么...' : '发送提醒给老人'}}"
+        placeholder-style="color:#94a3b8;font-size:28rpx;"
         value="{{inputText}}"
         bindinput="onInput"
         confirm-type="send"

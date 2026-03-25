@@ -5,6 +5,8 @@ const express = require('express')
 const cors = require('cors')
 const http = require('http')
 const WebSocket = require('ws')
+const path = require('path')
+const fs = require('fs')
 
 const authRouter      = require('./routes/auth')
 const locationRouter  = require('./routes/location')
@@ -20,11 +22,17 @@ const server = http.createServer(app)
 const wss    = new WebSocket.Server({ server })
 
 const PORT = process.env.PORT || 3000
+const uploadsDir = path.join(__dirname, 'uploads')
+
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+}
 
 // ── 中间件 ──────────────────────────────────────────
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+app.use('/uploads', express.static(uploadsDir))
 
 // 简单请求日志
 app.use((req, res, next) => {
@@ -59,9 +67,7 @@ app.get('/api/stats', (req, res) => {
       unreadAlerts: store.alerts.filter(a => !a.read).length,
       totalAlerts:  store.alerts.length,
       chatCount:    store.chatHistory.filter(m => m.role === 'user').length,
-      location:     store.location,
-      battery:      store.location.battery,
-      distance:     store.location.distance
+      location:     store.location
     }
   })
 })

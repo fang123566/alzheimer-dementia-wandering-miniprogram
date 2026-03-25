@@ -40,7 +40,7 @@
     <textarea
       class="text-area"
       placeholder="或在此输入文字…"
-      placeholder-class="ph"
+      placeholder-style="color:#94a3b8;font-size:28rpx;"
       value="{{inputText}}"
       bindinput="onInput"
       maxlength="200"

@@ -8,6 +8,7 @@
     "pages/aichat/aichat",
     "pages/dialect/dialect",
     "pages/memory/memory",
+    "pages/memory/detail/detail",
     "pages/binding/binding",
     "pages/settings/settings"
   ],

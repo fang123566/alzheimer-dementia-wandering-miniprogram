@@ -110,6 +110,21 @@
 .e-loc-info { flex: 1; }
 .e-loc-addr { display: block; font-size: 28rpx; color: var(--text); font-weight: 600; }
 .e-loc-status { display: block; font-size: 22rpx; color: var(--text-dim); margin-top: 4rpx; }
+.e-loc-refresh-btn {
+  margin-top: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  border-radius: var(--radius-sm);
+  padding: 22rpx 0;
+}
+.e-loc-refresh-btn.disabled {
+  opacity: 0.6;
+}
+.e-loc-refresh-icon { font-size: 28rpx; }
+.e-loc-refresh-text { font-size: 28rpx; color: #ffffff; font-weight: 600; }
 
 /* 设备状态行 */
 .e-device-row {

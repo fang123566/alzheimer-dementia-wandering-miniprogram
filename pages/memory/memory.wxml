@@ -1,46 +1,158 @@
 <!-- pages/memory/memory.wxml -->
 <!-- 记忆相册 -->
 
-<view class="container">
+<view class="page-wrap">
+
+  <!-- 顶部标题 -->
   <view class="page-header">
     <text class="page-title">📸 记忆相册</text>
-    <text class="page-subtitle">家庭照片 · 人脸标注 · AI 记忆辅助</text>
+    <text class="page-subtitle">家庭照片 · 人物标注 · AI 记忆辅助</text>
   </view>
 
-  <!-- 家庭成员快捷标注 -->
+  <!-- 统计栏 -->
+  <view class="stats-row">
+    <view class="stat-item">
+      <text class="stat-num">{{photos.length}}</text>
+      <text class="stat-label">张照片</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-num">{{members.length - 1}}</text>
+      <text class="stat-label">位家人</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-num">{{memoryHints.length}}</text>
+      <text class="stat-label">条提示</text>
+    </view>
+  </view>
+
+  <!-- 家庭成员栏 -->
+  <view class="section-title-row">
+    <text class="section-title">👨‍👩‍👧 家庭成员</text>
+    <text class="section-link" bindtap="showAddMember">＋ 添加</text>
+  </view>
   <scroll-view class="member-bar" scroll-x>
     <view
       wx:for="{{members}}" wx:key="id"
       class="member-chip {{activeMember === item.id ? 'active' : ''}}"
       bindtap="filterByMember" data-id="{{item.id}}"
+      bindlongpress="manageMember" data-member="{{item}}"
     >
-      <image class="member-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+      <view class="member-avatar-wrap">
+        <text class="member-avatar-emoji">{{item.id === 'all' ? '📋' : '👤'}}</text>
+      </view>
       <text class="member-name">{{item.name}}</text>
+      <text class="member-relation" wx:if="{{item.relation}}">{{item.relation}}</text>
     </view>
   </scroll-view>
 
+  <!-- 相册区域 -->
+  <view class="section-title-row">
+    <text class="section-title">🖼️ 记忆内容</text>
+    <text class="section-link" bindtap="addPhoto">＋ 添加图片/视频</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{photos.length === 0}}">
+    <text class="empty-icon">📷</text>
+    <text class="empty-title">还没有记忆内容</text>
+    <text class="empty-desc">添加照片、视频、故事和语音记忆，帮助老人回忆美好时光</text>
+    <view class="empty-btn" bindtap="addPhoto">
+      <text>＋ 添加第一条记忆</text>
+    </view>
+  </view>
+
   <!-- 相册网格 -->
-  <view class="photo-grid">
-    <view wx:for="{{photos}}" wx:key="id" class="photo-item" bindtap="viewPhoto" data-id="{{item.id}}">
-      <image class="photo-img" src="{{item.thumb}}" mode="aspectFill"/>
-      <view class="photo-caption" wx:if="{{item.caption}}">
-        <text class="caption-text">{{item.caption}}</text>
+  <view class="photo-grid" wx:else>
+    <view wx:for="{{photos}}" wx:key="id" class="photo-item"
+      bindtap="showPhotoDetail" data-id="{{item.id}}"
+      bindlongpress="showPhotoActions" data-id="{{item.id}}"
+    >
+      <image class="photo-img" src="{{item.thumb || '/images/photo-placeholder.png'}}" mode="aspectFill"/>
+      <view class="media-type-badge {{item.type === 'video' ? 'video' : 'image'}}">{{item.type === 'video' ? '视频' : '照片'}}</view>
+      <view class="photo-overlay">
+        <text class="photo-caption-text">{{item.caption || '未命名'}}</text>
+        <text class="photo-date">{{item.createdAt}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 添加照片按钮 -->
-  <view class="add-photo-btn" bindtap="addPhoto">
-    <text class="add-icon">＋</text>
-    <text class="add-text">添加照片 / 录制语音记忆</text>
+  <!-- AI 记忆提示 -->
+  <view class="section-title-row">
+    <text class="section-title">🧠 AI 记忆提示</text>
+  </view>
+  <view class="hints-list">
+    <view wx:for="{{memoryHints}}" wx:key="id" class="hint-card">
+      <text class="hint-emoji">💡</text>
+      <view class="hint-body">
+        <text class="hint-content">{{item.text}}</text>
+      </view>
+    </view>
+    <view class="hint-empty" wx:if="{{memoryHints.length === 0}}">
+      <text class="hint-empty-text">暂无记忆提示</text>
+    </view>
   </view>
 
-  <!-- 记忆提示卡（AI生成） -->
-  <view class="card memory-hint-card">
-    <text class="card-title">🤖 AI 今日记忆提示</text>
-    <view wx:for="{{memoryHints}}" wx:key="id" class="hint-item">
-      <text class="hint-icon">💬</text>
-      <text class="hint-text">{{item.text}}</text>
+  <!-- ═══ 照片编辑弹窗 ═══ -->
+  <view class="modal-mask" wx:if="{{showPhotoEditModal}}" bindtap="hidePhotoEditModal">
+    <view class="modal-content modal-wide" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">{{editingPhoto ? '编辑记忆' : '添加记忆'}}</text>
+        <text class="modal-close" bindtap="hidePhotoEditModal">×</text>
+      </view>
+      <view class="modal-body">
+        <view class="form-field">
+          <text class="form-label">照片描述</text>
+          <input class="form-input" placeholder="如：全家去旅游，2020年"
+            placeholder-style="color:#94a3b8;font-size:28rpx;"
+            value="{{photoForm.caption}}" bindinput="onPhotoCaptionInput" />
+        </view>
+        <view class="form-field">
+          <text class="form-label">关联家人（点选）</text>
+          <view class="tag-select">
+            <view wx:for="{{selectableMembers}}" wx:key="id"
+              class="tag-option {{item.selected ? 'tag-selected' : ''}}"
+              bindtap="togglePhotoMember" data-id="{{item.id}}"
+            >
+              <text>{{item.name}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="btn btn-secondary" bindtap="hidePhotoEditModal">取消</view>
+        <view class="btn btn-primary" bindtap="savePhotoEdit">保存</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ═══ 添加/编辑成员弹窗 ═══ -->
+  <view class="modal-mask" wx:if="{{showMemberModal}}" bindtap="hideMemberModal">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">{{editingMember ? '编辑家人' : '添加家人'}}</text>
+        <text class="modal-close" bindtap="hideMemberModal">×</text>
+      </view>
+      <view class="modal-body">
+        <view class="form-field">
+          <text class="form-label">姓名</text>
+          <input class="form-input" placeholder="请输入姓名"
+            placeholder-style="color:#94a3b8;font-size:28rpx;"
+            value="{{memberForm.name}}" bindinput="onMemberNameInput" />
+        </view>
+        <view class="form-field">
+          <text class="form-label">关系</text>
+          <input class="form-input" placeholder="如：儿子、女儿、孙子"
+            placeholder-style="color:#94a3b8;font-size:28rpx;"
+            value="{{memberForm.relation}}" bindinput="onMemberRelationInput" />
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="btn btn-secondary" bindtap="hideMemberModal">取消</view>
+        <view class="btn btn-primary" bindtap="saveMember">保存</view>
+      </view>
+      <view class="modal-delete" wx:if="{{editingMember}}">
+        <text class="delete-text" bindtap="deleteMember">删除此家人</text>
+      </view>
     </view>
   </view>
 
