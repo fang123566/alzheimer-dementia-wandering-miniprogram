@@ -8,6 +8,7 @@ const authAPI = {
   login:    (phone, password)       => http.post('/auth/login',    { phone, password }),
   register: (name, phone, password, role) => http.post('/auth/register', { name, phone, password, role }),
   logout:   ()                      => http.post('/auth/logout'),
+  cancelAccount: ()                 => http.delete('/auth/account'),
   profile:  ()                      => http.get('/auth/profile')
 }
 

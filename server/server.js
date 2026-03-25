@@ -16,6 +16,7 @@ const memoryRouter    = require('./routes/memory')
 const settingsRouter  = require('./routes/settings')
 const sosRouter       = require('./routes/sos')
 const store           = require('./data/store')
+const { initDb, dbPath } = require('./db')
 
 const app    = express()
 const server = http.createServer(app)
@@ -133,11 +134,19 @@ setInterval(() => {
 }, 30000)
 
 // ── 启动 ─────────────────────────────────────────────
-server.listen(PORT, () => {
-  console.log(`\n✅  守护·陪伴后端服务已启动`)
-  console.log(`   HTTP:  http://localhost:${PORT}/api/health`)
-  console.log(`   WS:    ws://localhost:${PORT}`)
-  console.log(`   环境:  开发模式 (内存数据)\n`)
-})
+initDb()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`\n✅  守护·陪伴后端服务已启动`)
+      console.log(`   HTTP:  http://localhost:${PORT}/api/health`)
+      console.log(`   WS:    ws://localhost:${PORT}`)
+      console.log(`   DB:    ${dbPath}`)
+      console.log(`   环境:  开发模式 (SQLite + 本地文件)\n`)
+    })
+  })
+  .catch((err) => {
+    console.error('数据库初始化失败:', err.message)
+    process.exit(1)
+  })
 
 module.exports = { app, server }

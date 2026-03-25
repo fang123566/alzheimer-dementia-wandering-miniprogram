@@ -120,10 +120,4 @@
 
 </view>
 
-<!-- 演示账号提示 -->
-<view class="demo-tip">
-  <text class="demo-text">演示账号（家属）：138xxxxx01 / 123456</text>
-  <text class="demo-text">演示账号（老人）：139xxxxx01 / 123456</text>
-</view>
-
 </view>

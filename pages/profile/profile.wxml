@@ -41,14 +41,14 @@
       <view class="elderly-row">
         <view class="elderly-avatar-wrap"><text class="elderly-avatar">👴</text></view>
         <view class="elderly-info">
-          <text class="elderly-name">{{elderlyInfo.name}}</text>
-          <text class="elderly-meta">{{elderlyInfo.age}} 岁 · 设备已绑定</text>
+          <text class="elderly-name">{{elderlyInfo.name || '暂未绑定老人账号'}}</text>
+          <text class="elderly-meta">{{binding ? ((elderlyInfo.age || '--') + ' 岁 · 设备已绑定') : '请先前往账号关联页面完成绑定'}}</text>
         </view>
-        <view class="status-dot {{locationStatus}}"></view>
+        <view class="status-dot {{binding ? locationStatus : 'warning'}}"></view>
       </view>
       <view class="elderly-location">
         <text class="location-icon">📍</text>
-        <text class="location-text">{{currentLocation.address || '获取中…'}}</text>
+        <text class="location-text">{{binding ? (currentLocation.address || '获取中…') : '绑定后可查看老人的实时位置'}}</text>
       </view>
     </view>
 
@@ -84,6 +84,11 @@
 
     <view class="section-title">账号</view>
     <view class="menu-group">
+      <view class="menu-row" bindtap="cancelAccount">
+        <text class="menu-icon">🧾</text>
+        <text class="menu-label-red">注销账号</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <view class="menu-row" bindtap="logout">
         <text class="menu-icon">🚪</text>
         <text class="menu-label-red">退出登录</text>
@@ -178,6 +183,10 @@
     </view>
 
     <!-- 退出 -->
+    <view class="e-logout-btn e-cancel-btn" bindtap="cancelAccount">
+      <text class="e-logout-text">注销账号</text>
+    </view>
+
     <view class="e-logout-btn" bindtap="logout">
       <text class="e-logout-text">退出登录</text>
     </view>
