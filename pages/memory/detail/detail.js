@@ -20,18 +20,29 @@ Page({
     storyDraft: '',
     editingVoiceText: false,
     voiceTextDraft: '',
-    recording: false
+    recording: false,
+    voiceLoading: false,
+    playingVoice: false
   },
 
   onLoad(options) {
     if (!getApp().checkLogin()) return
     this.audio = wx.createInnerAudioContext()
+    this.audio.obeyMuteSwitch = false
+    this.audio.onPlay(() => this.setData({ playingVoice: true }))
+    this.audio.onStop(() => this.setData({ playingVoice: false }))
+    this.audio.onEnded(() => this.setData({ playingVoice: false }))
+    this.audio.onError(() => {
+      this.setData({ playingVoice: false })
+      wx.showToast({ title: '语音播放失败', icon: 'none' })
+    })
     this.setData({ id: options.id || '' })
     this._bindRecorder()
     this._fetchDetail()
   },
 
   onUnload() {
+    recorderManager.stop()
     if (this.audio) {
       this.audio.stop()
       this.audio.destroy()
@@ -47,19 +58,23 @@ Page({
     recorderManager.onStop(async (res) => {
       const duration = Math.max(1, Math.round((res.duration || 0) / 1000))
       try {
+        this.setData({ voiceLoading: true })
         const uploadRes = await memoryAPI.uploadMedia(res.tempFilePath, 'audio')
         await memoryAPI.updatePhoto(this.data.id, {
           voiceNote: {
+            id: this.data.memory.voiceNote?.id || '',
             url: uploadRes.data.url,
             duration,
-            text: this.data.memory.voiceNote?.text || this.data.voiceTextDraft || ''
+            text: this.data.memory.voiceNote?.text || this.data.voiceTextDraft || '',
+            createdAt: this.data.memory.voiceNote?.createdAt || new Date().toISOString()
           }
         })
-        this.setData({ recording: false })
+        this.setData({ recording: false, voiceLoading: false })
         wx.showToast({ title: '语音已保存', icon: 'success' })
-        this._fetchDetail()
+        await this._fetchVoiceNote()
+        await this._fetchDetail()
       } catch (e) {
-        this.setData({ recording: false })
+        this.setData({ recording: false, voiceLoading: false })
         wx.showToast({ title: '语音保存失败', icon: 'none' })
       }
     })
@@ -99,8 +114,28 @@ Page({
         storyDraft: memory.story || '',
         voiceTextDraft: memory.voiceNote?.text || ''
       })
+      await this._fetchVoiceNote(false)
     } catch (e) {
       wx.showToast({ title: e.message || '加载失败', icon: 'none' })
+    }
+  },
+
+  async _fetchVoiceNote(showError = true) {
+    try {
+      const res = await memoryAPI.getVoiceNote(this.data.id)
+      if (res.code !== 0) throw new Error(res.msg || '语音加载失败')
+      const voiceNote = {
+        ...(res.data || {}),
+        url: toAbsoluteUrl(res.data?.url || '')
+      }
+      this.setData({
+        'memory.voiceNote': voiceNote,
+        voiceTextDraft: voiceNote.text || this.data.voiceTextDraft || ''
+      })
+    } catch (e) {
+      if (showError) {
+        wx.showToast({ title: e.message || '语音加载失败', icon: 'none' })
+      }
     }
   },
 
@@ -123,11 +158,10 @@ Page({
     try {
       wx.showLoading({ title: '保存中…' })
       await memoryAPI.updatePhoto(this.data.id, { story: this.data.storyDraft })
-      this.setData({ editingStory: false })
+      this.setData({ editingStory: false, 'memory.story': this.data.storyDraft })
       wx.showToast({ title: '故事已保存', icon: 'success' })
-      this._fetchDetail()
     } catch (e) {
-      wx.showToast({ title: '保存失败', icon: 'none' })
+      wx.showToast({ title: e.message || '保存失败', icon: 'none' })
     } finally {
       wx.hideLoading()
     }
@@ -144,6 +178,22 @@ Page({
     this.setData({ voiceTextDraft: e.detail.value })
   },
 
+  toggleRecordVoice() {
+    if (this.data.voiceLoading) return
+    if (this.data.recording) {
+      recorderManager.stop()
+      return
+    }
+    recorderManager.start({
+      duration: 60000,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 96000,
+      format: 'mp3'
+    })
+    this.setData({ recording: true })
+  },
+
   cancelVoiceTextEdit() {
     this.setData({ editingVoiceText: false, voiceTextDraft: this.data.memory.voiceNote?.text || '' })
   },
@@ -153,9 +203,11 @@ Page({
       wx.showLoading({ title: '保存中…' })
       await memoryAPI.updatePhoto(this.data.id, {
         voiceNote: {
+          id: this.data.memory.voiceNote?.id || '',
           url: this.data.memory.voiceNote?.url || '',
           duration: this.data.memory.voiceNote?.duration || 0,
-          text: this.data.voiceTextDraft
+          text: this.data.voiceTextDraft,
+          createdAt: this.data.memory.voiceNote?.createdAt || ''
         }
       })
       this.setData({ editingVoiceText: false })
@@ -168,46 +220,49 @@ Page({
     }
   },
 
-  async toggleRecordVoice() {
-    if (this.data.recording) {
-      recorderManager.stop()
-      return
-    }
-
-    try {
-      const setting = await new Promise((resolve, reject) => {
-        wx.getSetting({ success: resolve, fail: reject })
-      })
-
-      if (!setting.authSetting['scope.record']) {
-        await new Promise((resolve, reject) => {
-          wx.authorize({ scope: 'scope.record', success: resolve, fail: reject })
-        })
-      }
-
-      recorderManager.start({
-        duration: 60000,
-        format: 'mp3'
-      })
-      this.setData({ recording: true })
-      wx.showToast({ title: '开始录音', icon: 'none' })
-    } catch (e) {
-      wx.showModal({
-        title: '需要录音权限',
-        content: '请先开启麦克风权限后再录制语音记忆。',
-        showCancel: false
-      })
-    }
-  },
-
   playVoice() {
     const url = this.data.memory.voiceNote?.url
     if (!url) {
       wx.showToast({ title: '暂无语音记忆', icon: 'none' })
       return
     }
+    if (this.data.playingVoice) {
+      this.audio.stop()
+      return
+    }
     this.audio.src = url
     this.audio.play()
+  },
+
+  async deleteVoice() {
+    if (!this.data.memory.voiceNote?.url) {
+      wx.showToast({ title: '暂无可删除的语音', icon: 'none' })
+      return
+    }
+    const res = await wx.showModal({
+      title: '删除语音',
+      content: '确定删除这段语音记忆吗？删除后无法恢复。',
+      confirmText: '删除',
+      confirmColor: '#ff5c5c'
+    })
+    if (!res.confirm) return
+    try {
+      wx.showLoading({ title: '删除中…' })
+      if (this.data.playingVoice) this.audio.stop()
+      await memoryAPI.deleteVoiceNote(this.data.id)
+      this.setData({
+        'memory.voiceNote': { id: '', url: '', duration: 0, text: '', createdAt: '' },
+        voiceTextDraft: '',
+        playingVoice: false,
+        editingVoiceText: false
+      })
+      wx.showToast({ title: '语音已删除', icon: 'success' })
+      await this._fetchDetail()
+    } catch (e) {
+      wx.showToast({ title: e.message || '删除失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   async deleteMemory() {

@@ -26,6 +26,24 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
+function removeUploadedFile(fileUrl) {
+  if (!fileUrl || typeof fileUrl !== 'string' || !fileUrl.startsWith('/uploads/')) return
+  const filePath = path.join(__dirname, '..', fileUrl.replace(/^\/uploads\//, 'uploads/'))
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath)
+  }
+}
+
+function normalizeVoiceNote(voiceNote = {}, fallback = {}) {
+  return {
+    id: voiceNote?.id || fallback?.id || '',
+    url: voiceNote?.url !== undefined ? voiceNote.url : (fallback?.url || ''),
+    duration: voiceNote?.duration !== undefined ? voiceNote.duration : (fallback?.duration || 0),
+    text: voiceNote?.text !== undefined ? voiceNote.text : (fallback?.text || ''),
+    createdAt: voiceNote?.createdAt || fallback?.createdAt || ''
+  }
+}
+
 // POST /api/memory/upload — 上传媒体文件
 router.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ code: 1, msg: '未接收到文件' })
@@ -69,11 +87,13 @@ router.post('/photos', (req, res) => {
     cover: cover || thumb || '',
     caption: caption || '',
     story: story || '',
-    voiceNote: {
-      url: voiceNote?.url || '',
-      duration: voiceNote?.duration || 0,
-      text: voiceNote?.text || ''
-    },
+    voiceNote: normalizeVoiceNote(voiceNote, {
+      id: '',
+      url: '',
+      duration: 0,
+      text: '',
+      createdAt: ''
+    }),
     members: members || [],
     location: location || '',
     createdAt: createdAt || new Date().toISOString()
@@ -94,11 +114,21 @@ router.put('/photos/:id', (req, res) => {
   if (caption !== undefined) photo.caption = caption
   if (story !== undefined) photo.story = story
   if (voiceNote !== undefined) {
-    photo.voiceNote = {
-      url: voiceNote?.url !== undefined ? voiceNote.url : (photo.voiceNote?.url || ''),
-      duration: voiceNote?.duration !== undefined ? voiceNote.duration : (photo.voiceNote?.duration || 0),
-      text: voiceNote?.text !== undefined ? voiceNote.text : (photo.voiceNote?.text || '')
+    const nextVoiceNote = normalizeVoiceNote(voiceNote, photo.voiceNote)
+    if (photo.voiceNote?.url && nextVoiceNote.url !== photo.voiceNote.url) {
+      removeUploadedFile(photo.voiceNote.url)
     }
+    if (!nextVoiceNote.url) {
+      nextVoiceNote.id = ''
+      nextVoiceNote.createdAt = ''
+    }
+    if (nextVoiceNote.url && !nextVoiceNote.createdAt) {
+      nextVoiceNote.createdAt = new Date().toISOString()
+    }
+    if (nextVoiceNote.url && !nextVoiceNote.id) {
+      nextVoiceNote.id = `vn_${photo.id}_${Date.now()}`
+    }
+    photo.voiceNote = nextVoiceNote
   }
   if (members !== undefined) photo.members = members
   if (location !== undefined) photo.location = location
@@ -106,11 +136,30 @@ router.put('/photos/:id', (req, res) => {
   res.json({ code: 0, data: photo })
 })
 
+// GET /api/memory/photos/:id/voice — 获取单条记忆的语音信息
+router.get('/photos/:id/voice', (req, res) => {
+  const photo = store.photos.find(p => p.id === parseInt(req.params.id))
+  if (!photo) return res.status(404).json({ code: 1, msg: '记忆内容不存在' })
+  res.json({ code: 0, data: normalizeVoiceNote(photo.voiceNote) })
+})
+
+// DELETE /api/memory/photos/:id/voice — 删除单条记忆的语音信息
+router.delete('/photos/:id/voice', (req, res) => {
+  const photo = store.photos.find(p => p.id === parseInt(req.params.id))
+  if (!photo) return res.status(404).json({ code: 1, msg: '记忆内容不存在' })
+  if (!photo.voiceNote?.url) return res.status(404).json({ code: 1, msg: '当前没有语音记忆' })
+
+  removeUploadedFile(photo.voiceNote.url)
+  photo.voiceNote = normalizeVoiceNote()
+  res.json({ code: 0, msg: '语音记忆已删除', data: photo.voiceNote })
+})
+
 // DELETE /api/memory/photos/:id — 删除记忆媒体
 router.delete('/photos/:id', (req, res) => {
   const id = parseInt(req.params.id)
   const idx = store.photos.findIndex(p => p.id === id)
   if (idx === -1) return res.status(404).json({ code: 1, msg: '记忆内容不存在' })
+  removeUploadedFile(store.photos[idx]?.voiceNote?.url)
   store.photos.splice(idx, 1)
   res.json({ code: 0, msg: '已删除' })
 })

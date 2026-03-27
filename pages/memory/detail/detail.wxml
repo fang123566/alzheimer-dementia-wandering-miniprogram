@@ -39,10 +39,14 @@
     <text class="voice-text">{{voiceTextDraft || memory.voiceNote.text || '还没有语音记忆，可以录一段声音帮助老人回忆。'}}</text>
     <textarea wx:if="{{editingVoiceText}}" class="story-textarea" value="{{voiceTextDraft}}" bindinput="onVoiceTextInput" maxlength="300" placeholder="可填写语音记忆的文字内容…" placeholder-style="color:#94a3b8;font-size:28rpx;" />
     <view class="voice-actions">
-      <view class="voice-btn record {{recording ? 'recording' : ''}}" bindtap="toggleRecordVoice">{{recording ? '结束录音' : '录制语音'}}</view>
-      <view class="voice-btn play {{!memory.voiceNote.url ? 'disabled' : ''}}" bindtap="playVoice">播放语音</view>
+      <view class="voice-btn record {{recording ? 'recording' : ''}} {{voiceLoading ? 'disabled' : ''}}" bindtap="toggleRecordVoice">{{voiceLoading ? '保存中…' : (recording ? '结束录音' : '录制语音')}}</view>
+      <view class="voice-btn play {{!memory.voiceNote.url ? 'disabled' : ''}}" bindtap="playVoice">{{playingVoice ? '停止播放' : '播放语音'}}</view>
     </view>
     <text class="voice-meta" wx:if="{{memory.voiceNote.duration}}">语音时长：{{memory.voiceNote.duration}} 秒</text>
+    <text class="voice-meta" wx:if="{{memory.voiceNote.createdAt}}">保存时间：{{memory.voiceNote.createdAt}}</text>
+    <view class="action-row" wx:if="{{memory.voiceNote.url}}">
+      <view class="action-btn danger ghost-danger" bindtap="deleteVoice">删除语音</view>
+    </view>
     <view class="action-row" wx:if="{{editingVoiceText}}">
       <view class="action-btn ghost" bindtap="cancelVoiceTextEdit">取消</view>
       <view class="action-btn primary" bindtap="saveVoiceText">保存文字</view>

@@ -60,12 +60,16 @@ const memoryAPI = {
   getPhotos:    (member) => http.get('/memory/photos', member ? { member } : {}),
   // 获取单条记忆详情
   getPhoto:     (id)     => http.get(`/memory/photos/${id}`),
+  // 获取语音记忆详情
+  getVoiceNote: (id)     => http.get(`/memory/photos/${id}/voice`),
   // 上传媒体文件
   uploadMedia:  (filePath, mediaType) => http.upload('/memory/upload', filePath, 'file', { mediaType }, true),
   // 新增照片
   addPhoto:     (data)   => http.post('/memory/photos', data),
   // 更新照片说明/标注
   updatePhoto:  (id, d)  => http.put(`/memory/photos/${id}`, d),
+  // 删除语音记忆
+  deleteVoiceNote: (id)  => http.delete(`/memory/photos/${id}/voice`),
   // 删除照片
   deletePhoto:  (id)     => http.delete(`/memory/photos/${id}`),
   // 家庭成员
