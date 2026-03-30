@@ -2,12 +2,166 @@
 
 .page {
   min-height: 100vh;
-  background: var(--ink);
+  /* 与山水背景图的顶部底色更接近，减少“割裂感” */
+  background: #f0f2f1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 80rpx 48rpx 60rpx;
+  padding: 120rpx 48rpx 60rpx;
   box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── 背景装饰 ─────────────────────────────── */
+.bg-decoration {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 560rpx;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 使用图片作为背景山水（替代原先的 CSS 山峦） */
+.bg-mountain-img {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* 隐藏原先 CSS 山峦层，避免叠加发丑 */
+.mountain-wave-1,
+.mountain-wave-2,
+.mountain-wave-3,
+.mountain-curve-1,
+.mountain-curve-2,
+.mountain-curve-3,
+.mountain-gold-edge,
+.mountain-grain {
+  display: none;
+}
+
+/* 波浪形山峦（参考你给的 HTML：远景淡色波纹 + 三层旋转大波浪 + 金线） */
+.mountain-wave-1 {
+  position: absolute;
+  top: 60rpx;
+  left: -10%;
+  width: 120%;
+  height: 230rpx;
+  z-index: 1;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a8e3d0 0%, #73b8a3 50%, #4a9d8c 100%);
+  transform: rotate(-3deg);
+  opacity: 0.9;
+  filter: blur(0.6rpx);
+}
+
+.mountain-wave-2 {
+  position: absolute;
+  top: 140rpx;
+  left: -10%;
+  width: 120%;
+  height: 230rpx;
+  z-index: 2;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #86c7b3 0%, #5aa897 50%, #368a7a 100%);
+  transform: rotate(2deg);
+  opacity: 0.88;
+  filter: blur(0.8rpx);
+}
+
+.mountain-wave-3 {
+  position: absolute;
+  top: 220rpx;
+  left: -8%;
+  width: 115%;
+  height: 240rpx;
+  z-index: 3;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b4e0d0 0%, #92c9b8 50%, #6ab09f 100%);
+  transform: rotate(-1deg);
+  opacity: 1;
+  filter: blur(0.6rpx);
+}
+
+/* 近山层顶部：金线描边（纯装饰） */
+.mountain-gold-edge {
+  position: absolute;
+  top: 290rpx; /* 参考 line-3 的 55% 效果，按 bg-decoration 高度微调 */
+  left: -10%;
+  width: 120%;
+  height: 3rpx;
+  z-index: 10;
+  background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.95) 50%, transparent 100%);
+  border-radius: 999rpx;
+  filter: blur(0.1rpx);
+  opacity: 0.95;
+  transform: rotate(-0.5deg);
+}
+
+/* 起伏曲线层 */
+.mountain-curve-1 {
+  position: absolute;
+  top: 40rpx; /* far-1: 5% */
+  left: -25%;
+  width: 150%;
+  height: 110rpx;
+  z-index: 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(233, 244, 240, 0.95) 0%, rgba(215, 231, 224, 0.8) 100%);
+  opacity: 0.32;
+  filter: blur(1.8rpx);
+}
+
+.mountain-curve-2 {
+  position: absolute;
+  top: 120rpx; /* far-2: 15% */
+  left: -25%;
+  width: 150%;
+  height: 110rpx;
+  z-index: 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(229, 242, 237, 0.92) 0%, rgba(206, 224, 216, 0.78) 100%);
+  opacity: 0.28;
+  filter: blur(2.2rpx);
+}
+
+.mountain-curve-3 {
+  position: absolute;
+  top: 190rpx; /* far-3: 25% */
+  left: -25%;
+  width: 150%;
+  height: 110rpx;
+  z-index: 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(236, 247, 243, 0.9) 0%, rgba(214, 232, 222, 0.76) 100%);
+  opacity: 0.26;
+  filter: blur(2rpx);
+}
+
+/* 颗粒噪点层 */
+.mountain-grain {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 400rpx;
+  z-index: 5;
+  opacity: 0.22;
+  background-image: 
+    radial-gradient(circle at 15% 25%, rgba(255,255,255,0.12) 1px, transparent 1px),
+    radial-gradient(circle at 35% 45%, rgba(255,255,255,0.08) 1px, transparent 1px),
+    radial-gradient(circle at 55% 15%, rgba(255,255,255,0.09) 1px, transparent 1px),
+    radial-gradient(circle at 75% 55%, rgba(255,255,255,0.07) 1px, transparent 1px),
+    radial-gradient(circle at 25% 75%, rgba(255,255,255,0.08) 1px, transparent 1px),
+    radial-gradient(circle at 85% 35%, rgba(255,255,255,0.07) 1px, transparent 1px);
+  background-size: 20rpx 20rpx, 25rpx 25rpx, 30rpx 30rpx, 22rpx 22rpx, 18rpx 18rpx, 28rpx 28rpx;
+  pointer-events: none;
 }
 
 /* ── 品牌区 ─────────────────────────────── */
@@ -16,33 +170,44 @@
   flex-direction: column;
   align-items: center;
   margin-bottom: 56rpx;
+  z-index: 1;
 }
-.brand-icon  { font-size: 96rpx; margin-bottom: 16rpx; }
-.brand-name  { font-size: 52rpx; font-weight: 800; color: var(--amber); letter-spacing: 4rpx; }
-.brand-slogan{ font-size: 24rpx; color: #64748b; margin-top: 10rpx; letter-spacing: 2rpx; }
+.brand-icon  { 
+  font-size: 96rpx; 
+  margin-bottom: 16rpx; 
+  background: linear-gradient(135deg, rgba(111, 224, 201, 0.0) 0%, rgba(111, 224, 201, 0.42) 45%, rgba(26, 160, 124, 0.0) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  opacity: 1;
+  filter: blur(0.15rpx);
+}
+.brand-name  { font-size: 52rpx; font-weight: 800; color: #4a8b6e; letter-spacing: 4rpx; }
+.brand-slogan{ font-size: 24rpx; color: #6a9f85; margin-top: 10rpx; letter-spacing: 2rpx; }
 
 /* ── 模式切换 ────────────────────────────── */
 .mode-switch {
   display: flex;
-  background: var(--glass);
-  border: 1rpx solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1rpx solid rgba(76, 175, 80, 0.2);
+  border-radius: 16rpx;
   padding: 6rpx;
   margin-bottom: 40rpx;
   width: 100%;
+  z-index: 1;
 }
 .mode-btn {
   flex: 1;
   text-align: center;
   padding: 18rpx 0;
-  border-radius: 10rpx;
+  border-radius: 12rpx;
   font-size: 28rpx;
-  color: var(--text-dim);
+  color: #81c784;
   font-weight: 500;
   transition: all 0.2s;
 }
 .mode-btn.active {
-  background: var(--amber);
+  background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
   color: #ffffff;
   font-weight: 700;
 }
@@ -51,11 +216,11 @@
 .form-card {
   width: 100%;
   background: #ffffff;
-  border: 1rpx solid #e2e8f0;
-  border-radius: var(--radius);
-  padding: 40rpx 36rpx 36rpx;
+  border-radius: 32rpx;
+  padding: 48rpx 40rpx 40rpx;
   box-sizing: border-box;
-  box-shadow: 0 4rpx 16rpx rgba(15,23,42,0.06);
+  box-shadow: 0 8rpx 32rpx rgba(76, 175, 80, 0.15);
+  z-index: 1;
 }
 
 /* ── 输入字段 ────────────────────────────── */
@@ -65,36 +230,36 @@
 .field-label {
   display: block;
   font-size: 26rpx;
-  color: var(--text);
+  color: #4caf50;
   margin-bottom: 12rpx;
   letter-spacing: 1rpx;
   font-weight: 600;
 }
 .field-input {
   width: 100%;
-  background: #f1f5f9;
-  border: 1rpx solid #e2e8f0;
-  border-radius: var(--radius-sm);
+  background: #f8faf8;
+  border: 2rpx solid #e8f5e9;
+  border-radius: 16rpx;
   padding: 0 24rpx;
   font-size: 30rpx;
-  color: #1f2937;
+  color: #2e7d32;
   box-sizing: border-box;
   height: 96rpx;
   line-height: 96rpx;
 }
 .field-input:focus {
-  border-color: var(--amber);
+  border-color: #4caf50;
 }
-.ph { color: #94a3b8; }
+.ph { color: #333333; }
 
 /* ── 角色选择 ────────────────────────────── */
 .role-title {
   display: block;
-  font-size: 24rpx;
-  color: var(--text-dim);
+  font-size: 28rpx;
+  color: #4caf50;
   margin-bottom: 20rpx;
   margin-top: 8rpx;
-  letter-spacing: 1rpx;
+  font-weight: 500;
 }
 .role-grid {
   display: flex;
@@ -103,9 +268,9 @@
 }
 .role-card {
   flex: 1;
-  background: var(--ink-2);
-  border: 2rpx solid var(--glass-border);
-  border-radius: var(--radius);
+  background: #f8faf8;
+  border: 2rpx solid #e8f5e9;
+  border-radius: 20rpx;
   padding: 28rpx 20rpx;
   display: flex;
   flex-direction: column;
@@ -114,23 +279,23 @@
   transition: all 0.2s;
 }
 .role-card.role-active-family {
-  border-color: var(--amber);
-  background: var(--amber-pale);
+  border-color: #4caf50;
+  background: #e8f5e9;
 }
 .role-card.role-active-elderly {
-  border-color: var(--teal);
-  background: var(--teal-pale);
+  border-color: #66bb6a;
+  background: #e8f5e9;
 }
 .role-emoji { font-size: 52rpx; margin-bottom: 12rpx; }
 .role-name  {
   font-size: 28rpx;
   font-weight: 700;
-  color: var(--text);
+  color: #2e7d32;
   margin-bottom: 10rpx;
 }
 .role-desc  {
   font-size: 20rpx;
-  color: var(--text-dim);
+  color: #81c784;
   text-align: center;
   line-height: 1.5;
 }
@@ -141,8 +306,8 @@
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: var(--amber);
-  color: #0d1b2a;
+  background: #4caf50;
+  color: #ffffff;
   font-size: 22rpx;
   font-weight: 700;
   display: flex;
@@ -150,32 +315,32 @@
   justify-content: center;
 }
 .role-active-elderly .role-check {
-  background: var(--teal);
+  background: #66bb6a;
 }
 
 /* ── 错误提示 ────────────────────────────── */
 .error-tip {
-  background: var(--red-pale);
-  border: 1rpx solid rgba(255,92,92,0.25);
-  border-radius: var(--radius-sm);
+  background: #ffebee;
+  border: 1rpx solid #ffcdd2;
+  border-radius: 12rpx;
   padding: 16rpx 20rpx;
   margin-bottom: 24rpx;
 }
-.error-text { font-size: 24rpx; color: var(--red); }
+.error-text { font-size: 24rpx; color: #e53935; }
 
 /* ── 提交按钮 ────────────────────────────── */
 .submit-btn {
   width: 100%;
-  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
   color: #ffffff;
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
   text-align: center;
-  padding: 26rpx 0;
-  border-radius: var(--radius-sm);
+  padding: 32rpx 0;
+  border-radius: 50rpx;
   letter-spacing: 4rpx;
   margin-bottom: 28rpx;
-  box-shadow: 0 8rpx 24rpx rgba(245,158,11,0.25);
+  box-shadow: 0 8rpx 24rpx rgba(76, 175, 80, 0.35);
 }
 .submit-btn.disabled {
   opacity: 0.6;
@@ -185,22 +350,10 @@
 .switch-tip {
   text-align: center;
   font-size: 24rpx;
-  color: var(--text-dim);
+  color: #81c784;
 }
 .switch-link {
-  color: var(--amber);
+  color: #4caf50;
   margin-left: 8rpx;
   font-weight: 600;
-}
-
-/* ── 演示账号 ────────────────────────────── */
-.demo-tip {
-  margin-top: 48rpx;
-  text-align: center;
-}
-.demo-text {
-  display: block;
-  font-size: 20rpx;
-  color: #94a3b8;
-  line-height: 1.8;
 }
