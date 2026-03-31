@@ -42,7 +42,7 @@ Page({
         })
       }
       if (contactsRes.code === 0) {
-        this.setData({ contacts: contactsRes.data })
+        this.setData({ contacts: this._sortContacts(contactsRes.data) })
       }
       if (keywordsRes.code === 0) {
         this.setData({ fraudKeywords: keywordsRes.data })
@@ -52,10 +52,93 @@ Page({
     }
   },
 
+  _sortContacts(list = []) {
+    return (list || []).slice().sort((a, b) => (a.priority || 999999) - (b.priority || 999999))
+  },
+
+  async _refreshContacts() {
+    const r = await settingsAPI.getContacts()
+    if (r.code === 0) this.setData({ contacts: this._sortContacts(r.data) })
+    return r
+  },
+
   editContact(e) {
     const id = e.currentTarget.dataset.id
-    const contact = this.data.contacts.find(c => c.id === id)
-    wx.showToast({ title: `编辑：${contact?.name || ''}`, icon: 'none' })
+    const contact = this.data.contacts.find(c => String(c.id) === String(id))
+    if (!contact) return
+
+    const actions = ['编辑联系人信息', '设为最高优先级', '上移优先级', '下移优先级', '删除联系人']
+    wx.showActionSheet({
+      itemList: actions,
+      success: async (res) => {
+        const tap = res.tapIndex
+        try {
+          if (tap === 0) {
+            const current = [contact.name, contact.phone, contact.relation, contact.avatar].map(s => (s == null ? '' : String(s))).join(',')
+            wx.showModal({
+              title: '编辑紧急联系人',
+              editable: true,
+              content: current,
+              placeholderText: '姓名,电话,关系,头像（逗号分隔）',
+              success: async (m) => {
+                if (!m.confirm) return
+                const content = (m.content || '').trim()
+                if (!content) return
+                const parts = content.split(',').map(s => s.trim())
+                if (parts.length < 2) {
+                  wx.showToast({ title: '格式：姓名,电话,关系,头像', icon: 'none' })
+                  return
+                }
+                const name = parts[0]
+                const phone = parts[1]
+                const relation = parts[2] || contact.relation
+                const avatar = parts[3] || contact.avatar
+                if (!name || !phone || !relation) {
+                  wx.showToast({ title: '姓名/电话/关系不能为空', icon: 'none' })
+                  return
+                }
+                await settingsAPI.updateContact(contact.id, { name, phone, relation, avatar })
+                await this._refreshContacts()
+                wx.showToast({ title: '已保存', icon: 'success' })
+              }
+            })
+            return
+          }
+          if (tap === 1) {
+            await settingsAPI.updateContact(contact.id, { priority: 1 })
+            await this._refreshContacts()
+            wx.showToast({ title: '已置顶', icon: 'success' })
+            return
+          }
+          if (tap === 2) {
+            await settingsAPI.updateContact(contact.id, { priority: Math.max(1, (contact.priority || 1) - 1) })
+            await this._refreshContacts()
+            return
+          }
+          if (tap === 3) {
+            await settingsAPI.updateContact(contact.id, { priority: (contact.priority || 1) + 1 })
+            await this._refreshContacts()
+            return
+          }
+          if (tap === 4) {
+            wx.showModal({
+              title: '删除联系人',
+              content: `确认删除 ${contact.name}？`,
+              confirmText: '删除',
+              confirmColor: '#ff5c5c',
+              success: async (m) => {
+                if (!m.confirm) return
+                await settingsAPI.deleteContact(contact.id)
+                await this._refreshContacts()
+                wx.showToast({ title: '已删除', icon: 'success' })
+              }
+            })
+          }
+        } catch (err) {
+          wx.showToast({ title: err.message || '操作失败', icon: 'none' })
+        }
+      }
+    })
   },
 
   addContact() {
@@ -77,8 +160,7 @@ Page({
               relation: parts[2] || '家属',
               avatar: '👤'
             })
-            const r = await settingsAPI.getContacts()
-            if (r.code === 0) this.setData({ contacts: r.data })
+            await this._refreshContacts()
             wx.showToast({ title: '添加成功', icon: 'success' })
           } catch (e) {
             wx.showToast({ title: '添加失败', icon: 'none' })
@@ -146,8 +228,45 @@ Page({
     })
   },
 
+  editNotifyMethod() {
+    const methods = ['电话 + 推送', '仅推送', '仅电话', '短信 + 电话']
+    wx.showActionSheet({
+      itemList: methods,
+      success: async (res) => {
+        const notifyMethod = methods[res.tapIndex]
+        if (!notifyMethod) return
+        this.setData({ 'settings.notifyMethod': notifyMethod })
+        try {
+          await settingsAPI.updateSettings({ notifyMethod })
+          wx.showToast({ title: '通知方式已更新', icon: 'success' })
+        } catch (e) {
+          wx.showToast({ title: '保存失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
   editFence() {
     wx.switchTab({ url: '/pages/location/location' })
+  },
+
+  showFamilyGroupInfo() {
+    const familyName = this.data.family.name || '我的家庭组'
+    const members = this.data.family.members || 0
+    wx.showModal({
+      title: '家庭组信息',
+      content: `${familyName}\n当前共有 ${members} 名成员`,
+      showCancel: false,
+      confirmText: '知道了'
+    })
+  },
+
+  goBinding() {
+    wx.navigateTo({ url: '/pages/binding/binding' })
+  },
+
+  goReminders() {
+    wx.navigateTo({ url: '/pages/reminders/reminders' })
   },
 
   async toggleNightMode(e) {

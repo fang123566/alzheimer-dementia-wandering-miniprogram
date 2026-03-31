@@ -10,7 +10,8 @@
     "pages/memory/memory",
     "pages/memory/detail/detail",
     "pages/binding/binding",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/reminders/reminders"
   ],
   "window": {
     "backgroundTextStyle": "dark",

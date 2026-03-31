@@ -79,6 +79,19 @@
   margin-top: 12rpx;
 }
 
+.note-input {
+  width: 100%;
+  height: 80rpx;
+  box-sizing: border-box;
+  padding: 0 20rpx;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  color: var(--text);
+  background: var(--ink-2);
+  border: 1rpx solid var(--glass-border);
+  border-radius: var(--radius-sm);
+}
+
 .linked-actions {
   padding: 20rpx 28rpx;
   display: flex;
@@ -109,7 +122,7 @@
 /* ── 已绑定：关联对象卡 ──────────────────────── */
 .linked-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 24rpx;
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
@@ -122,6 +135,12 @@
 .linked-name   { display: block; font-size: 36rpx; font-weight: 700; color: var(--text); }
 .linked-role   { display: block; font-size: 22rpx; color: var(--teal); margin-top: 6rpx; }
 .linked-phone  { display: block; font-size: 22rpx; color: var(--text-dim); margin-top: 4rpx; }
+.linked-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12rpx;
+}
 .linked-badge  {
   font-size: 20rpx; padding: 8rpx 18rpx;
   border-radius: 40rpx;
