@@ -59,7 +59,7 @@
         <text class="menu-icon">🔗</text>
         <view class="menu-main">
           <text class="menu-label">账号关联</text>
-          <text class="menu-sub">{{binding ? '已关联：' + binding.linkedUser.name : '未关联老人账号'}}</text>
+          <text class="menu-sub">{{bindings.length ? ('已关联 ' + bindings.length + ' 个账号 · 最近：' + binding.linkedUser.name) : '未关联老人账号'}}</text>
         </view>
         <view class="bind-status-dot {{binding ? 'dot-bound' : 'dot-unbound'}}"></view>
         <text class="menu-arrow">›</text>
@@ -67,6 +67,11 @@
       <view class="menu-row" bindtap="goSettings">
         <text class="menu-icon">⚙️</text>
         <view class="menu-main"><text class="menu-label">基础设置</text><text class="menu-sub">联系人 · 围栏 · 方言</text></view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" bindtap="goReminders">
+        <text class="menu-icon">⏰</text>
+        <view class="menu-main"><text class="menu-label">今日提醒</text><text class="menu-sub">新增 · 编辑 · 删除 · 自动提醒</text></view>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-row" bindtap="goAlert">
@@ -129,52 +134,36 @@
     <!-- 今日提醒 -->
     <view class="e-section-title">今日提醒</view>
     <view class="e-reminder-card">
-      <view class="e-reminder-row">
-        <text class="e-reminder-icon">💊</text>
+      <view wx:for="{{reminders}}" wx:key="id" class="e-reminder-row">
+        <text class="e-reminder-icon">{{item.icon || '⏰'}}</text>
         <view class="e-reminder-info">
-          <text class="e-reminder-title">早上用药提醒</text>
-          <text class="e-reminder-time">每日 08:00</text>
+          <text class="e-reminder-title">{{item.title}}</text>
+          <text class="e-reminder-time">每日 {{item.time}}</text>
         </view>
-        <view class="e-reminder-done">已提醒</view>
-      </view>
-      <view class="e-reminder-row">
-        <text class="e-reminder-icon">🚶</text>
-        <view class="e-reminder-info">
-          <text class="e-reminder-title">下午散步时间</text>
-          <text class="e-reminder-time">每日 15:00</text>
-        </view>
-        <view class="e-reminder-pending">待提醒</view>
+        <view class="{{item.reminded ? 'e-reminder-done' : 'e-reminder-pending'}}">{{item.reminded ? '已提醒' : '未提醒'}}</view>
       </view>
     </view>
+    <view wx:if="{{reminders.length === 0}}" class="e-empty-tip">暂无今日提醒，请家属在提醒管理中设置</view>
 
     <!-- 常用功能 -->
     <view class="e-section-title">常用功能</view>
-    <view class="e-func-grid">
-      <view class="e-func-item" bindtap="goChat">
-        <text class="e-func-icon">🤖</text>
-        <text class="e-func-text">AI 陪聊</text>
+    <view class="e-contact-card" bindtap="goSettings">
+      <view class="e-contact-avatar">⚙️</view>
+      <view class="e-contact-info">
+        <text class="e-contact-name">设置</text>
+        <text class="e-contact-relation">紧急联系人 · 方言 · 围栏</text>
       </view>
-      <view class="e-func-item" bindtap="goDialect">
-        <text class="e-func-icon">🗣️</text>
-        <text class="e-func-text">方言助手</text>
-      </view>
-      <view class="e-func-item" bindtap="goMemory">
-        <text class="e-func-icon">📸</text>
-        <text class="e-func-text">记忆相册</text>
-      </view>
-      <view class="e-func-item" bindtap="goSettings">
-        <text class="e-func-icon">⚙️</text>
-        <text class="e-func-text">设置</text>
+      <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
+        <text class="e-call-icon">›</text>
+        <text class="e-call-text" style="color:var(--amber)">查看</text>
       </view>
     </view>
 
-    <!-- 账号关联入口 -->
-    <view class="e-section-title">账号</view>
     <view class="e-contact-card" bindtap="goBinding" style="margin-bottom:0">
       <view class="e-contact-avatar">🔗</view>
       <view class="e-contact-info">
         <text class="e-contact-name">账号关联</text>
-        <text class="e-contact-relation">{{binding ? '已关联家属：' + binding.linkedUser.name : '暂无家属关联'}}</text>
+        <text class="e-contact-relation">{{bindings.length ? ('已关联 ' + bindings.length + ' 个家属 · 最近：' + binding.linkedUser.name) : '暂无家属关联'}}</text>
       </view>
       <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
         <text class="e-call-icon">›</text>

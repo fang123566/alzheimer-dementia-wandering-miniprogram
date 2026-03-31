@@ -64,7 +64,7 @@
       </view>
       <text class="row-arrow">›</text>
     </view>
-    <view class="setting-row">
+    <view class="setting-row" bindtap="editNotifyMethod">
       <text class="row-icon">📳</text>
       <view class="row-main">
         <text class="row-label">通知方式</text>
@@ -90,6 +90,19 @@
     </view>
   </view>
 
+  <!-- 今日提醒 -->
+  <view class="setting-group">
+    <text class="group-title">⏰ 今日提醒</text>
+    <view class="setting-row" bindtap="goReminders">
+      <text class="row-icon">🗓️</text>
+      <view class="row-main">
+        <text class="row-label">今日提醒管理</text>
+        <text class="row-sub">新增 · 编辑 · 删除 · 完成</text>
+      </view>
+      <text class="row-arrow">›</text>
+    </view>
+  </view>
+
   <!-- 防诈关键词 -->
   <view class="setting-group">
     <text class="group-title">🛡️ 防诈关键词库</text>
@@ -102,7 +115,7 @@
   <!-- 家庭组 -->
   <view class="setting-group">
     <text class="group-title">👥 家庭组</text>
-    <view class="setting-row">
+    <view class="setting-row" bindtap="showFamilyGroupInfo">
       <text class="row-icon">🏠</text>
       <view class="row-main">
         <text class="row-label">{{family.name}}</text>
@@ -110,7 +123,7 @@
       </view>
       <text class="row-arrow">›</text>
     </view>
-    <view class="setting-row">
+    <view class="setting-row" bindtap="goBinding">
       <text class="row-icon">📱</text>
       <view class="row-main">
         <text class="row-label">老人设备绑定</text>
