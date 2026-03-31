@@ -128,5 +128,22 @@ Page({
 
   _goHome() {
     wx.reLaunch({ url: '/pages/index/index' })
+  },
+
+  // 发送验证码（登录模式）
+  sendCode() {
+    const { phone } = this.data.form
+    if (!phone || !/^1[3-9]\d{9}$/.test(phone.trim())) {
+      wx.showToast({ title: '请填写正确手机号', icon: 'none' })
+      return
+    }
+    wx.showToast({ title: '验证码已发送', icon: 'success' })
+    // TODO: 接入实际短信验证码接口
+  },
+
+  // 微信一键登录
+  wechatLogin() {
+    wx.showToast({ title: '微信登录开发中', icon: 'none' })
+    // TODO: 接入微信登录接口
   }
 })
