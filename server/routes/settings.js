@@ -3,6 +3,19 @@ const express = require('express')
 const router = express.Router()
 const store = require('../data/store')
 
+ function normalizeContacts() {
+   store.contacts
+     .sort((a, b) => {
+       const pa = Number.isFinite(a.priority) ? a.priority : 999999
+       const pb = Number.isFinite(b.priority) ? b.priority : 999999
+       if (pa !== pb) return pa - pb
+       return (a.id || 0) - (b.id || 0)
+     })
+     .forEach((c, idx) => {
+       c.priority = idx + 1
+     })
+ }
+
 // GET /api/settings — 获取全部设置
 router.get('/', (req, res) => {
   res.json({
@@ -35,6 +48,7 @@ router.put('/elderly', (req, res) => {
 
 // GET /api/settings/contacts — 获取紧急联系人
 router.get('/contacts', (req, res) => {
+  normalizeContacts()
   res.json({ code: 0, data: store.contacts })
 })
 
@@ -51,6 +65,7 @@ router.post('/contacts', (req, res) => {
     priority: priority || store.contacts.length + 1
   }
   store.contacts.push(contact)
+  normalizeContacts()
   res.json({ code: 0, data: contact })
 })
 
@@ -60,6 +75,7 @@ router.put('/contacts/:id', (req, res) => {
   if (!contact) return res.status(404).json({ code: 1, msg: '联系人不存在' })
   const fields = ['avatar', 'relation', 'name', 'phone', 'priority']
   fields.forEach(f => { if (req.body[f] !== undefined) contact[f] = req.body[f] })
+  normalizeContacts()
   res.json({ code: 0, data: contact })
 })
 
@@ -69,6 +85,7 @@ router.delete('/contacts/:id', (req, res) => {
   const idx = store.contacts.findIndex(c => c.id === id)
   if (idx === -1) return res.status(404).json({ code: 1, msg: '联系人不存在' })
   store.contacts.splice(idx, 1)
+  normalizeContacts()
   res.json({ code: 0, msg: '已删除' })
 })
 
