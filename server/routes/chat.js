@@ -2,6 +2,11 @@
 const express = require('express')
 const router = express.Router()
 const store = require('../data/store')
+const http = require('http')
+const https = require('https')
+const { URL } = require('url')
+
+const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL || 'http://127.0.0.1:5001/route'
 
 // 防诈关键词检测
 function detectFraud(text) {
@@ -17,49 +22,98 @@ function detectEmotion(text) {
   return 'calm'
 }
 
-// 生成 AI 回复（本地规则，可替换为真实 LLM API）
-function generateReply(userText, isFraud, emotion) {
-  if (isFraud) {
+function callAgentService(text, userId) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(AGENT_SERVICE_URL)
+    const payload = JSON.stringify({ text, user_id: userId })
+    const client = target.protocol === 'https:' ? https : http
+
+    const req = client.request(
+      {
+        hostname: target.hostname,
+        port: target.port,
+        path: `${target.pathname}${target.search}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        },
+        timeout: 10000
+      },
+      (res) => {
+        let body = ''
+        res.on('data', chunk => { body += chunk })
+        res.on('end', () => {
+          try {
+            if (res.statusCode < 200 || res.statusCode >= 300) {
+              return reject(new Error(`智能体服务返回异常状态: ${res.statusCode}`))
+            }
+            resolve(JSON.parse(body || '{}'))
+          } catch (error) {
+            reject(new Error('智能体服务返回数据解析失败'))
+          }
+        })
+      }
+    )
+
+    req.on('timeout', () => {
+      req.destroy(new Error('智能体服务请求超时'))
+    })
+    req.on('error', reject)
+    req.write(payload)
+    req.end()
+  })
+}
+
+function mapAgentReply(agentResult, fallbackEmotion) {
+  const intent = agentResult?.intent || 'chat'
+  if (intent === 'fraud') {
     return {
       botName: '小守 · 反诈拦截',
-      text: '千万别信这个！这是骗子！\n不要转账，不要给任何人钱，先联系建国确认，好不好？',
+      text: agentResult.reply,
       isFraudAlert: true,
       isSoothe: false,
-      tip: `关键词检测命中 · 已推送家属紧急提醒`
+      tip: '检测到疑似诈骗内容，已触发安全提醒',
+      emotion: fallbackEmotion
     }
   }
-  if (emotion === 'panic') {
+  if (intent === 'emergency') {
     return {
-      botName: '小守 · 安抚模式',
-      text: '王叔不用怕，我在这里陪您 🌸\n您先站在原地别动，我已经通知建国了，他马上过来～',
+      botName: '小守 · 紧急协助',
+      text: agentResult.reply,
       isFraudAlert: false,
       isSoothe: true,
-      tip: ''
+      tip: '已触发紧急协助流程',
+      emotion: 'panic'
     }
   }
-  if (emotion === 'anxious') {
+  if (intent === 'health') {
     return {
-      botName: '小守 · 安抚模式',
-      text: '没事的，王叔慢慢说，我听着呢。\n您放松一下，深呼吸，有我陪着您。',
+      botName: '小守 · 健康助手',
+      text: agentResult.reply,
       isFraudAlert: false,
-      isSoothe: true,
-      tip: ''
+      isSoothe: false,
+      tip: agentResult?.extra?.action ? `已记录：${agentResult.extra.action}` : '',
+      emotion: fallbackEmotion
     }
   }
-  // 普通回复
-  const normalReplies = [
-    '好的，我听到了～有什么需要帮忙的吗？',
-    '嗯嗯，王叔，您说得对！',
-    '哈哈，王叔今天心情不错嘛～',
-    '好的好的，我记住了。需要我提醒建国吗？',
-    '王叔，您说的我都记着呢，放心！'
-  ]
+  if (intent === 'weather') {
+    return {
+      botName: '小守 · 天气助手',
+      text: agentResult.reply,
+      isFraudAlert: false,
+      isSoothe: false,
+      tip: agentResult?.extra?.city ? `查询城市：${agentResult.extra.city}` : '',
+      emotion: fallbackEmotion
+    }
+  }
   return {
     botName: '小守',
-    text: normalReplies[Math.floor(Math.random() * normalReplies.length)],
+    text: agentResult?.reply || '好的，我在听，您慢慢说。',
     isFraudAlert: false,
-    isSoothe: false,
-    tip: ''
+    isSoothe: fallbackEmotion === 'panic' || fallbackEmotion === 'anxious',
+    tip: agentResult?.extra?.third_party_called ? '已接入陪聊智能体' : '',
+    emotion: fallbackEmotion
   }
 }
 
@@ -69,7 +123,7 @@ router.get('/history', (req, res) => {
 })
 
 // POST /api/chat/message — 发送消息，获取 AI 回复
-router.post('/message', (req, res) => {
+router.post('/message', async (req, res) => {
   const { text, emotion } = req.body
   if (!text || !text.trim()) {
     return res.status(400).json({ code: 1, msg: '消息内容不能为空' })
@@ -90,8 +144,18 @@ router.post('/message', (req, res) => {
   }
   store.chatHistory.push(userMsg)
 
-  // 生成 AI 回复
-  const replyData = generateReply(text, isFraud, detectedEmotion)
+  let agentResult
+  try {
+    agentResult = await callAgentService(text.trim(), 'elderly_user')
+  } catch (error) {
+    agentResult = {
+      intent: isFraud ? 'fraud' : (detectedEmotion === 'panic' ? 'emergency' : 'chat'),
+      reply: '智能体服务暂时不可用，我先陪您待一会儿。若情况紧急，请立即联系家人或社区工作人员。',
+      extra: {}
+    }
+  }
+
+  const replyData = mapAgentReply(agentResult, detectedEmotion)
   const botMsg = {
     id: store.nextId(store.chatHistory),
     role: 'bot',
@@ -101,7 +165,7 @@ router.post('/message', (req, res) => {
   store.chatHistory.push(botMsg)
 
   // 若检测到诈骗，自动写入预警
-  if (isFraud) {
+  if (isFraud || agentResult?.intent === 'fraud') {
     const alert = {
       id: store.nextId(store.alerts),
       level: 'danger', type: '防诈拦截',
@@ -119,8 +183,9 @@ router.post('/message', (req, res) => {
     data: {
       userMsg,
       botMsg,
-      isFraud,
-      emotion: detectedEmotion
+      isFraud: isFraud || agentResult?.intent === 'fraud',
+      emotion: replyData.emotion || detectedEmotion,
+      intent: agentResult?.intent || 'chat'
     }
   })
 })

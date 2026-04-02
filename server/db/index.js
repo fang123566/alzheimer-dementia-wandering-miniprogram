@@ -51,14 +51,49 @@ async function initDb() {
     updated_at TEXT NOT NULL
   )`)
 
-  await run(`CREATE TABLE IF NOT EXISTS bindings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    family_id INTEGER NOT NULL UNIQUE,
-    elderly_id INTEGER NOT NULL UNIQUE,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (family_id) REFERENCES users(id),
-    FOREIGN KEY (elderly_id) REFERENCES users(id)
-  )`)
+  const bindingColumns = await all(`PRAGMA table_info(bindings)`)
+  const needRebuild = !bindingColumns.length || !bindingColumns.some(c => c.name === 'note') || !bindingColumns.some(c => c.name === 'updated_at')
+
+  if (needRebuild) {
+    await run('ALTER TABLE bindings RENAME TO bindings_legacy').catch(() => {})
+    await run(`CREATE TABLE IF NOT EXISTS bindings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      family_id INTEGER NOT NULL,
+      elderly_id INTEGER NOT NULL,
+      note TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE (family_id, elderly_id),
+      FOREIGN KEY (family_id) REFERENCES users(id),
+      FOREIGN KEY (elderly_id) REFERENCES users(id)
+    )`)
+    const legacyExists = await get(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'bindings_legacy'`)
+    if (legacyExists) {
+      const legacyColumns = await all(`PRAGMA table_info(bindings_legacy)`)
+      const hasNote = legacyColumns.some(c => c.name === 'note')
+      const hasUpdatedAt = legacyColumns.some(c => c.name === 'updated_at')
+      const noteExpr = hasNote ? 'COALESCE(note, "")' : '""'
+      const updatedAtExpr = hasUpdatedAt ? 'updated_at' : 'created_at'
+      await run(
+        `INSERT OR IGNORE INTO bindings (id, family_id, elderly_id, note, created_at, updated_at)
+         SELECT id, family_id, elderly_id, ${noteExpr}, created_at, ${updatedAtExpr}
+         FROM bindings_legacy`
+      )
+      await run('DROP TABLE bindings_legacy')
+    }
+  } else {
+    await run(`CREATE TABLE IF NOT EXISTS bindings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      family_id INTEGER NOT NULL,
+      elderly_id INTEGER NOT NULL,
+      note TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE (family_id, elderly_id),
+      FOREIGN KEY (family_id) REFERENCES users(id),
+      FOREIGN KEY (elderly_id) REFERENCES users(id)
+    )`)
+  }
 }
 
 module.exports = {

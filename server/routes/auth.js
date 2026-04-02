@@ -34,7 +34,9 @@ function mapBinding(row) {
     id: row.id,
     familyId: row.family_id,
     elderlyId: row.elderly_id,
-    createdAt: row.created_at
+    note: row.note || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   }
 }
 
@@ -67,10 +69,31 @@ async function formatBindingPayload(currentUser, binding) {
     binding: {
       ...binding,
       roleLabel: currentUser.role === 'family' ? '您守护的老人' : '关联家属',
-      canUnbind: currentUser.role === 'family'
+      canUnbind: true
     },
     linkedUser: toSafeUser(linkedUser)
   }
+}
+
+async function getBindingRowsForUser(user) {
+  if (!user) return []
+  return user.role === 'family'
+    ? await require('../db').all('SELECT * FROM bindings WHERE family_id = ? ORDER BY created_at DESC', [user.id])
+    : await require('../db').all('SELECT * FROM bindings WHERE elderly_id = ? ORDER BY created_at DESC', [user.id])
+}
+
+async function formatBindingList(currentUser, rows) {
+  const list = []
+  for (const row of rows || []) {
+    const item = await formatBindingPayload(currentUser, mapBinding(row))
+    if (item) list.push(item)
+  }
+  return list
+}
+
+async function resolveLinkedUser(currentUser, linkedPhone) {
+  const targetRole = currentUser.role === 'family' ? 'elderly' : 'family'
+  return mapUser(await get('SELECT * FROM users WHERE phone = ? AND role = ?', [linkedPhone, targetRole]))
 }
 
 // POST /api/auth/register — 注册
@@ -176,30 +199,14 @@ router.get('/binding', async (req, res) => {
   const user = await getCurrentUser(req)
   if (!user) return res.status(401).json({ code: 1, msg: '未登录' })
 
-  const bindingRow = user.role === 'family'
-    ? await get('SELECT * FROM bindings WHERE family_id = ?', [user.id])
-    : await get('SELECT * FROM bindings WHERE elderly_id = ?', [user.id])
-  const binding = mapBinding(bindingRow)
-
-  if (!binding) {
-    return res.json({
-      code: 0,
-      data: null,
-      meta: {
-        role: user.role,
-        canCreateBinding: user.role === 'family',
-        canUnbind: user.role === 'family'
-      }
-    })
-  }
-
+  const rows = await getBindingRowsForUser(user)
   return res.json({
     code: 0,
-    data: await formatBindingPayload(user, binding),
+    data: await formatBindingList(user, rows),
     meta: {
       role: user.role,
-      canCreateBinding: user.role === 'family',
-      canUnbind: user.role === 'family'
+      canCreateBinding: true,
+      canUnbind: true
     }
   })
 })
@@ -208,36 +215,32 @@ router.get('/binding', async (req, res) => {
 router.post('/binding', async (req, res) => {
   const user = await getCurrentUser(req)
   if (!user) return res.status(401).json({ code: 1, msg: '未登录' })
-  if (user.role !== 'family') {
-    return res.status(400).json({ code: 1, msg: '只有家属端可以发起绑定' })
-  }
 
-  const elderlyPhone = String(req.body.elderlyPhone || '').trim()
-  if (!elderlyPhone) return res.status(400).json({ code: 1, msg: '请输入老人手机号' })
-  if (!/^1[3-9]\d{9}$/.test(elderlyPhone)) {
+  const linkedPhone = String(req.body.linkedPhone || req.body.elderlyPhone || req.body.familyPhone || '').trim()
+  const note = String(req.body.note || '').trim()
+  if (!linkedPhone) return res.status(400).json({ code: 1, msg: `请输入${user.role === 'family' ? '老人' : '家属'}手机号` })
+  if (!/^1[3-9]\d{9}$/.test(linkedPhone)) {
     return res.status(400).json({ code: 1, msg: '手机号格式不正确' })
   }
-  if (elderlyPhone === user.phone) {
+  if (linkedPhone === user.phone) {
     return res.status(400).json({ code: 1, msg: '不能绑定自己的账号' })
   }
 
   try {
-    const elderly = mapUser(await get('SELECT * FROM users WHERE phone = ? AND role = ?', [elderlyPhone, 'elderly']))
-    if (!elderly) {
-      return res.status(404).json({ code: 1, msg: '未找到该手机号的老人账号，请确认手机号正确' })
+    const linkedUser = await resolveLinkedUser(user, linkedPhone)
+    if (!linkedUser) {
+      return res.status(404).json({ code: 1, msg: `未找到该手机号的${user.role === 'family' ? '老人' : '家属'}账号，请确认手机号正确` })
     }
 
-    const familyBinding = await get('SELECT id FROM bindings WHERE family_id = ?', [user.id])
-    if (familyBinding) {
-      return res.status(400).json({ code: 1, msg: '您已绑定一位老人，请先解绑' })
-    }
-    const elderlyBinding = await get('SELECT id FROM bindings WHERE elderly_id = ?', [elderly.id])
-    if (elderlyBinding) {
-      return res.status(400).json({ code: 1, msg: '该老人账号已被其他家属绑定' })
+    const familyId = user.role === 'family' ? user.id : linkedUser.id
+    const elderlyId = user.role === 'family' ? linkedUser.id : user.id
+    const existed = await get('SELECT id FROM bindings WHERE family_id = ? AND elderly_id = ?', [familyId, elderlyId])
+    if (existed) {
+      return res.status(400).json({ code: 1, msg: '该账号已在关联列表中' })
     }
 
     const now = new Date().toISOString()
-    const insertRes = await run('INSERT INTO bindings (family_id, elderly_id, created_at) VALUES (?, ?, ?)', [user.id, elderly.id, now])
+    const insertRes = await run('INSERT INTO bindings (family_id, elderly_id, note, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [familyId, elderlyId, note, now, now])
     const binding = mapBinding(await get('SELECT * FROM bindings WHERE id = ?', [insertRes.lastID]))
     res.json({ code: 0, msg: '绑定成功', data: await formatBindingPayload(user, binding) })
   } catch (err) {
@@ -245,16 +248,54 @@ router.post('/binding', async (req, res) => {
   }
 })
 
-// DELETE /api/auth/binding — 解绑
-router.delete('/binding', async (req, res) => {
+router.put('/binding/:id', async (req, res) => {
   const user = await getCurrentUser(req)
   if (!user) return res.status(401).json({ code: 1, msg: '未登录' })
-  if (user.role !== 'family') {
-    return res.status(403).json({ code: 1, msg: '当前仅支持家属端解绑' })
+
+  const id = parseInt(req.params.id)
+  const row = await get('SELECT * FROM bindings WHERE id = ?', [id])
+  const binding = mapBinding(row)
+  if (!binding) return res.status(404).json({ code: 1, msg: '绑定关系不存在' })
+
+  const ownerMatched = user.role === 'family' ? binding.familyId === user.id : binding.elderlyId === user.id
+  if (!ownerMatched) return res.status(403).json({ code: 1, msg: '无权修改该绑定关系' })
+
+  const nextNote = req.body.note !== undefined ? String(req.body.note || '').trim() : binding.note
+  let familyId = binding.familyId
+  let elderlyId = binding.elderlyId
+
+  if (req.body.linkedPhone !== undefined) {
+    const linkedPhone = String(req.body.linkedPhone || '').trim()
+    if (!linkedPhone) return res.status(400).json({ code: 1, msg: '请输入关联手机号' })
+    if (!/^1[3-9]\d{9}$/.test(linkedPhone)) return res.status(400).json({ code: 1, msg: '手机号格式不正确' })
+    const linkedUser = await resolveLinkedUser(user, linkedPhone)
+    if (!linkedUser) {
+      return res.status(404).json({ code: 1, msg: `未找到该手机号的${user.role === 'family' ? '老人' : '家属'}账号` })
+    }
+    familyId = user.role === 'family' ? user.id : linkedUser.id
+    elderlyId = user.role === 'family' ? linkedUser.id : user.id
+    const existed = await get('SELECT id FROM bindings WHERE family_id = ? AND elderly_id = ? AND id <> ?', [familyId, elderlyId, binding.id])
+    if (existed) return res.status(400).json({ code: 1, msg: '该账号已在关联列表中' })
   }
 
+  const now = new Date().toISOString()
+  await run('UPDATE bindings SET family_id = ?, elderly_id = ?, note = ?, updated_at = ? WHERE id = ?', [familyId, elderlyId, nextNote, now, binding.id])
+  const updated = mapBinding(await get('SELECT * FROM bindings WHERE id = ?', [binding.id]))
+  return res.json({ code: 0, msg: '已更新', data: await formatBindingPayload(user, updated) })
+})
+
+router.delete('/binding/:id', async (req, res) => {
+  const user = await getCurrentUser(req)
+  if (!user) return res.status(401).json({ code: 1, msg: '未登录' })
+
   try {
-    const result = await run('DELETE FROM bindings WHERE family_id = ?', [user.id])
+    const id = parseInt(req.params.id)
+    const row = await get('SELECT * FROM bindings WHERE id = ?', [id])
+    const binding = mapBinding(row)
+    if (!binding) return res.status(404).json({ code: 1, msg: '没有绑定关系' })
+    const ownerMatched = user.role === 'family' ? binding.familyId === user.id : binding.elderlyId === user.id
+    if (!ownerMatched) return res.status(403).json({ code: 1, msg: '无权删除该绑定关系' })
+    const result = await run('DELETE FROM bindings WHERE id = ?', [id])
     if (!result.changes) return res.status(404).json({ code: 1, msg: '没有绑定关系' })
     res.json({ code: 0, msg: '已解除绑定' })
   } catch (err) {

@@ -11,7 +11,8 @@
     "pages/memory/detail/detail",
     "pages/binding/binding",
     "pages/settings/settings",
-    "pages/device/device"
+    "pages/device/device",
+    "pages/reminders/reminders"
   ],
   "window": {
     "backgroundTextStyle": "dark",

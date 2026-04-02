@@ -1,6 +1,14 @@
 // pages/profile/profile.js
 const app = getApp()
-const { statsAPI, alertsAPI, settingsAPI, bindingAPI, authAPI } = require('../../utils/api')
+const { statsAPI, alertsAPI, settingsAPI, bindingAPI, authAPI, remindersAPI } = require('../../utils/api')
+
+function todayNoticeKey() {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `profile_reminder_notice_${y}${m}${d}`
+}
 
 Page({
   data: {
@@ -10,6 +18,8 @@ Page({
     currentLocation: {},
     locationStatus: 'safe',
     contacts: [],
+    reminders: [],
+    bindings: [],
     binding: null,
     stats: { unreadAlerts: 0, totalAlerts: 0, chatCount: 0 }
   },
@@ -24,9 +34,18 @@ Page({
     if (!app.checkLogin()) return
     this._loadLocal()
     this._fetchData()
+    this.startReminderWatcher()
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
+  },
+
+  onHide() {
+    this.stopReminderWatcher()
+  },
+
+  onUnload() {
+    this.stopReminderWatcher()
   },
 
   _loadLocal() {
@@ -46,14 +65,16 @@ Page({
     try {
       // 所有角色都加载绑定状态
       const bindingRes = await bindingAPI.getBinding()
-      if (bindingRes.code === 0 && bindingRes.data) {
-        this.setData({ binding: bindingRes.data })
+      const bindingList = bindingRes.code === 0 ? (bindingRes.data || []) : []
+      const primaryBinding = bindingList[0] || null
+      if (bindingRes.code === 0 && primaryBinding) {
+        this.setData({ binding: primaryBinding, bindings: bindingList })
         if (role === 'family') {
-          app.globalData.elderlyInfo = bindingRes.data.linkedUser
-          this.setData({ elderlyInfo: bindingRes.data.linkedUser })
+          app.globalData.elderlyInfo = primaryBinding.linkedUser
+          this.setData({ elderlyInfo: primaryBinding.linkedUser })
         }
       } else {
-        this.setData({ binding: null })
+        this.setData({ binding: null, bindings: [] })
         if (role === 'family') {
           app.globalData.elderlyInfo = {}
           this.setData({ elderlyInfo: {} })
@@ -79,13 +100,53 @@ Page({
           this.setData({ 'stats.totalAlerts': alertsRes.data.length })
         }
       } else {
-        const res = await settingsAPI.getContacts()
-        if (res.code === 0) {
-          app.globalData.contacts = res.data
-          this.setData({ contacts: res.data })
+        const [contactsRes, remindersRes] = await Promise.all([
+          settingsAPI.getContacts(),
+          remindersAPI.getToday()
+        ])
+        if (contactsRes.code === 0) {
+          app.globalData.contacts = contactsRes.data
+          this.setData({ contacts: contactsRes.data })
+        }
+        if (remindersRes.code === 0) {
+          const nextReminders = remindersRes.data || []
+          this.notifyTriggeredReminders(nextReminders)
+          this.setData({ reminders: nextReminders })
         }
       }
     } catch (e) {}
+  },
+
+  startReminderWatcher() {
+    if (this.data.role !== 'elderly') return
+    this.stopReminderWatcher()
+    this._reminderTimer = setInterval(() => {
+      this._fetchData()
+    }, 30000)
+  },
+
+  stopReminderWatcher() {
+    if (this._reminderTimer) {
+      clearInterval(this._reminderTimer)
+      this._reminderTimer = null
+    }
+  },
+
+  notifyTriggeredReminders(list) {
+    if (this.data.role !== 'elderly') return
+    const storageKey = todayNoticeKey()
+    const notifiedIds = wx.getStorageSync(storageKey) || []
+    const triggered = (list || []).filter(item => item.reminded && !notifiedIds.includes(item.id))
+    if (!triggered.length) return
+    const current = triggered[0]
+    wx.setStorageSync(storageKey, [...notifiedIds, ...triggered.map(item => item.id)])
+    wx.vibrateShort({ type: 'medium' })
+    wx.showModal({
+      title: '提醒通知',
+      content: `${current.time} ${current.title}`,
+      showCancel: false,
+      confirmText: '知道了'
+    })
   },
 
   // 老人端一键拨打
@@ -104,6 +165,7 @@ Page({
 
   goBinding()  { wx.navigateTo({ url: '/pages/binding/binding' }) },
   goSettings() { wx.navigateTo({ url: '/pages/settings/settings' }) },
+  goReminders(){ wx.navigateTo({ url: '/pages/reminders/reminders' }) },
   goAlert()    { wx.switchTab({ url: '/pages/alert/alert' }) },
   goMemory()   { wx.navigateTo({ url: '/pages/memory/memory' }) },
   goLocation() { wx.switchTab({ url: '/pages/location/location' }) },

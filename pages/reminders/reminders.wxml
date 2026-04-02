@@ -1,0 +1,35 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">⏰ 今日提醒管理</text>
+    <text class="page-subtitle">新增 · 编辑 · 删除 · 自动提醒</text>
+  </view>
+
+  <view class="group">
+    <text class="group-title">📋 提醒列表</text>
+    <view wx:for="{{templates}}" wx:key="id" class="row" bindtap="editTemplate" data-id="{{item.id}}">
+      <text class="row-icon">{{item.icon || '⏰'}}</text>
+      <view class="row-main">
+        <text class="row-label">{{item.title}}</text>
+        <text class="row-sub">{{item.time}}</text>
+      </view>
+      <text class="row-arrow">›</text>
+    </view>
+    <view class="row add-row" bindtap="addTemplate">
+      <text class="row-icon">＋</text>
+      <text class="row-label-amber">添加提醒</text>
+    </view>
+  </view>
+
+  <view class="group" style="margin-top:24rpx;">
+    <text class="group-title">🗓️ 今日预览</text>
+    <view wx:for="{{today}}" wx:key="id" class="row">
+      <text class="row-icon">{{item.icon || '⏰'}}</text>
+      <view class="row-main">
+        <text class="row-label">{{item.title}}</text>
+        <text class="row-sub">{{item.time}}</text>
+      </view>
+      <text class="status {{item.reminded ? 'done' : 'pending'}}">{{item.reminded ? '已提醒' : '未提醒'}}</text>
+    </view>
+    <view wx:if="{{today.length === 0}}" class="empty">暂无今日提醒</view>
+  </view>
+</view>

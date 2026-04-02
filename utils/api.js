@@ -105,8 +105,29 @@ const settingsAPI = {
 // ── 账号关联 ──────────────────────────────────────────
 const bindingAPI = {
   getBinding:    ()            => http.get('/auth/binding'),
-  createBinding: (elderlyPhone)=> http.post('/auth/binding', { elderlyPhone }),
-  deleteBinding: ()            => http.delete('/auth/binding')
+  getBindings:   ()            => http.get('/auth/binding'),
+  createBinding: (linkedPhone, note) => http.post('/auth/binding', {
+    linkedPhone,
+    elderlyPhone: linkedPhone,
+    familyPhone: linkedPhone,
+    note
+  }),
+  updateBinding: (id, data)    => http.put(`/auth/binding/${id}`, data),
+  deleteBinding: (id)          => http.delete(`/auth/binding/${id}`)
+}
+
+// ── 今日提醒 ───────────────────────────────────────────
+const remindersAPI = {
+  // 模板 CRUD（双方管理用）
+  getTemplates:   ()        => http.get('/reminders/templates'),
+  addTemplate:    (data)    => http.post('/reminders/templates', data),
+  updateTemplate: (id, d)   => http.put(`/reminders/templates/${id}`, d),
+  deleteTemplate: (id)      => http.delete(`/reminders/templates/${id}`),
+
+  // 老人端展示用（按“今天”生成实例）
+  getToday:       ()        => http.get('/reminders/today'),
+  markDone:       (id)      => http.post(`/reminders/${encodeURIComponent(id)}/done`),
+  markUndone:     (id)      => http.post(`/reminders/${encodeURIComponent(id)}/undone`)
 }
 
 // ── SOS ───────────────────────────────────────────────
@@ -128,6 +149,7 @@ module.exports = {
   memoryAPI,
   settingsAPI,
   bindingAPI,
+  remindersAPI,
   sosAPI,
   statsAPI
 }
