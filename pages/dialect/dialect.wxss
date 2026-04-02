@@ -1,24 +1,40 @@
 /* pages/dialect/dialect.wxss */
 
+<<<<<<< HEAD
 .container { background: var(--ink); min-height: 100vh; padding-bottom: 140rpx; }
+=======
+.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 140rpx; }
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 
 /* ── 翻译方向控制栏 ─────────────────────────── */
 .control-bar {
   display: flex;
   align-items: center;
+<<<<<<< HEAD
   margin: 0 32rpx 24rpx;
+=======
+  margin: 0 36rpx 28rpx;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
   gap: 0;
 }
 .lang-box {
   flex: 1;
+<<<<<<< HEAD
   background: var(--ink-2);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
   padding: 20rpx 20rpx;
+=======
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.10);
+  border-radius: var(--radius) 0 0 var(--radius);
+  padding: 22rpx 20rpx;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6rpx;
+<<<<<<< HEAD
 }
 .lang-box-right {
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
@@ -36,6 +52,27 @@
 
 /* ── 输入卡片 ───────────────────────────────── */
 .input-card { margin: 0 32rpx 24rpx; }
+=======
+  box-shadow: var(--shadow-card);
+}
+.lang-box-right {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+}
+.lang-label  { font-size: 28rpx; font-weight: 700; color: #1a6b42; }
+.lang-change { font-size: 20rpx; color: #6b8577; }
+.swap-btn {
+  width: 80rpx; height: 80rpx;
+  background: linear-gradient(135deg, #22764d, #38a169);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8rpx 20rpx rgba(34,118,77,0.22);
+}
+.swap-icon { font-size: 36rpx; color: #ffffff; font-weight: 700; }
+
+/* ── 输入卡片 ───────────────────────────────── */
+.input-card { margin: 0 36rpx 24rpx; }
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 .card-title { font-size: 28rpx; font-weight: 600; color: var(--text); display: block; margin-bottom: 20rpx; }
 .card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16rpx; }
 .link-text  { font-size: 24rpx; color: var(--amber); }
@@ -43,10 +80,17 @@
 .text-area {
   width: 100%;
   min-height: 160rpx;
+<<<<<<< HEAD
   background: var(--ink-2);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 20rpx;
+=======
+  background: #f4f9f5;
+  border: 1rpx solid rgba(47,133,90,0.10);
+  border-radius: var(--radius-sm);
+  padding: 24rpx;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
   font-size: 30rpx;
   color: var(--text);
   line-height: 1.6;
@@ -65,6 +109,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+<<<<<<< HEAD
   background: var(--ink-2);
   border: 2rpx dashed var(--glass-border);
   border-radius: var(--radius);
@@ -72,6 +117,16 @@
   margin-bottom: 24rpx;
   gap: 12rpx;
   transition: all 0.2s;
+=======
+  background: #ffffff;
+  border: 2rpx dashed rgba(47,133,90,0.18);
+  border-radius: var(--radius);
+  padding: 40rpx 20rpx;
+  margin-bottom: 24rpx;
+  gap: 14rpx;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .voice-recording {
   background: var(--red-pale);
@@ -83,7 +138,11 @@
 .voice-hint  { font-size: 22rpx; color: var(--text-dim); }
 
 /* ── 翻译结果 ──────────────────────────────── */
+<<<<<<< HEAD
 .result-card { margin: 0 32rpx 24rpx; border-left: 6rpx solid var(--teal); }
+=======
+.result-card { margin: 0 36rpx 24rpx; border-left: 6rpx solid var(--teal); }
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16rpx; }
 .result-title { font-size: 28rpx; font-weight: 600; color: var(--text); }
 .replay-btn {
@@ -100,8 +159,14 @@
 
 /* ── 分区标题 ───────────────────────────────── */
 .section-title {
+<<<<<<< HEAD
   font-size: 22rpx; color: var(--text-faint);
   letter-spacing: 2rpx; padding: 8rpx 40rpx 16rpx;
+=======
+  font-size: 24rpx; color: #6b8577;
+  letter-spacing: 3rpx; padding: 8rpx 40rpx 16rpx;
+  font-weight: 700;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 
 /* ── 常用短语 ───────────────────────────────── */
@@ -109,16 +174,28 @@
   display: flex;
   flex-wrap: wrap;
   gap: 16rpx;
+<<<<<<< HEAD
   padding: 0 32rpx 28rpx;
+=======
+  padding: 0 36rpx 28rpx;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .phrase-chip {
   display: flex;
   align-items: center;
   gap: 10rpx;
+<<<<<<< HEAD
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: 40rpx;
   padding: 14rpx 24rpx;
+=======
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: 999rpx;
+  padding: 14rpx 26rpx;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .phrase-emoji { font-size: 28rpx; }
 .phrase-text  { font-size: 24rpx; color: var(--text); }

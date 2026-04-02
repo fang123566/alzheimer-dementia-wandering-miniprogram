@@ -1,14 +1,26 @@
 /* pages/binding/binding.wxss */
 
+<<<<<<< HEAD
 .container { background: var(--ink); min-height: 100vh; padding-bottom: 60rpx; }
+=======
+.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 80rpx; }
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 
 .loading-card,
 .self-card,
 .linked-actions {
+<<<<<<< HEAD
   margin: 0 32rpx 24rpx;
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius);
+=======
+  margin: 0 36rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 
 .loading-card {
@@ -109,9 +121,15 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
+<<<<<<< HEAD
   margin: 0 32rpx 28rpx;
   padding: 20rpx 28rpx;
   border-radius: var(--radius-sm);
+=======
+  margin: 0 36rpx 28rpx;
+  padding: 22rpx 28rpx;
+  border-radius: var(--radius);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
   border: 1rpx solid;
 }
 .status-bound   { background: var(--green-pale);  border-color: rgba(93,217,127,0.3);  }
@@ -124,11 +142,20 @@
   display: flex;
   align-items: flex-start;
   gap: 24rpx;
+<<<<<<< HEAD
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius);
   margin: 0 32rpx 16rpx;
   padding: 28rpx;
+=======
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: var(--radius);
+  margin: 0 36rpx 16rpx;
+  padding: 32rpx;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .linked-avatar { font-size: 72rpx; flex-shrink: 0; }
 .linked-info   { flex: 1; }
@@ -150,16 +177,29 @@
 }
 
 /* 绑定时间 */
+<<<<<<< HEAD
 .bind-meta { margin: 0 32rpx 24rpx; }
+=======
+.bind-meta { margin: 0 36rpx 24rpx; }
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 .bind-meta-text { font-size: 22rpx; color: var(--text-faint); }
 
 /* ── 功能说明列表 ────────────────────────────── */
 .feature-list {
+<<<<<<< HEAD
   margin: 0 32rpx 32rpx;
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius);
   padding: 24rpx 28rpx;
+=======
+  margin: 0 36rpx 32rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: var(--radius);
+  padding: 28rpx 32rpx;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .feature-title { display: block; font-size: 26rpx; font-weight: 700; color: var(--text-dim); margin-bottom: 16rpx; }
 .feature-item  { display: flex; align-items: center; gap: 16rpx; padding: 10rpx 0; }
@@ -168,22 +208,39 @@
 
 /* 解绑按钮 */
 .unbind-btn {
+<<<<<<< HEAD
   margin: 0 32rpx;
   background: var(--glass);
   border: 1rpx solid rgba(255,92,92,0.25);
   border-radius: var(--radius);
   padding: 28rpx;
+=======
+  margin: 0 36rpx;
+  background: rgba(239,68,68,0.06);
+  border: 1rpx solid rgba(239,68,68,0.14);
+  border-radius: var(--radius);
+  padding: 30rpx;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
   text-align: center;
 }
 .unbind-text { font-size: 26rpx; color: var(--red); font-weight: 600; }
 
 /* ── 未绑定：引导步骤 ────────────────────────── */
 .guide-card {
+<<<<<<< HEAD
   margin: 0 32rpx 24rpx;
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius);
   padding: 28rpx;
+=======
+  margin: 0 36rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: var(--radius);
+  padding: 32rpx;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .guide-title { display: block; font-size: 26rpx; font-weight: 700; color: var(--text); margin-bottom: 16rpx; }
 .guide-step  { display: flex; align-items: flex-start; gap: 16rpx; margin-bottom: 12rpx; }
@@ -192,11 +249,20 @@
 
 /* 输入区 */
 .input-card {
+<<<<<<< HEAD
   margin: 0 32rpx 24rpx;
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius);
   padding: 28rpx;
+=======
+  margin: 0 36rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: var(--radius);
+  padding: 32rpx;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .input-label { display: block; font-size: 24rpx; color: var(--text-dim); margin-bottom: 16rpx; }
 .phone-row {
@@ -225,6 +291,7 @@
 .ph { color: var(--text-faint); }
 .err-tip { font-size: 22rpx; color: var(--red); margin-bottom: 16rpx; }
 .bind-btn {
+<<<<<<< HEAD
   background: var(--amber);
   border-radius: var(--radius-sm);
   padding: 24rpx;
@@ -232,11 +299,23 @@
   font-size: 30rpx;
   font-weight: 700;
   color: #0d1b2a;
+=======
+  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
+  border-radius: var(--radius);
+  padding: 26rpx;
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 12rpx 28rpx rgba(34,118,77,0.22);
+  letter-spacing: 1rpx;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .bind-btn.disabled { opacity: 0.5; }
 
 /* ── 老人端等待卡 ────────────────────────────── */
 .waiting-card {
+<<<<<<< HEAD
   margin: 0 32rpx;
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
@@ -247,6 +326,19 @@
   align-items: center;
   gap: 16rpx;
   text-align: center;
+=======
+  margin: 0 36rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: var(--radius);
+  padding: 52rpx 36rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18rpx;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .waiting-icon  { font-size: 80rpx; }
 .waiting-title { font-size: 34rpx; font-weight: 700; color: var(--text); }

@@ -2,6 +2,7 @@
 
 /* ── 设计变量 ─────────────────────────────── */
 page {
+<<<<<<< HEAD
   --ink:        #f7f9fc;
   --ink-2:      #ffffff;
   --ink-3:      #eef3f8;
@@ -21,6 +22,30 @@ page {
   --text-faint: rgba(31,41,55,0.35);
   --radius:     20rpx;
   --radius-sm:  12rpx;
+=======
+  --ink:        #f4fbf6;
+  --ink-2:      #ffffff;
+  --ink-3:      #e8f5ec;
+  --amber:      #2f855a;
+  --amber-light:#38a169;
+  --amber-pale: rgba(56,161,105,0.14);
+  --teal:       #2f9e84;
+  --teal-pale:  rgba(47,158,132,0.12);
+  --red:        #ef4444;
+  --red-pale:   rgba(239,68,68,0.10);
+  --green:      #2f855a;
+  --green-pale: rgba(47,133,90,0.10);
+  --glass:      rgba(255,255,255,0.96);
+  --glass-border: rgba(47,133,90,0.16);
+  --text:       #14332a;
+  --text-dim:   rgba(20,51,42,0.78);
+  --text-faint: rgba(20,51,42,0.52);
+  --radius:     28rpx;
+  --radius-sm:  18rpx;
+  --radius-lg:  36rpx;
+  --shadow-card: 0 8rpx 32rpx rgba(20,51,42,0.06), 0 2rpx 8rpx rgba(20,51,42,0.04);
+  --shadow-float: 0 16rpx 48rpx rgba(20,51,42,0.10), 0 4rpx 12rpx rgba(20,51,42,0.06);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 
   /* 老人模式大字号变量 */
   --font-base:     28rpx;
@@ -28,8 +53,13 @@ page {
   --font-xl:       36rpx;
   --font-xxl:      44rpx;
 
+<<<<<<< HEAD
   background-color: #f7f9fc;
   color: #1f2937;
+=======
+  background-color: #f4fbf6;
+  color: #14332a;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
   font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
   font-size: var(--font-base);
 }
@@ -44,22 +74,40 @@ page.elderly-mode {
 
 /* ── 通用卡片 ─────────────────────────────── */
 .card {
+<<<<<<< HEAD
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius);
   padding: 28rpx;
   margin-bottom: 24rpx;
+=======
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
+  border-radius: var(--radius);
+  padding: 36rpx;
+  margin-bottom: 28rpx;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 
 /* ── 状态标签 ─────────────────────────────── */
 .tag {
   display: inline-flex;
   align-items: center;
+<<<<<<< HEAD
   font-size: 22rpx;
   padding: 8rpx 22rpx;
   border-radius: 40rpx;
   font-weight: 600;
   letter-spacing: 2rpx;
+=======
+  font-size: 24rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 999rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  backdrop-filter: blur(8rpx);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .tag-safe     { background: var(--green-pale);  color: var(--green); }
 .tag-warning  { background: var(--amber-pale);  color: var(--amber); }
@@ -71,6 +119,7 @@ page.elderly-mode {
   display: flex;
   align-items: center;
   justify-content: center;
+<<<<<<< HEAD
   border-radius: var(--radius-sm);
   font-size: 28rpx;
   font-weight: 600;
@@ -95,6 +144,36 @@ page.elderly-mode {
   color: var(--text-dim);
   margin-top: 8rpx;
   letter-spacing: 1rpx;
+=======
+  border-radius: var(--radius);
+  font-size: 30rpx;
+  font-weight: 700;
+  padding: 26rpx 0;
+  letter-spacing: 1rpx;
+}
+.btn-primary  { background: linear-gradient(135deg, #22764d 0%, #38a169 100%);  color: #ffffff; box-shadow: 0 12rpx 28rpx rgba(34,118,77,0.22); }
+.btn-danger   { background: linear-gradient(135deg, #ef4444, #f87171);  color: #fff; box-shadow: 0 10rpx 24rpx rgba(239,68,68,0.18); }
+.btn-ghost    { background: #ffffff;  color: #14332a; border: 1rpx solid rgba(47,133,90,0.12); box-shadow: var(--shadow-card); }
+
+/* ── 页面头部 ────────────────────────────── */
+.page-header {
+  padding: 48rpx 36rpx 32rpx;
+}
+.page-title {
+  font-size: 52rpx;
+  font-weight: 800;
+  color: #0d2b1f;
+  letter-spacing: 2rpx;
+  display: block;
+}
+.page-subtitle {
+  font-size: 28rpx;
+  color: #4a6355;
+  margin-top: 12rpx;
+  letter-spacing: 1rpx;
+  display: block;
+  line-height: 1.6;
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 
 /* ── 分割线 ──────────────────────────────── */
@@ -116,15 +195,25 @@ page.elderly-mode {
 /* ── 角色切换条 ──────────────────────────── */
 .role-bar {
   display: flex;
+<<<<<<< HEAD
   background: var(--glass);
   border: 1rpx solid var(--glass-border);
   border-radius: var(--radius-sm);
   padding: 6rpx;
   margin: 24rpx 32rpx;
+=======
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.10);
+  border-radius: var(--radius);
+  padding: 8rpx;
+  margin: 24rpx 36rpx;
+  box-shadow: var(--shadow-card);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }
 .role-btn {
   flex: 1;
   text-align: center;
+<<<<<<< HEAD
   padding: 14rpx 0;
   border-radius: 10rpx;
   font-size: 24rpx;
@@ -135,4 +224,18 @@ page.elderly-mode {
   background: var(--amber);
   color: #0d1b2a;
   font-weight: 700;
+=======
+  padding: 20rpx 0;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  color: #4a6355;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+.role-btn.active {
+  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 6rpx 20rpx rgba(34,118,77,0.20);
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
 }

@@ -1,6 +1,10 @@
 {
   "libVersion": "3.14.3",
+<<<<<<< HEAD
   "projectname": "alzheimer-dementia-wandering-miniprogram-main",
+=======
+  "projectname": "guardian-miniapp",
+>>>>>>> 078d6bb2c1897bd6e024e00b3d6662eeb182d95c
   "condition": {},
   "setting": {
     "urlCheck": false,
