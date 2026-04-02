@@ -1,0 +1,68 @@
+<!--pages/memory/detail/detail.wxml-->
+<view class="page-wrap" wx:if="{{memory.id}}">
+  <view class="hero-card">
+    <view class="media-box">
+      <image wx:if="{{memory.type !== 'video'}}" class="hero-image" src="{{memory.url || memory.thumb || memory.cover}}" mode="aspectFill" />
+      <view wx:else class="video-box">
+        <video class="hero-video" src="{{memory.url}}" poster="{{memory.cover || memory.thumb}}" controls></video>
+      </view>
+      <view class="media-badge {{memory.type}}">{{memory.type === 'video' ? '视频记忆' : '照片记忆'}}</view>
+    </view>
+    <view class="hero-info">
+      <text class="memory-title">{{memory.caption || '未命名记忆'}}</text>
+      <text class="memory-meta">📅 {{memory.createdAt || '未知时间'}}</text>
+      <text class="memory-meta" wx:if="{{memory.location}}">📍 {{memory.location}}</text>
+      <view class="member-tags" wx:if="{{memberNames.length}}">
+        <text class="member-tag" wx:for="{{memberNames}}" wx:key="*this">{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title-row">
+      <text class="card-title">📖 当时的故事</text>
+      <text class="card-link" bindtap="toggleEditStory">{{editingStory ? '收起' : '编辑'}}</text>
+    </view>
+    <textarea wx:if="{{editingStory}}" class="story-textarea" value="{{storyDraft}}" bindinput="onStoryInput" maxlength="1000" placeholder="写下这段记忆背后的故事…" placeholder-style="color:#94a3b8;font-size:28rpx;" />
+    <text wx:else class="story-text">{{memory.story || '还没有记录这段故事，点击右上角开始补充。'}}</text>
+    <view class="action-row" wx:if="{{editingStory}}">
+      <view class="action-btn ghost" bindtap="cancelEditStory">取消</view>
+      <view class="action-btn primary" bindtap="saveStory">保存故事</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title-row">
+      <text class="card-title">🎙️ 语音记忆</text>
+      <text class="card-link" bindtap="toggleVoiceTextEdit">{{editingVoiceText ? '收起' : '编辑文字'}}</text>
+    </view>
+    <text class="voice-text">{{voiceTextDraft || memory.voiceNote.text || '还没有语音记忆，可以录一段声音帮助老人回忆。'}}</text>
+    <textarea wx:if="{{editingVoiceText}}" class="story-textarea" value="{{voiceTextDraft}}" bindinput="onVoiceTextInput" maxlength="300" placeholder="可填写语音记忆的文字内容…" placeholder-style="color:#94a3b8;font-size:28rpx;" />
+    <view class="voice-actions">
+      <view class="voice-btn record {{recording ? 'recording' : ''}} {{voiceLoading ? 'disabled' : ''}}" bindtap="toggleRecordVoice">{{voiceLoading ? '保存中…' : (recording ? '结束录音' : '录制语音')}}</view>
+      <view class="voice-btn play {{!memory.voiceNote.url ? 'disabled' : ''}}" bindtap="playVoice">{{playingVoice ? '停止播放' : '播放语音'}}</view>
+    </view>
+    <text class="voice-meta" wx:if="{{memory.voiceNote.duration}}">语音时长：{{memory.voiceNote.duration}} 秒</text>
+    <text class="voice-meta" wx:if="{{memory.voiceNote.createdAt}}">保存时间：{{memory.voiceNote.createdAt}}</text>
+    <view class="action-row" wx:if="{{memory.voiceNote.url}}">
+      <view class="action-btn danger ghost-danger" bindtap="deleteVoice">删除语音</view>
+    </view>
+    <view class="action-row" wx:if="{{editingVoiceText}}">
+      <view class="action-btn ghost" bindtap="cancelVoiceTextEdit">取消</view>
+      <view class="action-btn primary" bindtap="saveVoiceText">保存文字</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="card-title-row">
+      <text class="card-title">⚙️ 记忆操作</text>
+    </view>
+    <view class="action-row single">
+      <view class="action-btn danger" bindtap="deleteMemory">删除这条记忆</view>
+    </view>
+  </view>
+</view>
+
+<view class="loading-wrap" wx:else>
+  <text class="loading-text">正在加载记忆详情…</text>
+</view>

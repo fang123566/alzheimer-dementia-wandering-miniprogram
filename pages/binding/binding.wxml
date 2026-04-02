@@ -1,0 +1,91 @@
+<!-- pages/binding/binding.wxml -->
+<!-- 账号关联管理 -->
+
+<view class="container">
+
+  <view wx:if="{{pageLoading}}" class="loading-card">
+    <text class="loading-text">正在加载绑定状态…</text>
+  </view>
+
+  <block wx:else>
+
+  <view class="page-header">
+    <text class="page-title">🔗 账号关联</text>
+    <text class="page-subtitle">{{role === 'family' ? '管理您守护的多个老人账号' : '管理多个家属账号关联'}}</text>
+  </view>
+
+  <view class="self-card">
+    <view class="self-avatar">{{role === 'family' ? '👨‍👩‍👧' : '👴'}}</view>
+    <view class="self-info">
+      <text class="self-name">{{userInfo.name || '当前账号'}}</text>
+      <text class="self-role">{{role === 'family' ? '家属端账号' : '老人端账号'}}</text>
+      <text class="self-phone">{{userInfo.phone || ''}}</text>
+    </view>
+    <view class="copy-btn" bindtap="copyPhone" data-target="self">复制号码</view>
+  </view>
+
+  <view class="status-banner {{bindings.length ? 'status-bound' : 'status-unbound'}}">
+    <text class="status-icon">{{bindings.length ? '✅' : '⚠️'}}</text>
+    <text class="status-text">{{bindings.length ? ('已关联 ' + bindings.length + ' 个账号') : '尚未关联账号'}}</text>
+  </view>
+
+  <view class="guide-card">
+    <text class="guide-title">如何新增关联账号？</text>
+    <view class="guide-step"><text class="step-num">①</text><text class="step-text">确认对方已注册{{role === 'family' ? '老人端' : '家属端'}}账号</text></view>
+    <view class="guide-step"><text class="step-num">②</text><text class="step-text">输入对方手机号，可选填写备注</text></view>
+    <view class="guide-step"><text class="step-num">③</text><text class="step-text">点击「立即关联」加入关联列表</text></view>
+  </view>
+
+  <view class="input-card">
+    <text class="input-label">{{role === 'family' ? '老人' : '家属'}}注册手机号</text>
+    <view class="phone-row">
+      <view class="phone-prefix"><text>+86</text></view>
+      <input
+        class="phone-input"
+        type="number"
+        placeholder="请输入对方手机号"
+        placeholder-style="color:#94a3b8;font-size:28rpx;"
+        value="{{linkedPhone}}"
+        bindinput="onPhoneInput"
+        maxlength="11"
+      />
+    </view>
+    <input
+      class="note-input"
+      placeholder="备注（可选）"
+      placeholder-style="color:#94a3b8;font-size:26rpx;"
+      value="{{note}}"
+      bindinput="onNoteInput"
+      maxlength="20"
+    />
+    <view wx:if="{{errMsg}}" class="err-tip">⚠️ {{errMsg}}</view>
+    <view class="bind-btn {{binding_loading ? 'disabled' : ''}}" bindtap="doBinding">
+      <text wx:if="{{!binding_loading}}">🔗 立即关联</text>
+      <text wx:else>关联中…</text>
+    </view>
+  </view>
+
+  <view class="feature-list" wx:if="{{bindings.length === 0}}">
+    <view class="feature-title">{{role === 'family' ? '添加后可管理多个老人账号' : '添加后可关联多个家属账号'}}</view>
+    <view class="feature-item"><text class="fi-icon">📍</text><text class="fi-text">支持多个账号同时关联</text></view>
+    <view class="feature-item"><text class="fi-icon">📝</text><text class="fi-text">支持编辑备注和更换关联对象</text></view>
+    <view class="feature-item"><text class="fi-icon">🗑️</text><text class="fi-text">支持按单条删除绑定关系</text></view>
+  </view>
+
+  <view wx:for="{{bindings}}" wx:key="index" class="linked-card" bindtap="editBinding" data-id="{{item.binding.id}}">
+    <view class="linked-avatar">{{role === 'family' ? '👴' : '👨‍👩‍👧'}}</view>
+    <view class="linked-info">
+      <text class="linked-name">{{item.linkedUser.name}}</text>
+      <text class="linked-role">{{item.binding.roleLabel}}{{item.binding.note ? ' · ' + item.binding.note : ''}}</text>
+      <text class="linked-phone">{{item.linkedUser.phone}}</text>
+      <text class="linked-phone">绑定时间：{{item.binding.createdAt}}</text>
+    </view>
+    <view class="linked-right">
+      <view class="linked-badge">已绑定</view>
+      <view class="minor-btn" catchtap="copyPhone" data-phone="{{item.linkedUser.phone}}">复制号码</view>
+    </view>
+  </view>
+
+  </block>
+
+</view>

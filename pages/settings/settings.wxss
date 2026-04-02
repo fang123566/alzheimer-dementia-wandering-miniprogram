@@ -1,0 +1,40 @@
+/* pages/settings/settings.wxss */
+
+.container   { background: var(--ink); min-height: 100vh; padding-bottom: 80rpx; }
+
+/* 分组 */
+.setting-group { margin: 0 32rpx 32rpx; background: var(--glass); border: 1rpx solid var(--glass-border); border-radius: var(--radius); overflow: hidden; }
+.group-title   { display: block; font-size: 22rpx; color: var(--text-dim); letter-spacing: 2rpx; padding: 24rpx 28rpx 12rpx; border-bottom: 1rpx solid var(--glass-border); }
+
+/* 行 */
+.setting-row   { display: flex; align-items: center; padding: 24rpx 28rpx; border-bottom: 1rpx solid var(--glass-border); }
+.setting-row:last-child { border-bottom: none; }
+.row-icon      { font-size: 36rpx; margin-right: 20rpx; flex-shrink: 0; }
+.row-main      { flex: 1; }
+.row-label     { font-size: 28rpx; color: var(--text); display: block; }
+.row-label-amber { font-size: 28rpx; color: var(--amber); }
+.row-sub       { font-size: 22rpx; color: var(--text-dim); display: block; margin-top: 4rpx; }
+.row-sub-green { color: var(--green); }
+.row-arrow     { font-size: 36rpx; color: var(--text-faint); }
+.add-row       { background: var(--amber-pale); }
+
+/* 关键词标签 */
+.keyword-wrap  { display: flex; flex-wrap: wrap; gap: 16rpx; padding: 24rpx 28rpx; }
+.kw-tag        { font-size: 22rpx; padding: 10rpx 22rpx; border-radius: 40rpx; background: var(--red-pale); color: var(--red); border: 1rpx solid rgba(255,92,92,0.25); }
+.kw-add        { background: var(--amber-pale); color: var(--amber); border-color: rgba(245,166,35,0.3); }
+
+/* 退出登录 */
+.logout-wrap {
+  margin: 0 32rpx 40rpx;
+  background: var(--red-pale);
+  border: 1rpx solid rgba(255,92,92,0.25);
+  border-radius: var(--radius);
+  padding: 28rpx;
+  text-align: center;
+}
+.logout-text { font-size: 28rpx; font-weight: 600; color: var(--red); }
+
+/* 关于 */
+.about-wrap  { text-align: center; padding: 48rpx 0 0; }
+.about-text  { display: block; font-size: 24rpx; color: var(--text-dim); }
+.about-sub   { display: block; font-size: 20rpx; color: var(--text-faint); margin-top: 8rpx; }

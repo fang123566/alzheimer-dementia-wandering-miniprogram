@@ -1,0 +1,187 @@
+<!-- pages/profile/profile.wxml -->
+
+<view class="container">
+
+  <!-- ══════════ 家属端 ══════════ -->
+  <block wx:if="{{role === 'family'}}">
+
+    <!-- 用户信息卡 -->
+    <view class="user-card">
+      <view class="avatar-wrap">
+        <view class="avatar-circle"><text class="avatar-emoji">👨‍👩‍👧</text></view>
+        <view class="badge-role badge-family">家属端</view>
+      </view>
+      <view class="user-info">
+        <text class="user-name">{{userInfo.name || '用户'}}</text>
+        <text class="user-phone">{{userInfo.phone || ''}}</text>
+      </view>
+    </view>
+
+    <!-- 统计行 -->
+    <view class="stat-row">
+      <view class="stat-item">
+        <text class="stat-num">{{stats.unreadAlerts}}</text>
+        <text class="stat-label">未读预警</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-num">{{stats.totalAlerts}}</text>
+        <text class="stat-label">累计预警</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item">
+        <text class="stat-num">{{stats.chatCount}}</text>
+        <text class="stat-label">AI对话次</text>
+      </view>
+    </view>
+
+    <!-- 守护对象 -->
+    <view class="section-title">守护对象</view>
+    <view class="card elderly-card">
+      <view class="elderly-row">
+        <view class="elderly-avatar-wrap"><text class="elderly-avatar">👴</text></view>
+        <view class="elderly-info">
+          <text class="elderly-name">{{elderlyInfo.name || '暂未绑定老人账号'}}</text>
+          <text class="elderly-meta">{{binding ? ((elderlyInfo.age || '--') + ' 岁 · 设备已绑定') : '请先前往账号关联页面完成绑定'}}</text>
+        </view>
+        <view class="status-dot {{binding ? locationStatus : 'warning'}}"></view>
+      </view>
+      <view class="elderly-location">
+        <text class="location-icon">📍</text>
+        <text class="location-text">{{binding ? (currentLocation.address || '获取中…') : '绑定后可查看老人的实时位置'}}</text>
+      </view>
+    </view>
+
+    <!-- 功能入口 -->
+    <view class="section-title">功能管理</view>
+    <view class="menu-group">
+      <view class="menu-row" bindtap="goBinding">
+        <text class="menu-icon">🔗</text>
+        <view class="menu-main">
+          <text class="menu-label">账号关联</text>
+          <text class="menu-sub">{{bindings.length ? ('已关联 ' + bindings.length + ' 个账号 · 最近：' + binding.linkedUser.name) : '未关联老人账号'}}</text>
+        </view>
+        <view class="bind-status-dot {{binding ? 'dot-bound' : 'dot-unbound'}}"></view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" bindtap="goSettings">
+        <text class="menu-icon">⚙️</text>
+        <view class="menu-main"><text class="menu-label">基础设置</text><text class="menu-sub">联系人 · 围栏 · 方言</text></view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" bindtap="goReminders">
+        <text class="menu-icon">⏰</text>
+        <view class="menu-main"><text class="menu-label">今日提醒</text><text class="menu-sub">新增 · 编辑 · 删除 · 自动提醒</text></view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" bindtap="goAlert">
+        <text class="menu-icon">🔔</text>
+        <view class="menu-main"><text class="menu-label">预警中心</text><text class="menu-sub">查看全部预警记录</text></view>
+        <view class="menu-badge" wx:if="{{stats.unreadAlerts > 0}}"><text class="menu-badge-text">{{stats.unreadAlerts}}</text></view>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" bindtap="goLocation">
+        <text class="menu-icon">🗺️</text>
+        <view class="menu-main"><text class="menu-label">实时位置</text><text class="menu-sub">轨迹 · 安全围栏</text></view>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="section-title">账号</view>
+    <view class="menu-group">
+      <view class="menu-row" bindtap="cancelAccount">
+        <text class="menu-icon">🧾</text>
+        <text class="menu-label-red">注销账号</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-row" bindtap="logout">
+        <text class="menu-icon">🚪</text>
+        <text class="menu-label-red">退出登录</text>
+        <text class="menu-arrow">›</text>
+      </view>
+    </view>
+
+    <view class="version-tip">守护·陪伴 v1.0.0 · 关爱老人，科技守护</view>
+
+  </block>
+
+  <!-- ══════════ 老人端 ══════════ -->
+  <block wx:else>
+
+    <!-- 老人信息卡（大字体） -->
+    <view class="e-user-card">
+      <view class="e-avatar-circle"><text class="e-avatar-emoji">👴</text></view>
+      <text class="e-user-name">{{userInfo.name || '用户'}}</text>
+      <view class="badge-role badge-elderly">老人端</view>
+      <text class="e-user-sub">守护·陪伴 为您服务</text>
+    </view>
+
+    <!-- 紧急联系人（一键拨打） -->
+    <view class="e-section-title">紧急联系人</view>
+    <view wx:for="{{contacts}}" wx:key="id" class="e-contact-card" bindtap="callContact" data-phone="{{item.phone}}" data-name="{{item.name}}">
+      <view class="e-contact-avatar">{{item.avatar || '👤'}}</view>
+      <view class="e-contact-info">
+        <text class="e-contact-name">{{item.name}}</text>
+        <text class="e-contact-relation">{{item.relation}}</text>
+      </view>
+      <view class="e-call-btn">
+        <text class="e-call-icon">📞</text>
+        <text class="e-call-text">拨打</text>
+      </view>
+    </view>
+    <view wx:if="{{contacts.length === 0}}" class="e-empty-tip">暂无紧急联系人，请家属在设置中添加</view>
+
+    <!-- 今日提醒 -->
+    <view class="e-section-title">今日提醒</view>
+    <view class="e-reminder-card">
+      <view wx:for="{{reminders}}" wx:key="id" class="e-reminder-row">
+        <text class="e-reminder-icon">{{item.icon || '⏰'}}</text>
+        <view class="e-reminder-info">
+          <text class="e-reminder-title">{{item.title}}</text>
+          <text class="e-reminder-time">每日 {{item.time}}</text>
+        </view>
+        <view class="{{item.reminded ? 'e-reminder-done' : 'e-reminder-pending'}}">{{item.reminded ? '已提醒' : '未提醒'}}</view>
+      </view>
+    </view>
+    <view wx:if="{{reminders.length === 0}}" class="e-empty-tip">暂无今日提醒，请家属在提醒管理中设置</view>
+
+    <!-- 常用功能 -->
+    <view class="e-section-title">常用功能</view>
+    <view class="e-contact-card" bindtap="goSettings">
+      <view class="e-contact-avatar">⚙️</view>
+      <view class="e-contact-info">
+        <text class="e-contact-name">设置</text>
+        <text class="e-contact-relation">紧急联系人 · 方言 · 围栏</text>
+      </view>
+      <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
+        <text class="e-call-icon">›</text>
+        <text class="e-call-text" style="color:var(--amber)">查看</text>
+      </view>
+    </view>
+
+    <view class="e-contact-card" bindtap="goBinding" style="margin-bottom:0">
+      <view class="e-contact-avatar">🔗</view>
+      <view class="e-contact-info">
+        <text class="e-contact-name">账号关联</text>
+        <text class="e-contact-relation">{{bindings.length ? ('已关联 ' + bindings.length + ' 个家属 · 最近：' + binding.linkedUser.name) : '暂无家属关联'}}</text>
+      </view>
+      <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
+        <text class="e-call-icon">›</text>
+        <text class="e-call-text" style="color:var(--amber)">查看</text>
+      </view>
+    </view>
+
+    <!-- 退出 -->
+    <view class="e-logout-btn e-cancel-btn" bindtap="cancelAccount">
+      <text class="e-logout-text">注销账号</text>
+    </view>
+
+    <view class="e-logout-btn" bindtap="logout">
+      <text class="e-logout-text">退出登录</text>
+    </view>
+
+    <view class="version-tip">守护·陪伴 v1.0.0</view>
+
+  </block>
+
+</view>

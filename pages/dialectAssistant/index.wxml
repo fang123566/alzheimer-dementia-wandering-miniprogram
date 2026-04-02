@@ -1,0 +1,41 @@
+<view class="container">
+  <view class="card">
+    <view class="title">方言转文字</view>
+    <view class="content">
+      <view class="record-btn {{isRecording ? 'recording' : ''}}" bindtap="startRecord">
+        {{isRecording ? '录音中...' : '点击录音'}}
+      </view>
+      <view class="text-area">{{asrResult || '请说出方言，我来帮你转成普通话'}}</view>
+      <view class="accent-select">
+        <text>方言类型：</text>
+        <picker bindchange="onAccentChange" value="{{accentIndex}}" range="{{accentList}}">
+          <view class="picker">{{accentList[accentIndex]}}</view>
+        </picker>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">文字转方言语音</view>
+    <view class="content">
+      <textarea class="input-area" placeholder="请输入文字，我来帮你转成方言语音" value="{{ttsText}}" bindinput="onTtsTextInput"></textarea>
+      <view class="voice-select">
+        <text>发音人：</text>
+        <picker bindchange="onVoiceChange" value="{{voiceIndex}}" range="{{voiceList}}">
+          <view class="picker">{{voiceList[voiceIndex]}}</view>
+        </picker>
+      </view>
+      <button class="tts-btn" bindtap="startTts">播放语音</button>
+      <audio wx:if="{{audioUrl}}" src="{{audioUrl}}" controls>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="title">常用短语</view>
+    <view class="phrase-list">
+      <view class="phrase-item" wx:for="{{phraseList}}" wx:key="index" bindtap="usePhrase" data-text="{{item}}">
+        {{item}}
+      </view>
+    </view>
+  </view>
+</view>

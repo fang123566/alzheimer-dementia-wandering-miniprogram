@@ -1,0 +1,105 @@
+<!-- pages/dialect/dialect.wxml -->
+<!-- 老人端「方言翻译」 -->
+
+<view class="container">
+
+  <view class="page-header">
+    <text class="page-title">🗣️ 方言助手</text>
+    <text class="page-subtitle">语音输入，方言互译</text>
+  </view>
+
+  <!-- 方言选择 + 翻译方向 -->
+  <view class="control-bar">
+    <view class="lang-box" bindtap="changeDialect">
+      <text class="lang-label">{{dirFrom}}</text>
+      <text class="lang-change">切换 ›</text>
+    </view>
+    <view class="swap-btn" bindtap="swapDirection">
+      <text class="swap-icon">⇄</text>
+    </view>
+    <view class="lang-box lang-box-right">
+      <text class="lang-label">{{dirTo}}</text>
+    </view>
+  </view>
+
+  <!-- 输入区 -->
+  <view class="card input-card">
+
+    <!-- 语音输入按钮（大型） -->
+    <view
+      class="voice-btn {{recording ? 'voice-recording' : ''}}"
+      bindtouchstart="startRecord"
+      bindtouchend="stopRecord"
+    >
+      <text class="voice-icon">{{recording ? '🔴' : '🎙️'}}</text>
+      <text class="voice-label">{{recording ? '松开结束录音' : '按住说话'}}</text>
+      <text class="voice-hint">{{recording ? '正在录音…' : '也可在下方文字输入'}}</text>
+    </view>
+
+    <!-- 文字输入（备用） -->
+    <textarea
+      class="text-area"
+      placeholder="或在此输入文字…"
+      placeholder-style="color:#94a3b8;font-size:28rpx;"
+      value="{{inputText}}"
+      bindinput="onInput"
+      maxlength="200"
+      auto-height
+    />
+    <view class="char-count">{{inputText.length}}/200</view>
+
+    <view class="action-row">
+      <view class="btn btn-ghost btn-half" bindtap="clearText">清 空</view>
+      <view
+        class="btn btn-primary btn-half {{loading ? 'disabled' : ''}}"
+        bindtap="translate"
+      >
+        <text wx:if="{{!loading}}">� 翻 译</text>
+        <text wx:else>翻译中…</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 翻译结果 -->
+  <view class="card result-card" wx:if="{{result}}">
+    <view class="result-header">
+      <text class="result-title">📢 {{dirTo}} 译文</text>
+      <view class="replay-btn" bindtap="replay">▶ 朗读</view>
+    </view>
+    <text class="result-text">{{result}}</text>
+    <view class="phonetic" wx:if="{{phonetic}}">
+      <text class="phonetic-label">发音提示：</text>
+      <text class="phonetic-text">{{phonetic}}</text>
+    </view>
+  </view>
+
+  <!-- 常用短语 -->
+  <view class="section-title">常用短语（点击快速翻译）</view>
+  <view class="phrase-grid">
+    <view
+      wx:for="{{phrases}}" wx:key="id"
+      class="phrase-chip"
+      bindtap="usePhrase"
+      data-text="{{item.text}}"
+    >
+      <text class="phrase-emoji">{{item.emoji}}</text>
+      <text class="phrase-text">{{item.text}}</text>
+    </view>
+  </view>
+
+  <!-- 历史记录 -->
+  <view class="card" wx:if="{{history.length > 0}}">
+    <view class="card-title-row">
+      <text class="card-title">📋 最近翻译</text>
+      <text class="link-text" bindtap="clearHistory">清空</text>
+    </view>
+    <view wx:for="{{history}}" wx:key="id" class="history-item">
+      <view class="history-body" bindtap="useHistory" data-text="{{item.original}}">
+        <text class="history-original">{{item.original}}</text>
+        <text class="history-arrow">{{item.fromLang}} → {{item.toLang}}</text>
+        <text class="history-result">{{item.result}}</text>
+      </view>
+    </view>
+  </view>
+
+</view>

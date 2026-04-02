@@ -1,0 +1,104 @@
+<!-- pages/aichat/aichat.wxml -->
+<!-- AI 伴聊 · 情绪安抚 · 防诈拦截 -->
+
+<view class="page-container {{pageClass}}">
+  <!-- 固定顶部区域 -->
+  <view class="chat-header">
+    <view class="bot-info">
+      <view class="bot-avatar">🤖</view>
+      <view class="bot-text-wrap">
+        <text class="bot-name">小守</text>
+        <text class="bot-status">● 在线 · 陪你聊天，也能帮你查天气、记健康、做提醒</text>
+      </view>
+      <view class="header-actions">
+        <view class="header-btn {{autoSpeakClass}}" bindtap="toggleAutoSpeak">{{autoSpeakLabel}}</view>
+        <view class="header-btn {{elderlyModeClass}}" bindtap="toggleElderlyMode">{{elderlyModeLabel}}</view>
+        <view class="header-btn" bindtap="clearHistory">清空</view>
+      </view>
+    </view>
+    <view class="capability-bar">
+      <text class="capability-tag" wx:for="{{capabilityTags}}" wx:key="*this">{{item}}</text>
+    </view>
+    <view class="quick-grid">
+      <view class="quick-card" wx:for="{{quickActions}}" wx:key="id" data-text="{{item.text}}" bindtap="onQuickAction">
+        <text class="quick-icon">{{item.icon}}</text>
+        <text class="quick-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 滚动聊天区域 -->
+  <scroll-view class="chat-content" scroll-y scroll-into-view="{{scrollTo}}" scroll-with-animation enable-back-to-top>
+    <view class="chat-log">
+      <view class="welcome-card" wx:if="{{!messages.length}}">
+        <text class="welcome-title">您好，我是小守</text>
+        <text class="welcome-desc">您可以直接跟我说话，也可以点上面的快捷按钮。我会陪您聊天，也能帮您处理常见事情。</text>
+        <view class="suggestion-list">
+          <view class="suggestion-chip" wx:for="{{suggestions}}" wx:key="*this" data-text="{{item}}" bindtap="useSuggestion">{{item}}</view>
+        </view>
+      </view>
+
+      <view wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}" class="msg-row {{item.role}}">
+        <view class="msg-avatar" wx:if="{{item.isBot}}">🤖</view>
+
+        <view class="msg-body">
+          <text class="msg-name">{{item.displayName}}</text>
+
+          <view class="bubble bubble-fraud" wx:if="{{item.isFraudAlert}}">
+            <text class="fraud-title">🚨 检测到诈骗话术！</text>
+            <text class="bubble-text">{{item.text}}</text>
+            <text class="fraud-tip">{{item.tip}}</text>
+          </view>
+
+          <view class="bubble bubble-soothe" wx:elif="{{item.isSoothe}}">
+            <text class="bubble-text">{{item.text}}</text>
+            <text class="soothe-tag">【安抚模式】</text>
+          </view>
+
+          <view class="bubble {{item.bubbleClass}}" wx:else>
+            <text class="bubble-text">{{item.text}}</text>
+            <text class="emotion-note" wx:if="{{item.emotionNote}}">{{item.emotionNote}}</text>
+            <text class="message-tip" wx:if="{{item.tip}}">{{item.tip}}</text>
+            <view class="speak-btn" wx:if="{{item.canSpeak}}" bindtap="onSpeakTap" data-text="{{item.text}}">
+              🔊 朗读
+            </view>
+          </view>
+
+          <text class="msg-time">{{item.time}}</text>
+        </view>
+
+        <view class="msg-avatar" wx:if="{{item.isUser}}">👴</view>
+      </view>
+      <!-- 底部占位，避免被输入框遮挡 -->
+      <view style="height: 160rpx;"></view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部固定输入区 -->
+  <view class="input-section">
+    <view class="input-bar">
+      <view class="voice-btn {{voiceBtnClass}}" bindtap="toggleRecording">
+        <text wx:if="{{!isRecording}}">🎙️</text>
+        <text wx:else>⏹ {{recordingDuration}}s</text>
+      </view>
+      <view class="input-wrap">
+        <input
+          type="text"
+          class="text-input"
+          placeholder="例如：今天天气怎么样 / 我刚吃药了 / 我想聊聊天"
+          placeholder-style="color:#94a3b8;font-size:28rpx;"
+          value="{{inputText}}"
+          bindinput="onInput"
+          confirm-type="send"
+          bindconfirm="sendMessage"
+          adjust-position="{{true}}"
+          hold-keyboard="{{true}}"
+          cursor-spacing="20"
+        />
+      </view>
+      <view class="send-btn {{sendBtnClass}}" bindtap="sendMessage">{{sendBtnText}}</view>
+    </view>
+    <!-- 安全区域适配 -->
+    <view style="height: {{safeAreaBottom}}rpx;"></view>
+  </view>
+</view>
