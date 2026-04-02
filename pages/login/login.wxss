@@ -3,7 +3,7 @@
 .page {
   min-height: 100vh;
   /* 与山水背景图的顶部底色更接近，减少“割裂感” */
-  background: #f0f2f1;
+  background: #f2f9f4;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -182,45 +182,48 @@
   opacity: 1;
   filter: blur(0.15rpx);
 }
-.brand-name  { font-size: 52rpx; font-weight: 800; color: #4a8b6e; letter-spacing: 4rpx; }
-.brand-slogan{ font-size: 24rpx; color: #6a9f85; margin-top: 10rpx; letter-spacing: 2rpx; }
+.brand-name  { font-size: 52rpx; font-weight: 800; color: #1a5c3a; letter-spacing: 4rpx; }
+.brand-slogan{ font-size: 24rpx; color: #4a6355; margin-top: 10rpx; letter-spacing: 2rpx; }
 
 /* ── 模式切换 ────────────────────────────── */
 .mode-switch {
   display: flex;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1rpx solid rgba(76, 175, 80, 0.2);
-  border-radius: 16rpx;
-  padding: 6rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.10);
+  border-radius: var(--radius);
+  padding: 8rpx;
   margin-bottom: 40rpx;
   width: 100%;
   z-index: 1;
+  box-shadow: var(--shadow-card);
 }
 .mode-btn {
   flex: 1;
   text-align: center;
-  padding: 18rpx 0;
-  border-radius: 12rpx;
+  padding: 20rpx 0;
+  border-radius: 20rpx;
   font-size: 28rpx;
-  color: #81c784;
+  color: #4a6355;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
 }
 .mode-btn.active {
-  background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
   color: #ffffff;
   font-weight: 700;
+  box-shadow: 0 6rpx 20rpx rgba(34,118,77,0.20);
 }
 
 /* ── 表单卡片 ────────────────────────────── */
 .form-card {
   width: 100%;
   background: #ffffff;
-  border-radius: 32rpx;
+  border-radius: var(--radius-lg);
   padding: 48rpx 40rpx 40rpx;
   box-sizing: border-box;
-  box-shadow: 0 8rpx 32rpx rgba(76, 175, 80, 0.15);
+  box-shadow: var(--shadow-float);
   z-index: 1;
+  border: 1rpx solid rgba(47,133,90,0.06);
 }
 
 /* ── 输入字段 ────────────────────────────── */
@@ -230,25 +233,25 @@
 .field-label {
   display: block;
   font-size: 26rpx;
-  color: #4caf50;
+  color: #1a6b42;
   margin-bottom: 12rpx;
   letter-spacing: 1rpx;
   font-weight: 600;
 }
 .field-input {
   width: 100%;
-  background: #f8faf8;
-  border: 2rpx solid #e8f5e9;
-  border-radius: 16rpx;
+  background: #f4f9f5;
+  border: 2rpx solid rgba(47,133,90,0.12);
+  border-radius: var(--radius-sm);
   padding: 0 24rpx;
   font-size: 30rpx;
-  color: #2e7d32;
+  color: #0d2b1f;
   box-sizing: border-box;
   height: 96rpx;
   line-height: 96rpx;
 }
 .field-input:focus {
-  border-color: #4caf50;
+  border-color: #22764d;
 }
 .ph { color: #333333; }
 
@@ -256,10 +259,10 @@
 .role-title {
   display: block;
   font-size: 28rpx;
-  color: #4caf50;
+  color: #1a6b42;
   margin-bottom: 20rpx;
   margin-top: 8rpx;
-  font-weight: 500;
+  font-weight: 600;
 }
 .role-grid {
   display: flex;
@@ -268,34 +271,34 @@
 }
 .role-card {
   flex: 1;
-  background: #f8faf8;
-  border: 2rpx solid #e8f5e9;
-  border-radius: 20rpx;
+  background: #f4f9f5;
+  border: 2rpx solid rgba(47,133,90,0.12);
+  border-radius: var(--radius);
   padding: 28rpx 20rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
 }
 .role-card.role-active-family {
-  border-color: #4caf50;
-  background: #e8f5e9;
+  border-color: #22764d;
+  background: rgba(34,118,77,0.08);
 }
 .role-card.role-active-elderly {
-  border-color: #66bb6a;
-  background: #e8f5e9;
+  border-color: #38a169;
+  background: rgba(56,161,105,0.08);
 }
 .role-emoji { font-size: 52rpx; margin-bottom: 12rpx; }
 .role-name  {
   font-size: 28rpx;
   font-weight: 700;
-  color: #2e7d32;
+  color: #0d2b1f;
   margin-bottom: 10rpx;
 }
 .role-desc  {
   font-size: 20rpx;
-  color: #81c784;
+  color: #4a6355;
   text-align: center;
   line-height: 1.5;
 }
@@ -306,7 +309,7 @@
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: #4caf50;
+  background: #22764d;
   color: #ffffff;
   font-size: 22rpx;
   font-weight: 700;
@@ -315,7 +318,7 @@
   justify-content: center;
 }
 .role-active-elderly .role-check {
-  background: #66bb6a;
+  background: #38a169;
 }
 
 /* ── 错误提示 ────────────────────────────── */
@@ -331,16 +334,16 @@
 /* ── 提交按钮 ────────────────────────────── */
 .submit-btn {
   width: 100%;
-  background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
   color: #ffffff;
   font-size: 34rpx;
   font-weight: 700;
   text-align: center;
   padding: 32rpx 0;
-  border-radius: 50rpx;
+  border-radius: 999rpx;
   letter-spacing: 4rpx;
   margin-bottom: 28rpx;
-  box-shadow: 0 8rpx 24rpx rgba(76, 175, 80, 0.35);
+  box-shadow: 0 12rpx 32rpx rgba(34,118,77,0.28);
 }
 .submit-btn.disabled {
   opacity: 0.6;
@@ -350,10 +353,10 @@
 .switch-tip {
   text-align: center;
   font-size: 24rpx;
-  color: #81c784;
+  color: #6b8577;
 }
 .switch-link {
-  color: #4caf50;
+  color: #1a6b42;
   margin-left: 8rpx;
-  font-weight: 600;
+  font-weight: 700;
 }

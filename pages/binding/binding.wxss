@@ -1,14 +1,15 @@
 /* pages/binding/binding.wxss */
 
-.container { background: var(--ink); min-height: 100vh; padding-bottom: 60rpx; }
+.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 80rpx; }
 
 .loading-card,
 .self-card,
 .linked-actions {
-  margin: 0 32rpx 24rpx;
-  background: var(--glass);
-  border: 1rpx solid var(--glass-border);
+  margin: 0 36rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
   border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
 }
 
 .loading-card {
@@ -109,9 +110,9 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
-  margin: 0 32rpx 28rpx;
-  padding: 20rpx 28rpx;
-  border-radius: var(--radius-sm);
+  margin: 0 36rpx 28rpx;
+  padding: 22rpx 28rpx;
+  border-radius: var(--radius);
   border: 1rpx solid;
 }
 .status-bound   { background: var(--green-pale);  border-color: rgba(93,217,127,0.3);  }
@@ -124,11 +125,12 @@
   display: flex;
   align-items: flex-start;
   gap: 24rpx;
-  background: var(--glass);
-  border: 1rpx solid var(--glass-border);
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
   border-radius: var(--radius);
-  margin: 0 32rpx 16rpx;
-  padding: 28rpx;
+  margin: 0 36rpx 16rpx;
+  padding: 32rpx;
+  box-shadow: var(--shadow-card);
 }
 .linked-avatar { font-size: 72rpx; flex-shrink: 0; }
 .linked-info   { flex: 1; }
@@ -150,16 +152,17 @@
 }
 
 /* 绑定时间 */
-.bind-meta { margin: 0 32rpx 24rpx; }
+.bind-meta { margin: 0 36rpx 24rpx; }
 .bind-meta-text { font-size: 22rpx; color: var(--text-faint); }
 
 /* ── 功能说明列表 ────────────────────────────── */
 .feature-list {
-  margin: 0 32rpx 32rpx;
-  background: var(--glass);
-  border: 1rpx solid var(--glass-border);
+  margin: 0 36rpx 32rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
   border-radius: var(--radius);
-  padding: 24rpx 28rpx;
+  padding: 28rpx 32rpx;
+  box-shadow: var(--shadow-card);
 }
 .feature-title { display: block; font-size: 26rpx; font-weight: 700; color: var(--text-dim); margin-bottom: 16rpx; }
 .feature-item  { display: flex; align-items: center; gap: 16rpx; padding: 10rpx 0; }
@@ -168,22 +171,23 @@
 
 /* 解绑按钮 */
 .unbind-btn {
-  margin: 0 32rpx;
-  background: var(--glass);
-  border: 1rpx solid rgba(255,92,92,0.25);
+  margin: 0 36rpx;
+  background: rgba(239,68,68,0.06);
+  border: 1rpx solid rgba(239,68,68,0.14);
   border-radius: var(--radius);
-  padding: 28rpx;
+  padding: 30rpx;
   text-align: center;
 }
 .unbind-text { font-size: 26rpx; color: var(--red); font-weight: 600; }
 
 /* ── 未绑定：引导步骤 ────────────────────────── */
 .guide-card {
-  margin: 0 32rpx 24rpx;
-  background: var(--glass);
-  border: 1rpx solid var(--glass-border);
+  margin: 0 36rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
   border-radius: var(--radius);
-  padding: 28rpx;
+  padding: 32rpx;
+  box-shadow: var(--shadow-card);
 }
 .guide-title { display: block; font-size: 26rpx; font-weight: 700; color: var(--text); margin-bottom: 16rpx; }
 .guide-step  { display: flex; align-items: flex-start; gap: 16rpx; margin-bottom: 12rpx; }
@@ -192,11 +196,12 @@
 
 /* 输入区 */
 .input-card {
-  margin: 0 32rpx 24rpx;
-  background: var(--glass);
-  border: 1rpx solid var(--glass-border);
+  margin: 0 36rpx 24rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
   border-radius: var(--radius);
-  padding: 28rpx;
+  padding: 32rpx;
+  box-shadow: var(--shadow-card);
 }
 .input-label { display: block; font-size: 24rpx; color: var(--text-dim); margin-bottom: 16rpx; }
 .phone-row {
@@ -225,28 +230,31 @@
 .ph { color: var(--text-faint); }
 .err-tip { font-size: 22rpx; color: var(--red); margin-bottom: 16rpx; }
 .bind-btn {
-  background: var(--amber);
-  border-radius: var(--radius-sm);
-  padding: 24rpx;
+  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
+  border-radius: var(--radius);
+  padding: 26rpx;
   text-align: center;
   font-size: 30rpx;
   font-weight: 700;
-  color: #0d1b2a;
+  color: #ffffff;
+  box-shadow: 0 12rpx 28rpx rgba(34,118,77,0.22);
+  letter-spacing: 1rpx;
 }
 .bind-btn.disabled { opacity: 0.5; }
 
 /* ── 老人端等待卡 ────────────────────────────── */
 .waiting-card {
-  margin: 0 32rpx;
-  background: var(--glass);
-  border: 1rpx solid var(--glass-border);
+  margin: 0 36rpx;
+  background: #ffffff;
+  border: 1rpx solid rgba(47,133,90,0.08);
   border-radius: var(--radius);
-  padding: 48rpx 32rpx;
+  padding: 52rpx 36rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
+  gap: 18rpx;
   text-align: center;
+  box-shadow: var(--shadow-card);
 }
 .waiting-icon  { font-size: 80rpx; }
 .waiting-title { font-size: 34rpx; font-weight: 700; color: var(--text); }
