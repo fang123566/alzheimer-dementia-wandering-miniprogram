@@ -86,45 +86,49 @@ Page({
     this.setData({ loading: true, errorMsg: '' })
 
     try {
-      const result = mode === 'login'
-        ? await authAPI.login(form.phone.trim(), form.password)
-        : await authAPI.register(
-          form.name.replace(/\s+/g, ''),
-          form.phone.trim(),
-          form.password,
-          form.role
-        )
-
-      if (result.code === 0) {
-        const { token, user } = result.data
-        wx.setStorageSync('token',    token)
-        wx.setStorageSync('userInfo', user)
-        wx.setStorageSync('role',     user.role)
-
-        app.globalData.userInfo = user
-        app.globalData.role     = user.role
-        app.globalData.elderlyInfo = user.role === 'elderly'
-          ? {
-              name:      user.name,
-              elderlyId: user.elderlyId,
-              age:       user.age    || '',
-              avatar:    user.avatar || ''
-            }
-          : app.globalData.elderlyInfo
-
-        wx.showToast({ title: mode === 'login' ? '登录成功' : '注册成功', icon: 'success' })
-        setTimeout(() => this._goHome(), 800)
-
-      } else {
-        this.setData({ errorMsg: result.msg || '操作失败，请重试' })
+        const { result } = await wx.cloud.callFunction({
+          name: 'auth',
+          data: {
+            action:   mode,           
+            name:     form.name.replace(/\s+/g, ''), // 确保姓名无空格
+            phone:    form.phone.trim(),
+            password: form.password,
+            role:     form.role
+          }
+        })
+  
+        if (result.code === 0) {
+          const { token, user } = result.data
+          wx.setStorageSync('token',    token)
+          wx.setStorageSync('userInfo', user)
+          wx.setStorageSync('role',     user.role)
+  
+          app.globalData.userInfo = user
+          app.globalData.role     = user.role
+          app.globalData.elderlyInfo = user.role === 'elderly'
+            ? {
+                name:      user.name,
+                elderlyId: user.elderlyId,
+                age:       user.age    || '',
+                avatar:    user.avatar || ''
+              }
+            : app.globalData.elderlyInfo
+  
+          wx.showToast({ title: mode === 'login' ? '登录成功' : '注册成功', icon: 'success' })
+          setTimeout(() => this._goHome(), 800)
+  
+        } else {
+          this.setData({ errorMsg: result.msg || '操作失败，请重试' })
+        }
+  
+      } catch (err) {
+        console.error('云函数调用失败：', err)
+        this.setData({ errorMsg: '网络连接失败，请稍后重试' })
+      } finally {
+        this.setData({ loading: false })
       }
-
-    } catch (err) {
-      this.setData({ errorMsg: err.message || '网络连接失败，请稍后重试' })
-    } finally {
-      this.setData({ loading: false })
-    }
-  },
+    },
+  
 
   _goHome() {
     wx.reLaunch({ url: '/pages/index/index' })

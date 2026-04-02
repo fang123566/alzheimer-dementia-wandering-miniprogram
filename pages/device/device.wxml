@@ -1,0 +1,181 @@
+<!-- pages/device/device.wxml -->
+<view class="page">
+
+  <!-- ══ 顶部状态栏 ══════════════════════════════ -->
+  <view class="header">
+    <view class="header-left">
+      <text class="app-title">语音设备</text>
+    </view>
+    <view class="status-pill status-{{status}}">
+      <text class="status-icon">{{statusIcon}}</text>
+      <text class="status-text">{{statusText}}</text>
+    </view>
+  </view>
+
+  <!-- ══ 扫描 / 连接控制按钮 ════════════════════ -->
+  <view class="control-bar">
+    <button
+      wx:if="{{status === 'idle' || status === 'disconnected'}}"
+      class="ctrl-btn primary"
+      bindtap="startScan"
+    >
+      📡 扫描设备
+    </button>
+
+    <button
+      wx:if="{{status === 'scanning'}}"
+      class="ctrl-btn secondary"
+      bindtap="stopScan"
+    >
+      ⏹ 停止扫描
+    </button>
+
+    <button
+      wx:if="{{status === 'connected'}}"
+      class="ctrl-btn danger"
+      bindtap="disconnect"
+    >
+      🔌 断开连接
+    </button>
+
+    <!-- 扫描中动画 -->
+    <view wx:if="{{status === 'scanning' && deviceList.length === 0}}" class="scanning-hint">
+      <text class="scanning-dot">●</text>
+      <text class="scanning-dot">●</text>
+      <text class="scanning-dot">●</text>
+      <text class="scanning-label"> 正在寻找设备...</text>
+    </view>
+  </view>
+
+  <!-- ══ 发现的设备列表 ═══════════════════════════ -->
+  <view wx:if="{{deviceList.length > 0}}" class="device-list">
+    <text class="section-label">📶 发现设备</text>
+    <view
+      wx:for="{{deviceList}}"
+      wx:key="deviceId"
+      class="device-card"
+      data-deviceid="{{item.deviceId}}"
+      bindtap="connectDevice"
+    >
+      <view class="device-icon">📱</view>
+      <view class="device-info">
+        <text class="device-name">{{item.name}}</text>
+        <text class="device-id">{{item.deviceId}}</text>
+      </view>
+      <view class="device-rssi">
+        <text>{{item.RSSI}} dBm</text>
+        <text class="connect-hint">点击连接 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ══ 连接中占位 ═══════════════════════════════ -->
+  <view wx:if="{{status === 'connecting'}}" class="connecting-placeholder">
+    <text class="connecting-text">⏳ 正在连接，请稍候...</text>
+  </view>
+
+  <!-- ══ 消息区域（已连接后显示）════════════════ -->
+  <view wx:if="{{status === 'connected'}}" class="chat-wrapper">
+
+    <scroll-view
+      class="message-list"
+      scroll-y
+      scroll-into-view="{{lastMsgId}}"
+      scroll-with-animation
+    >
+      <view wx:for="{{messages}}" wx:key="id" id="{{item.id}}" class="msg-row msg-{{item.type}}">
+
+        <!-- 信息提示（居中） -->
+        <view wx:if="{{item.type === 'info'}}" class="msg-info">
+          <text class="msg-info-text">{{item.content}}</text>
+        </view>
+
+        <!-- 发送消息（右对齐） -->
+        <view wx:elif="{{item.type === 'sent'}}" class="msg-bubble-wrap right">
+          <view class="msg-bubble sent">
+            <text class="msg-text">{{item.content}}</text>
+          </view>
+          <text class="msg-time">{{item.time}}</text>
+        </view>
+
+        <!-- 收到文字（左对齐，ESP32转发） -->
+        <view wx:elif="{{item.type === 'received'}}" class="msg-bubble-wrap left">
+          <view class="msg-bubble received">
+            <text class="msg-text">{{item.content}}</text>
+          </view>
+          <text class="msg-time">{{item.time}}</text>
+        </view>
+
+        <!-- 收到音频（左对齐，可播放） -->
+        <view wx:elif="{{item.type === 'audio'}}" class="msg-bubble-wrap left">
+          <view
+            class="msg-bubble audio"
+            data-path="{{item.content}}"
+            bindtap="onAudioTap"
+          >
+            <view class="audio-icon">🔊</view>
+            <view class="audio-label">
+              <text class="audio-title">设备语音</text>
+              <text class="audio-hint">点击播放</text>
+            </view>
+            <view wx:if="{{isPlaying}}" class="audio-wave">
+              <text>▶</text>
+            </view>
+          </view>
+          <text class="msg-time">{{item.time}}</text>
+        </view>
+
+        <!-- 紧急消息（全宽红色） -->
+        <view wx:elif="{{item.type === 'emergency'}}" class="msg-emergency">
+          <text class="msg-emergency-text">{{item.content}}</text>
+          <text class="msg-time emergency-time">{{item.time}}</text>
+        </view>
+
+      </view>
+
+      <!-- 底部占位，保证最新消息可见 -->
+      <view style="height: 16rpx;"></view>
+    </scroll-view>
+
+    <!-- ══ 输入工具栏 ════════════════════════════ -->
+    <view class="input-bar">
+      <input
+        class="text-input"
+        value="{{inputText}}"
+        bindinput="onInputChange"
+        placeholder="发送消息到屏幕..."
+        confirm-type="send"
+        bindconfirm="sendText"
+        maxlength="200"
+        adjust-position
+      />
+      <button class="send-btn" bindtap="sendText" disabled="{{!inputText}}">
+        发送
+      </button>
+    </view>
+
+    <!-- ══ 录音按钮 ════════════════════════════ -->
+    <view class="record-bar">
+      <button
+        class="record-btn {{isRecording ? 'recording' : ''}}"
+        bindtap="toggleRecord"
+      >
+        <text class="record-icon">{{isRecording ? '⏹' : '🎙️'}}</text>
+        <text class="record-label">{{isRecording ? '停止录音' : '按下录音'}}</text>
+      </button>
+
+      <view wx:if="{{isPlaying}}" class="playing-indicator">
+        <text>🎵 播放中...</text>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- ══ 未连接时空状态 ════════════════════════ -->
+  <view wx:if="{{status === 'idle' || status === 'disconnected'}}" class="empty-state">
+    <text class="empty-icon">📡</text>
+    <text class="empty-title">未连接设备</text>
+    <text class="empty-desc">点击「扫描设备」搜索 ESP32-S3 智能语音设备</text>
+  </view>
+
+</view>

@@ -10,7 +10,8 @@
     "pages/memory/memory",
     "pages/memory/detail/detail",
     "pages/binding/binding",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/device/device"
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -31,7 +32,8 @@
       { "pagePath": "pages/alert/alert",       "text": "预警" },
       { "pagePath": "pages/profile/profile",   "text": "我的" },
       { "pagePath": "pages/aichat/aichat",     "text": "伴聊" },
-      { "pagePath": "pages/dialect/dialect",   "text": "方言" }
+      { "pagePath": "pages/dialect/dialect",   "text": "方言" },
+      {"pagePath": "pages/device/device","text":"蓝牙"}
     ]
   },
   "permission": {

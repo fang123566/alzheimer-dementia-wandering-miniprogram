@@ -3,14 +3,16 @@ const FAMILY_LIST = [
   { text: '首页',  icon: '🏠', pagePath: '/pages/index/index',       badge: 0 },
   { text: '位置',  icon: '📍', pagePath: '/pages/location/location', badge: 0 },
   { text: '预警',  icon: '🔔', pagePath: '/pages/alert/alert',       badge: 0 },
-  { text: '我的',  icon: '👤', pagePath: '/pages/profile/profile',   badge: 0 }
+  { text: '我的',  icon: '👤', pagePath: '/pages/profile/profile',   badge: 0 },
+  {text:'蓝牙',icon:'👤', pagePath: '/pages/device/device', badge: 0 }
 ]
 
 const ELDERLY_LIST = [
   { text: '首页',  icon: '🏠', pagePath: '/pages/index/index',    badge: 0 },
   { text: '伴聊',  icon: '🤖', pagePath: '/pages/aichat/aichat',  badge: 0 },
   { text: '方言',  icon: '🗣️', pagePath: '/pages/dialect/dialect', badge: 0 },
-  { text: '我的',  icon: '👤', pagePath: '/pages/profile/profile', badge: 0 }
+  { text: '我的',  icon: '👤', pagePath: '/pages/profile/profile', badge: 0 },
+  {text:'蓝牙',icon:'👤', pagePath: '/pages/device/device', badge: 0 }
 ]
 
 Component({
