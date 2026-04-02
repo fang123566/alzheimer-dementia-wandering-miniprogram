@@ -22,9 +22,24 @@ page {
   --radius:     20rpx;
   --radius-sm:  12rpx;
 
+  /* 老人模式大字号变量 */
+  --font-base:     28rpx;
+  --font-lg:       32rpx;
+  --font-xl:       36rpx;
+  --font-xxl:      44rpx;
+
   background-color: #f7f9fc;
   color: #1f2937;
   font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
+  font-size: var(--font-base);
+}
+
+/* 老人模式 - 大字号 */
+page.elderly-mode {
+  --font-base:     36rpx;
+  --font-lg:       44rpx;
+  --font-xl:       52rpx;
+  --font-xxl:      64rpx;
 }
 
 /* ── 通用卡片 ─────────────────────────────── */

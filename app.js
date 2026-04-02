@@ -5,6 +5,8 @@ App({
     userInfo: null,
     // 当前角色：'elderly'（老人端）或 'family'（家属端）
     role: 'family',
+    // 老人模式（大字号+语音播报）
+    elderlyMode: wx.getStorageSync('elderlyMode') || false,
     // 老人信息（家属端查看的目标老人）
     elderlyInfo: {
       name: '王建明',
@@ -33,24 +35,7 @@ App({
   },
 
   onLaunch() {
-    // 初始化云开发（接入后取消注释）
-    // wx.cloud.init({ env: 'your-env-id' })
-
-    // 从本地存储恢复登录态
-    const token    = wx.getStorageSync('token')
-    const userInfo = wx.getStorageSync('userInfo')
-    const role     = wx.getStorageSync('role')
-
-    if (token && userInfo) {
-      this.globalData.token    = token
-      this.globalData.userInfo = userInfo
-      this.globalData.role     = role || userInfo.role || 'family'
-      this._loadContacts()
-    }
-    // 未登录时不做跳转，由首页 onLoad 检测后跳转 login
-  },
-  onLaunch() {
-    // 初始化云开发（接入后取消注释）
+    // 初始化云开发
     wx.cloud.init({ env: 'cloud1-3gzx0vun034c33f9' })
 
     // 从本地存储恢复登录态
@@ -64,7 +49,14 @@ App({
       this.globalData.role     = role || userInfo.role || 'family'
       this._loadContacts()
     }
-    // 未登录时不做跳转，由首页 onLoad 检测后跳转 login
+  },
+
+  // 切换老人模式
+  toggleElderlyMode() {
+    const newMode = !this.globalData.elderlyMode
+    this.globalData.elderlyMode = newMode
+    wx.setStorageSync('elderlyMode', newMode)
+    return newMode
   },
 
   // 检查是否已登录，供各页面 onLoad 调用
