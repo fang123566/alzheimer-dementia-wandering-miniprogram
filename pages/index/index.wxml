@@ -83,60 +83,100 @@
   </view>
 
   <!-- ══════════ 家属端首页 ══════════ -->
-  <!-- 实时状态卡片 -->
   <view class="section-wrap" wx:if="{{role === 'family'}}">
 
-    <!-- 位置状态 -->
-    <view class="card status-card">
+    <!-- 位置状态卡片（增强版） -->
+    <view class="card status-card status-card-{{statusLevel}}">
       <view class="card-title-row">
         <text class="card-title">📍 实时位置状态</text>
-        <view class="tag {{statusTag}}">{{statusText}}</view>
+        <!-- 围栏快捷开关 -->
+        <view class="fence-switch" bindtap="toggleFence">
+          <view class="fence-track {{fenceEnabled ? 'on' : ''}}">
+            <view class="fence-thumb"></view>
+          </view>
+          <text class="fence-label">围栏{{fenceEnabled ? '开' : '关'}}</text>
+        </view>
       </view>
-      <view class="location-info">
-        <text class="location-address">{{currentLocation.address}}</text>
-        <text class="location-time">更新于 {{currentLocation.updatedAt}}</text>
+
+      <!-- 彩色状态标签（点击展开/收起地址） -->
+      <view class="status-tag-row" bindtap="toggleAddressExpand">
+        <view class="status-tag status-tag-{{statusLevel}}">
+          <text class="status-tag-icon">{{statusIcon}}</text>
+          <text class="status-tag-text">{{statusText}}</text>
+        </view>
+        <text class="expand-arrow">{{addressExpanded ? '▲' : '▼'}}</text>
       </view>
-      <view class="btn btn-ghost mt-16" bindtap="goLocation">查看轨迹地图 ›</view>
+
+      <!-- 展开后的详细地址 -->
+      <view class="address-detail {{addressExpanded ? 'show' : ''}}">
+        <text class="location-address">{{currentLocation.address || '正在获取位置…'}}</text>
+      </view>
+
+      <!-- 更新时效 -->
+      <view class="freshness-row">
+        <text class="freshness-icon">🕐</text>
+        <text class="freshness-text {{freshnessStale ? 'stale' : ''}}">{{freshnessText}}</text>
+      </view>
+
+      <!-- 查看轨迹 -->
+      <view class="btn btn-ghost mt-16" bindtap="goLocation">查看详细轨迹 ›</view>
     </view>
 
-    <!-- 数据统计卡片组 -->
+    <!-- 核心数据概览 -->
     <view class="stat-grid">
-      <view class="stat-card">
-        <text class="stat-icon">🏠</text>
+      <view class="stat-card stat-card-clickable" bindtap="goLocation">
+        <text class="stat-icon">{{distanceIcon}}</text>
         <text class="stat-label">离家距离</text>
-        <text class="stat-value">{{stats.distance}} m</text>
+        <text class="stat-value stat-value-distance">{{distanceText}}</text>
       </view>
-      <view class="stat-card">
-        <text class="stat-icon">🛡️</text>
+      <view class="stat-card stat-card-clickable {{alertsHot ? 'stat-card-hot' : ''}}" bindtap="goAlert">
+        <view wx:if="{{alertsHot}}" class="stat-red-dot"></view>
+        <text class="stat-icon">{{alertsIcon}}</text>
         <text class="stat-label">今日预警</text>
-        <text class="stat-value {{stats.alerts > 0 ? 'val-warn' : ''}}">{{stats.alerts}} 次</text>
+        <text class="stat-value {{alertsHot ? 'val-danger' : 'val-muted'}}">{{alertsText}}</text>
       </view>
-      <view class="stat-card">
+      <view class="stat-card stat-card-clickable" bindtap="goChat">
         <text class="stat-icon">🤖</text>
-        <text class="stat-label">AI对话</text>
+        <text class="stat-label">AI 关怀</text>
         <text class="stat-value">{{stats.aiChats}} 次</text>
       </view>
     </view>
 
-    <!-- 快捷操作（家属端） -->
+    <!-- 快捷操作（家属端 · 2×2 分类布局） -->
     <view class="card" wx:if="{{role === 'family'}}">
       <text class="card-title">🚀 快捷操作</text>
-      <view class="quick-actions">
-        <view class="quick-btn" bindtap="callEmergency">
-          <text class="quick-icon">📞</text>
-          <text class="quick-text">紧急呼叫</text>
+      <view class="quick-grid">
+        <!-- 紧急呼叫（最高优先级，红色主色，视觉最突出） -->
+        <view class="quick-cell quick-emergency" bindtap="callEmergency">
+          <text class="quick-cell-icon quick-icon-lg">📞</text>
+          <view class="quick-cell-body">
+            <text class="quick-cell-title emergency-title">紧急呼叫</text>
+            <text class="quick-cell-desc">一键拨号 · 紧急消息</text>
+          </view>
         </view>
-        <view class="quick-btn" bindtap="goAlert">
-          <text class="quick-icon">🔔</text>
-          <text class="quick-text">预警中心</text>
+        <!-- 预警中心（中高优先级，橙色主色） -->
+        <view class="quick-cell quick-alert" bindtap="goAlert">
+          <text class="quick-cell-icon">🔔</text>
+          <view class="quick-cell-body">
+            <text class="quick-cell-title">预警中心</text>
+            <text class="quick-cell-desc">越界 · 久坐 · 异常</text>
+          </view>
         </view>
-        <view class="quick-btn" bindtap="goMemory">
-          <text class="quick-icon">📸</text>
-          <text class="quick-text">记忆相册</text>
+        <!-- 记忆相册（中优先级，蓝色主色） -->
+        <view class="quick-cell quick-memory" bindtap="goMemory">
+          <text class="quick-cell-icon">📸</text>
+          <view class="quick-cell-body">
+            <text class="quick-cell-title">记忆相册</text>
+            <text class="quick-cell-desc">照片 · 语音 · 回忆</text>
+          </view>
         </view>
-        <view class="quick-btn" bindtap="goSettings">
-          <text class="quick-icon">⚙️</text>
-          <text class="quick-text">设置</text>
+        <!-- 设置（中低优先级，灰色主色） -->
+        <view class="quick-cell quick-settings" bindtap="goSettings">
+          <text class="quick-cell-icon">⚙️</text>
+          <view class="quick-cell-body">
+            <text class="quick-cell-title">设置</text>
+            <text class="quick-cell-desc">围栏 · 联系人 · 账号</text>
+          </view>
         </view>
       </view>
     </view>

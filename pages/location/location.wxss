@@ -22,38 +22,305 @@
 .map-refresh-text { font-size: 26rpx; color: var(--text); font-weight: 600; }
 .section-wrap { padding: 0 36rpx; margin-top: 28rpx; }
 
+/* ── 历史轨迹入口按钮 ───────────────── */
+.hist-traj-btn {
+  position: absolute; right: 24rpx; top: 24rpx;
+  display: flex; align-items: center; gap: 8rpx;
+  padding: 14rpx 22rpx; border-radius: 999rpx;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(16rpx);
+  border: 1rpx solid rgba(59,130,246,0.15);
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
+}
+.hist-traj-btn:active { background: #eef3ff; }
+.hist-traj-icon { font-size: 28rpx; }
+.hist-traj-text { font-size: 24rpx; color: #3b82f6; font-weight: 700; }
+
+/* ── 时间选择器面板 ──────────────────── */
+.hist-picker-panel {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 999; display: flex; align-items: flex-end;
+}
+.hist-picker-mask {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.35);
+}
+.hist-picker-body {
+  position: relative; z-index: 1;
+  width: 100%; background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 40rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+  animation: slideUp 0.25s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.hist-picker-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 32rpx;
+}
+.hist-picker-title { font-size: 34rpx; font-weight: 800; color: #0d2b1f; }
+.hist-picker-close { font-size: 36rpx; color: #9ca3af; padding: 10rpx; }
+
+/* 快捷选项 */
+.hist-picker-shortcuts { display: flex; gap: 16rpx; margin-bottom: 28rpx; }
+.hist-shortcut {
+  flex: 1; text-align: center;
+  padding: 20rpx 0; border-radius: 16rpx;
+  background: #f3f4f6; border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+.hist-shortcut:active { opacity: 0.8; }
+.hist-shortcut-active {
+  background: #eff6ff; border-color: #3b82f6;
+}
+.hist-shortcut-text { font-size: 28rpx; color: #374151; font-weight: 600; }
+.hist-shortcut-active .hist-shortcut-text { color: #3b82f6; }
+
+/* 自定义日期 */
+.hist-custom-dates { margin-bottom: 28rpx; animation: fadeIn 0.2s ease; }
+.hist-date-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20rpx 24rpx; margin-bottom: 16rpx;
+  background: #f9fafb; border-radius: 12rpx;
+}
+.hist-date-label { font-size: 28rpx; color: #6b7280; }
+.hist-date-value { font-size: 28rpx; color: #1f2937; font-weight: 600; }
+
+/* 确认按钮 */
+.hist-confirm-btn {
+  display: flex; align-items: center; justify-content: center; gap: 14rpx;
+  padding: 28rpx 0; border-radius: 16rpx;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  box-shadow: 0 8rpx 24rpx rgba(37,99,235,0.25);
+}
+.hist-confirm-btn:active { opacity: 0.85; }
+.hist-confirm-text { color: #fff; font-size: 30rpx; font-weight: 700; }
+
+/* ── 轨迹图例 ────────────────────────── */
+.hist-legend {
+  display: flex; align-items: center; justify-content: center; gap: 28rpx;
+  padding: 16rpx 0; margin: 0 36rpx;
+  background: rgba(255,255,255,0.9); border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+.hist-legend-item { display: flex; align-items: center; gap: 10rpx; }
+.hist-legend-line { width: 36rpx; height: 6rpx; border-radius: 3rpx; }
+.hist-legend-normal { background: #38a169; }
+.hist-legend-breach { background: #e53935; }
+.hist-legend-dot {
+  width: 16rpx; height: 16rpx; border-radius: 50%;
+  background: #f59e0b; border: 3rpx solid #fff;
+  box-shadow: 0 0 0 3rpx rgba(245,158,11,0.3);
+}
+.hist-legend-label { font-size: 22rpx; color: #6b7280; }
+
+/* ── 停留点弹窗 ──────────────────────── */
+.stop-popup {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1000; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.35);
+}
+.stop-popup-card {
+  width: 600rpx; background: #fff; border-radius: 24rpx;
+  padding: 40rpx; box-shadow: 0 16rpx 48rpx rgba(0,0,0,0.15);
+  animation: fadeIn 0.2s ease;
+}
+.stop-popup-title {
+  font-size: 32rpx; font-weight: 800; color: #0d2b1f;
+  display: block; margin-bottom: 28rpx;
+}
+.stop-popup-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 16rpx 0; border-bottom: 1rpx solid #f3f4f6;
+}
+.stop-popup-row:last-child { border-bottom: none; }
+.stop-popup-label { font-size: 26rpx; color: #6b7280; flex-shrink: 0; margin-right: 20rpx; }
+.stop-popup-value { font-size: 26rpx; color: #1f2937; font-weight: 600; text-align: right; flex: 1; word-break: break-all; }
+.stop-popup-duration { color: #f59e0b; }
+
+/* ── 位置卡片 ─────────────────────────── */
+.loc-card { padding: 32rpx; }
+
+/* 标题行 */
+.loc-title-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 24rpx;
+}
+.loc-title-left { display: flex; align-items: center; gap: 12rpx; }
+.loc-icon { font-size: 36rpx; }
+.loc-title { font-size: 34rpx; font-weight: 800; color: #0d2b1f; }
+
+/* 安全状态标签 */
+.loc-status-tag {
+  display: flex; align-items: center; gap: 8rpx;
+  padding: 10rpx 20rpx; border-radius: 999rpx;
+  font-size: 24rpx; font-weight: 600;
+}
+.loc-status-tag.tag-safe    { background: #e6f9ee; color: #1b7a3d; }
+.loc-status-tag.tag-warning { background: #fff5e6; color: #c77600; }
+.loc-status-tag.tag-danger  { background: #ffeaea; color: #c0392b; }
+.loc-status-dot { font-size: 24rpx; line-height: 1; }
+.loc-status-label { font-size: 24rpx; }
+
+/* 围栏规则说明 */
+.loc-fence-rule { margin-bottom: 20rpx; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-8rpx); } to { opacity: 1; transform: translateY(0); } }
+.fence-rule-box {
+  background: #f0f7ff; border: 1rpx solid #bddcff; border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+}
+.fence-rule-title { font-size: 26rpx; font-weight: 700; color: #1a5276; display: block; margin-bottom: 14rpx; }
+.fence-rule-item { font-size: 24rpx; color: #34495e; display: block; line-height: 1.8; }
+
+/* 无数据提示 */
+.no-data-hint {
+  background: #fff8e1; border: 1rpx solid #ffe082; border-radius: 12rpx;
+  padding: 18rpx 24rpx; margin-bottom: 16rpx;
+}
+.no-data-text { font-size: 26rpx; color: #e65100; }
+
+/* 详细地址行（可复制） */
+.loc-addr-row {
+  display: flex; align-items: flex-start; gap: 16rpx;
+  padding: 20rpx 24rpx; margin-bottom: 16rpx;
+  background: #f7faf8; border-radius: 16rpx;
+  border: 1rpx solid rgba(47,133,90,0.08);
+}
+.loc-addr-row:active { background: #eef5f0; }
+.loc-addr-text {
+  flex: 1; font-size: 30rpx; font-weight: 700; color: #0d2b1f;
+  line-height: 1.6; word-break: break-all;
+}
+.loc-addr-copy-icon { font-size: 32rpx; flex-shrink: 0; margin-top: 4rpx; opacity: 0.5; }
+
+/* 地址标签 */
+.loc-tags { display: flex; flex-wrap: wrap; gap: 14rpx; margin-bottom: 20rpx; }
+.loc-tag-chip {
+  display: flex; align-items: center;
+  padding: 10rpx 22rpx; border-radius: 999rpx;
+  background: var(--teal-pale, #e8f6f0);
+  border: 1rpx solid rgba(47,158,132,0.14);
+}
+.loc-tag-chip:active { background: #d0ece3; }
+.loc-tag-text { font-size: 24rpx; color: var(--teal, #2a9d6e); font-weight: 600; }
+
+/* 更新时间行 */
+.loc-time-row {
+  display: flex; align-items: center; gap: 10rpx;
+  margin-bottom: 24rpx; padding: 0 4rpx;
+}
+.loc-time-label { font-size: 24rpx; color: var(--text-dim, #8a9a8e); }
+.loc-time-value { font-size: 24rpx; color: var(--text-dim, #8a9a8e); }
+.loc-time-value.time-stale { color: #e53935; font-weight: 700; }
+.loc-time-badge {
+  font-size: 20rpx; color: #fff; background: #e53935;
+  padding: 4rpx 14rpx; border-radius: 999rpx; font-weight: 600;
+  margin-left: 8rpx;
+}
+
+/* 刷新按钮 */
+.loc-refresh-btn {
+  display: flex; align-items: center; justify-content: center; gap: 14rpx;
+  padding: 28rpx 0; border-radius: var(--radius, 16rpx);
+  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
+  box-shadow: 0 12rpx 28rpx rgba(34,118,77,0.22);
+  transition: opacity 0.2s;
+}
+.loc-refresh-btn:active { opacity: 0.85; }
+.loc-refresh-btn.loc-refresh-loading { opacity: 0.75; }
+.loc-refresh-label { color: #fff; font-size: 30rpx; font-weight: 700; letter-spacing: 1rpx; }
+
+/* 刷新旋转动画 */
+.loc-refresh-spinner {
+  width: 32rpx; height: 32rpx; border-radius: 50%;
+  border: 4rpx solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 通用 card-title（围栏/轨迹区块仍用） */
 .card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18rpx; }
 .card-title  { font-size: 32rpx; font-weight: 800; color: #0d2b1f; }
-.addr-text   { font-size: 32rpx; font-weight: 700; color: #0d2b1f; display: block; }
-.addr-detail { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 14rpx; }
-.addr-chip   {
-  font-size: 22rpx;
-  color: var(--teal);
-  background: var(--teal-pale);
-  border: 1rpx solid rgba(47,158,132,0.14);
-  border-radius: 999rpx;
-  padding: 8rpx 18rpx;
-}
-.time-text   { font-size: 24rpx; color: var(--text-dim); margin-top: 12rpx; display: block; }
-.relocate-btn {
-  margin-top: 24rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
-  border-radius: var(--radius);
-  padding: 26rpx 0;
-  box-shadow: 0 12rpx 28rpx rgba(34,118,77,0.22);
-}
-.relocate-btn-text { color: #ffffff; font-size: 30rpx; font-weight: 700; letter-spacing: 1rpx; }
 
-/* 围栏 */
-.fence-row   { display: flex; justify-content: space-between; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid var(--glass-border); }
-.fence-row:last-of-type { border-bottom: none; }
-.fence-name  { font-size: 30rpx; color: var(--text); display: block; }
-.fence-range { font-size: 24rpx; color: var(--text-dim); margin-top: 6rpx; display: block; }
-.fence-status.on { color: var(--green); font-size: 26rpx; }
-.fence-add   { text-align: center; color: #1a6b42; font-size: 28rpx; font-weight: 600; padding: 24rpx 0; border: 2rpx dashed rgba(47,133,90,0.20); border-radius: var(--radius); margin-top: 16rpx; background: rgba(255,255,255,0.8); }
+/* ── 围栏卡片 ─────────────────────────── */
+.fence-card { padding: 32rpx; }
+
+/* 围栏标题行 */
+.fence-title-row { display: flex; align-items: center; margin-bottom: 24rpx; }
+.fence-title-left { display: flex; align-items: center; gap: 14rpx; }
+.fence-title-dot {
+  width: 20rpx; height: 20rpx; border-radius: 50%;
+  background: #3b82f6; box-shadow: 0 0 0 6rpx rgba(59,130,246,0.15);
+}
+.fence-title { font-size: 34rpx; font-weight: 800; color: #0d2b1f; }
+
+/* 围栏列表 */
+.fence-list { margin-bottom: 20rpx; }
+.fence-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid rgba(47,133,90,0.08);
+}
+.fence-item:last-child { border-bottom: none; }
+
+/* 围栏信息区（可点击跳转） */
+.fence-item-info { flex: 1; min-width: 0; }
+.fence-item-info:active { opacity: 0.65; }
+.fence-item-name {
+  font-size: 30rpx; font-weight: 700; color: var(--text, #1a2e22);
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fence-item-radius {
+  font-size: 24rpx; color: var(--text-dim, #8a9a8e);
+  display: block; margin-top: 6rpx;
+}
+
+/* 围栏开关 */
+.fence-switch-wrap {
+  display: flex; align-items: center; gap: 12rpx;
+  flex-shrink: 0; padding-left: 20rpx;
+}
+.fence-switch {
+  width: 80rpx; height: 44rpx; border-radius: 999rpx;
+  background: #d1d5db; position: relative;
+  transition: background 0.25s ease;
+}
+.fence-switch-on { background: #38a169; }
+.fence-switch-thumb {
+  position: absolute; top: 4rpx; left: 4rpx;
+  width: 36rpx; height: 36rpx; border-radius: 50%;
+  background: #fff; box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.15);
+  transition: transform 0.25s ease;
+}
+.fence-switch-on .fence-switch-thumb { transform: translateX(36rpx); }
+.fence-switch-label {
+  font-size: 24rpx; color: #9ca3af; font-weight: 600;
+  min-width: 72rpx; text-align: right;
+}
+.fence-label-on { color: #38a169; }
+
+/* 围栏空状态 */
+.fence-empty { padding: 40rpx 0; text-align: center; }
+.fence-empty-text { font-size: 26rpx; color: var(--text-dim, #8a9a8e); }
+
+/* 添加围栏按钮 */
+.fence-add-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10rpx;
+  padding: 24rpx 0; margin-bottom: 20rpx;
+  border: 2rpx dashed rgba(47,133,90,0.22);
+  border-radius: var(--radius, 16rpx);
+  background: rgba(255,255,255,0.8);
+}
+.fence-add-btn:active { background: #eef5f0; }
+.fence-add-icon { font-size: 32rpx; color: #1a6b42; font-weight: 700; }
+.fence-add-text { font-size: 28rpx; color: #1a6b42; font-weight: 600; }
+
+/* 围栏预警规则提示 */
+.fence-rule-hint {
+  padding: 16rpx 20rpx;
+  background: #f8faf9; border-radius: 12rpx;
+  border: 1rpx solid rgba(47,133,90,0.06);
+}
+.fence-rule-hint-text { font-size: 22rpx; color: var(--text-dim, #8a9a8e); line-height: 1.6; }
 
 /* 轨迹时间线 */
 .traj-item   { display: flex; align-items: flex-start; position: relative; padding-bottom: 28rpx; }

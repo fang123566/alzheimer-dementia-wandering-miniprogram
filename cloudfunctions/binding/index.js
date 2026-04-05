@@ -42,19 +42,53 @@ function validPhone(phone) {
 async function getBindings({ openid, role }) {
   // 查询"我发起的"绑定（家属视角）或"别人绑定了我"的记录（老人视角）
   const field = role === 'elderly' ? 'toOpenid' : 'fromOpenid'
-  const { data: rawList } = await bindingsCol.where({ [field]: openid }).get()
+  let { data: rawList } = await bindingsCol.where({ [field]: openid }).get()
+
+  // 老人视角补救：toOpenid 可能为空，用手机号匹配并回填
+  if (role === 'elderly' && rawList.length === 0) {
+    const { data: selfList } = await elderlyCol.where({ _openid: openid }).limit(1).get()
+    const selfPhone = selfList[0] ? selfList[0].phone : ''
+    if (selfPhone) {
+      const { data: phoneBindings } = await bindingsCol.where({ toPhone: selfPhone }).get()
+      if (phoneBindings.length > 0) {
+        rawList = phoneBindings
+        // 回填 toOpenid
+        for (const b of phoneBindings) {
+          if (!b.toOpenid) {
+            await bindingsCol.doc(b._id).update({ data: { toOpenid: openid } }).catch(() => {})
+          }
+        }
+      }
+    }
+  }
 
   // 批量查询对端用户信息
   const peerCol = getPeerColByRole(role)   // 家属 → 查 elderly；老人 → 查 family
   const results = await Promise.all(
     rawList.map(async item => {
       // 对端 openid：家属看老人(toOpenid)，老人看家属(fromOpenid)
-      const peerOpenid = role === 'elderly' ? item.fromOpenid : item.toOpenid
+      let peerOpenid = role === 'elderly' ? item.fromOpenid : item.toOpenid
       let linkedUser = {}
+
+      // 先用 openid 查找对端用户
       if (peerOpenid) {
         const { data: users } = await peerCol.where({ _openid: peerOpenid }).limit(1).get()
         linkedUser = users[0] || {}
       }
+
+      // 家属视角：如果 toOpenid 为空但 toPhone 存在，尝试用手机号查找并回填
+      if (role === 'family' && !peerOpenid && item.toPhone) {
+        const { data: phoneUsers } = await peerCol.where({ phone: item.toPhone }).limit(1).get()
+        if (phoneUsers.length > 0) {
+          linkedUser = phoneUsers[0]
+          peerOpenid = linkedUser._openid || ''
+          // 回填 toOpenid，下次查询不再需要手机号查找
+          if (peerOpenid) {
+            await bindingsCol.doc(item._id).update({ data: { toOpenid: peerOpenid } }).catch(() => {})
+          }
+        }
+      }
+
       return {
         binding: {
           id: item._id,

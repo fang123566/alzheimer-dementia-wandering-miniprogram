@@ -24,13 +24,15 @@ function callCloud(name, data = {}) {
   })
 }
 
-// ── 认证 ────────────────────────────────────────
+// ── 认证（已迁移至 auth 云函数）────────────────────────────
 const authAPI = {
-  login:    (phone, password)       => http.post('/auth/login',    { phone, password }),
-  register: (name, phone, password, role) => http.post('/auth/register', { name, phone, password, role }),
-  logout:   ()                      => http.post('/auth/logout'),
-  cancelAccount: ()                 => http.delete('/auth/account'),
-  profile:  ()                      => http.get('/auth/profile')
+  login:         (phone, password)              => callCloud('auth', { action: 'login', phone, password }),
+  register:      (name, phone, password, role)  => callCloud('auth', { action: 'register', name, phone, password, role }),
+  logout:        ()                             => callCloud('auth', { action: 'logout' }),
+  cancelAccount: ()                             => callCloud('auth', { action: 'cancelAccount' }),
+  profile:       ()                             => callCloud('auth', { action: 'profile' }),
+  updateProfile: (data)                         => callCloud('auth', { action: 'updateProfile', ...data }),
+  uploadAvatar:  (fileID)                       => callCloud('auth', { action: 'uploadAvatar', fileID })
 }
 
 // ── 位置（已迁移至微信云函数）────────────────────────────
@@ -120,29 +122,68 @@ const settingsAPI = {
   deleteKeyword:   (kw)   => http.delete(`/settings/keywords/${encodeURIComponent(kw)}`)
 }
 
-// ── 账号关联 ──────────────────────────────────────────
+// ── 账号关联（已迁移至 binding 云函数）──────────────────────
 const bindingAPI = {
-  getBinding:    ()            => http.get('/auth/binding'),
-  getBindings:   ()            => http.get('/auth/binding'),
-  createBinding: (linkedPhone, note) => http.post('/auth/binding', {
-    linkedPhone,
-    elderlyPhone: linkedPhone,
-    familyPhone: linkedPhone,
-    note
-  }),
-  updateBinding: (id, data)    => http.put(`/auth/binding/${id}`, data),
-  deleteBinding: (id)          => http.delete(`/auth/binding/${id}`)
+  getBinding: () => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('binding', { action: 'getBindings', role })
+  },
+  getBindings: () => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('binding', { action: 'getBindings', role })
+  },
+  createBinding: (linkedPhone, note) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('binding', { action: 'createBinding', role, linkedPhone, note })
+  },
+  updateBinding: (id, data) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('binding', { action: 'updateBinding', role, bindingId: id, ...data })
+  },
+  deleteBinding: (id) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('binding', { action: 'deleteBinding', role, bindingId: id })
+  }
 }
 
-// ── 今日提醒 ───────────────────────────────────────────
+// ── 今日提醒（已迁移至 reminders 云函数）─────────────────
 const remindersAPI = {
-  getTemplates:   ()        => http.get('/reminders/templates'),
-  addTemplate:    (data)    => http.post('/reminders/templates', data),
-  updateTemplate: (id, d)   => http.put(`/reminders/templates/${id}`, d),
-  deleteTemplate: (id)      => http.delete(`/reminders/templates/${id}`),
-  getToday:       ()        => http.get('/reminders/today'),
-  markDone:       (id)      => http.post(`/reminders/${encodeURIComponent(id)}/done`),
-  markUndone:     (id)      => http.post(`/reminders/${encodeURIComponent(id)}/undone`)
+  getTemplates: () => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'getTemplates', role })
+  },
+  addTemplate: (data) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'addTemplate', role, ...data })
+  },
+  updateTemplate: (id, d) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'updateTemplate', role, templateId: id, ...d })
+  },
+  deleteTemplate: (id) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'deleteTemplate', role, templateId: id })
+  },
+  batchDelete: (ids) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'batchDelete', role, templateIds: ids })
+  },
+  getToday: () => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'getToday', role })
+  },
+  toggleDone: (templateId, done) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'toggleDone', role, templateId, done })
+  },
+  getAutoRemindSetting: () => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'getAutoRemindSetting', role })
+  },
+  toggleAutoRemind: (enabled) => {
+    const role = wx.getStorageSync('role') || 'family'
+    return callCloud('reminders', { action: 'toggleAutoRemind', role, enabled })
+  }
 }
 
 // ── SOS ───────────────────────────────────────────────

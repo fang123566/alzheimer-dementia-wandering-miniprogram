@@ -1,0 +1,48 @@
+<view class="container">
+  <view class="page-header">
+    <text class="page-title">{{isEdit ? '编辑提醒' : '新建提醒'}}</text>
+    <text class="page-subtitle">{{isEdit ? '修改提醒信息' : '选择类型 · 设置时间 · 填写备注'}}</text>
+  </view>
+
+  <!-- 提醒类型 -->
+  <view class="form-group">
+    <text class="form-label">提醒类型</text>
+    <picker mode="selector" range="{{types}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
+      <view class="picker-row">
+        <text class="picker-icon">{{types[typeIndex].icon}}</text>
+        <text class="picker-text">{{types[typeIndex].label}}</text>
+        <text class="picker-arrow">›</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 提醒名称 -->
+  <view class="form-group">
+    <text class="form-label">提醒名称</text>
+    <input class="form-input" placeholder="如：早上用药提醒" value="{{title}}" bindinput="onTitleInput" maxlength="20" />
+  </view>
+
+  <!-- 提醒时间 -->
+  <view class="form-group">
+    <text class="form-label">提醒时间</text>
+    <picker mode="time" value="{{time}}" bindchange="onTimeChange">
+      <view class="picker-row">
+        <text class="picker-icon">🕐</text>
+        <text class="picker-text time-text">{{time}}</text>
+        <text class="picker-arrow">›</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 备注 -->
+  <view class="form-group">
+    <text class="form-label">备注（{{note.length}}/50）</text>
+    <textarea class="form-textarea" placeholder="如：饭后半小时服用" value="{{note}}" bindinput="onNoteInput" maxlength="50" auto-height />
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="btn-group">
+    <view class="btn btn-save" bindtap="save">保存</view>
+    <view class="btn btn-cancel" bindtap="cancel">取消</view>
+  </view>
+</view>

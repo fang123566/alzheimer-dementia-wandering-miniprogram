@@ -21,7 +21,8 @@ Page({
     reminders: [],
     bindings: [],
     binding: null,
-    stats: { unreadAlerts: 0, totalAlerts: 0, chatCount: 0 }
+    stats: { unreadAlerts: 0, totalAlerts: 0, chatCount: 0 },
+    avatarFullUrl: ''
   },
 
   onLoad() {
@@ -50,14 +51,21 @@ Page({
 
   _loadLocal() {
     const loc = app.globalData.currentLocation || {}
+    const userInfo = app.globalData.userInfo || {}
     this.setData({
       role:            app.globalData.role        || 'family',
-      userInfo:        app.globalData.userInfo    || {},
+      userInfo:        userInfo,
       elderlyInfo:     app.globalData.elderlyInfo || {},
       currentLocation: loc,
       locationStatus:  loc.status || 'safe',
-      contacts:        app.globalData.contacts   || []
+      contacts:        app.globalData.contacts   || [],
+      avatarFullUrl:   this._buildAvatarUrl(userInfo.avatar)
     })
+  },
+
+  _buildAvatarUrl(avatar) {
+    if (!avatar) return ''
+    return avatar
   },
 
   async _fetchData() {
@@ -163,6 +171,79 @@ Page({
     })
   },
 
+  chooseAvatar() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      sizeType: ['compressed'],
+      success: async (res) => {
+        const tempPath = res.tempFiles[0].tempFilePath
+        try {
+          wx.showLoading({ title: '上传中…', mask: true })
+          // 上传到云存储
+          const ext = tempPath.split('.').pop() || 'jpg'
+          const cloudPath = `avatars/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+          const uploadRes = await wx.cloud.uploadFile({
+            cloudPath,
+            filePath: tempPath
+          })
+          const fileID = uploadRes.fileID
+          // 通过云函数更新数据库
+          const result = await authAPI.uploadAvatar(fileID)
+          wx.hideLoading()
+          if (result.code === 0 && result.data) {
+            this._syncUserInfo(result.data)
+            wx.showToast({ title: '头像已更新', icon: 'success' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          wx.showToast({ title: '上传失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  editNickname() {
+    const current = this.data.userInfo.name || ''
+    wx.showModal({
+      title: '修改昵称',
+      editable: true,
+      placeholderText: '请输入新昵称',
+      content: current,
+      success: async (res) => {
+        if (!res.confirm) return
+        const name = (res.content || '').trim()
+        if (!name) {
+          wx.showToast({ title: '昵称不能为空', icon: 'none' })
+          return
+        }
+        if (name === current) return
+        try {
+          wx.showLoading({ title: '保存中…', mask: true })
+          const result = await authAPI.updateProfile({ name })
+          wx.hideLoading()
+          if (result.code === 0 && result.data) {
+            this._syncUserInfo(result.data)
+            wx.showToast({ title: '昵称已更新', icon: 'success' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          wx.showToast({ title: '修改失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  _syncUserInfo(userData) {
+    app.globalData.userInfo = userData
+    wx.setStorageSync('userInfo', userData)
+    this.setData({
+      userInfo: userData,
+      avatarFullUrl: this._buildAvatarUrl(userData.avatar)
+    })
+  },
+
   goBinding()  { wx.navigateTo({ url: '/pages/binding/binding' }) },
   goSettings() { wx.navigateTo({ url: '/pages/settings/settings' }) },
   goReminders(){ wx.navigateTo({ url: '/pages/reminders/reminders' }) },
@@ -171,6 +252,7 @@ Page({
   goLocation() { wx.switchTab({ url: '/pages/location/location' }) },
   goChat()     { wx.switchTab({ url: '/pages/aichat/aichat' }) },
   goDialect()  { wx.switchTab({ url: '/pages/dialect/dialect' }) },
+  goDevice()   { wx.navigateTo({ url: '/pages/device/device' }) },
 
   logout() {
     wx.showModal({

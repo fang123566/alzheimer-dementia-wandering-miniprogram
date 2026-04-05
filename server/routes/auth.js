@@ -2,7 +2,19 @@
 const express = require('express')
 const router = express.Router()
 const crypto = require('crypto')
+const path = require('path')
+const multer = require('multer')
 const { get, run } = require('../db')
+
+// 头像上传配置
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, path.join(__dirname, '..', 'uploads')),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.png'
+    cb(null, `avatar_${Date.now()}${ext}`)
+  }
+})
+const avatarUpload = multer({ storage: avatarStorage, limits: { fileSize: 5 * 1024 * 1024 } })
 
 // 生成简单 token（生产环境用 JWT）
 function genToken(userId) {
@@ -190,6 +202,46 @@ router.get('/profile', async (req, res) => {
   const user = await getCurrentUser(req)
   if (!user) return res.status(401).json({ code: 1, msg: '未登录' })
   res.json({ code: 0, data: toSafeUser(user) })
+})
+
+// PUT /api/auth/profile — 更新当前用户昵称
+router.put('/profile', async (req, res) => {
+  const user = await getCurrentUser(req)
+  if (!user) return res.status(401).json({ code: 1, msg: '未登录' })
+
+  const { name } = req.body
+  if (!name || !name.trim()) {
+    return res.status(400).json({ code: 1, msg: '昵称不能为空' })
+  }
+
+  try {
+    const now = new Date().toISOString()
+    await run('UPDATE users SET name = ?, updated_at = ? WHERE id = ?', [name.trim(), now, user.id])
+    const updated = mapUser(await get('SELECT * FROM users WHERE id = ?', [user.id]))
+    res.json({ code: 0, msg: '已更新', data: toSafeUser(updated) })
+  } catch (err) {
+    res.status(500).json({ code: 1, msg: '更新失败', detail: err.message })
+  }
+})
+
+// POST /api/auth/avatar — 上传头像
+router.post('/avatar', avatarUpload.single('file'), async (req, res) => {
+  const user = await getCurrentUser(req)
+  if (!user) return res.status(401).json({ code: 1, msg: '未登录' })
+
+  if (!req.file) {
+    return res.status(400).json({ code: 1, msg: '请选择图片' })
+  }
+
+  try {
+    const avatarUrl = `/uploads/${req.file.filename}`
+    const now = new Date().toISOString()
+    await run('UPDATE users SET avatar = ?, updated_at = ? WHERE id = ?', [avatarUrl, now, user.id])
+    const updated = mapUser(await get('SELECT * FROM users WHERE id = ?', [user.id]))
+    res.json({ code: 0, msg: '头像已更新', data: toSafeUser(updated) })
+  } catch (err) {
+    res.status(500).json({ code: 1, msg: '头像更新失败', detail: err.message })
+  }
 })
 
 // ── 账号关联 ────────────────────────────────────────────

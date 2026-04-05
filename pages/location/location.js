@@ -71,7 +71,13 @@ function cloudGetFences() {
 Page({
   data: {
     role: 'family',
-    location: {},
+    location: {
+      latitude: 30.572815,
+      longitude: 104.066803,
+      address: '正在获取位置…',
+      status: 'safe',
+      updatedAt: ''
+    },
     statusTag: 'tag-safe',
     statusText: '安全范围内',
     markers: [],
@@ -80,34 +86,75 @@ Page({
     trajectory: [],
     fences: [],
     locating: false,
-    addrDetail: null
+    addrDetail: null,
+    noLocationData: false,
+    showFenceRule: false,
+    timeStale: false,
+    displayTime: '',
+    // 历史轨迹相关
+    histTrajMode: false,
+    showHistPicker: false,
+    histRange: 'today',
+    histStartDate: '',
+    histEndDate: '',
+    histLoading: false,
+    showStopPopup: false,
+    stopDetail: {},
+    // 备份实时数据，退出历史模式时恢复
+    _realtimePolyline: [],
+    _realtimeMarkers: []
   },
+
+  _loaded: false,
 
   onLoad() {
     if (!getApp().checkLogin()) return
+    // 用 globalData 缓存初始化地图，保证地图立即可见
+    const cached = app.globalData.currentLocation
+    if (cached && cached.latitude) {
+      this.setData({
+        location: cached,
+        markers: [{
+          id: 1, latitude: cached.latitude, longitude: cached.longitude,
+          title: '上次位置', width: 40, height: 40
+        }]
+      })
+    }
     this.setData({ role: app.globalData.role || 'family' })
+    this._loaded = true
     this._fetchAll()
   },
 
   onShow() {
     if (!getApp().checkLogin()) return
     this.setData({ role: app.globalData.role || 'family' })
-    this._fetchAll()
+    if (this._loaded) {
+      this._fetchAll()
+    }
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
   },
 
   async _fetchAll() {
+    this._lastFetchOk = false
     try {
       const [locRes, trajRes, fenceRes] = await Promise.all([
-        cloudGetLocation(),
-        cloudGetTrajectory(),
-        cloudGetFences()
+        cloudGetLocation().catch(e => ({ code: -1, msg: e.message })),
+        cloudGetTrajectory().catch(e => ({ code: -1, msg: e.message })),
+        cloudGetFences().catch(e => ({ code: -1, msg: e.message }))
       ])
 
-      if (locRes.code === 0) {
+      console.log('[位置] locRes:', JSON.stringify(locRes))
+      console.log('[位置] trajRes:', JSON.stringify(trajRes))
+      console.log('[位置] fenceRes:', JSON.stringify(fenceRes))
+
+      let locData = null
+      if (locRes.code === 0 && locRes.data) {
+        this._lastFetchOk = true
+        this.setData({ noLocationData: false })
         const loc = { ...locRes.data }
+        locData = loc
         const statusMap = {
           safe:      { tag: 'tag-safe',    text: '安全范围内' },
           warning:   { tag: 'tag-warning', text: '轻微预警'  },
@@ -134,15 +181,34 @@ Page({
             width: 40, height: 40
           }]
         })
+        this._updateTimeDisplay(loc.updatedAt)
+      } else {
+        // 云函数返回异常，给出提示
+        const errMsg = locRes.msg || '获取位置失败'
+        console.warn('[位置] 获取位置失败:', errMsg)
+        this.setData({ noLocationData: true })
+        wx.showToast({ title: errMsg, icon: 'none', duration: 3000 })
+        // 使用缓存位置兜底
+        const cached = app.globalData.currentLocation
+        if (cached && cached.latitude) {
+          locData = cached
+          this.setData({
+            location: cached,
+            markers: [{
+              id: 1, latitude: cached.latitude, longitude: cached.longitude,
+              title: '上次位置', width: 40, height: 40
+            }]
+          })
+        }
       }
 
-      if (trajRes.code === 0) {
+      if (trajRes.code === 0 && trajRes.data) {
         const traj = trajRes.data
         this.setData({ trajectory: traj })
         if (traj.length >= 2) {
           const points = traj.map(t => ({
-            latitude: t.latitude || locRes.data.latitude,
-            longitude: t.longitude || locRes.data.longitude
+            latitude: t.latitude || (locData ? locData.latitude : 30.5),
+            longitude: t.longitude || (locData ? locData.longitude : 114.3)
           }))
           this.setData({
             polyline: [{ points, color: '#f5a623aa', width: 5, dottedLine: false }]
@@ -150,7 +216,7 @@ Page({
         }
       }
 
-      if (fenceRes.code === 0) {
+      if (fenceRes.code === 0 && fenceRes.data) {
         const circles = fenceRes.data
           .filter(f => f.enabled)
           .map(f => ({
@@ -176,7 +242,11 @@ Page({
     if (this.data.role === 'family') {
       try {
         await this._fetchAll()
-        wx.showToast({ title: '老人位置已刷新', icon: 'success' })
+        if (this._lastFetchOk) {
+          wx.showToast({ title: '老人位置已刷新', icon: 'success' })
+        } else {
+          wx.showToast({ title: '刷新失败，请稍后重试', icon: 'none' })
+        }
       } catch (e) {
         wx.showToast({ title: '刷新失败，请稍后重试', icon: 'none' })
       } finally {
@@ -284,7 +354,333 @@ Page({
     }
   },
 
+  // ── 时间展示与超时检测 ──────────────────────────
+  _updateTimeDisplay(updatedAt) {
+    if (!updatedAt) {
+      this.setData({ displayTime: '暂无', timeStale: false })
+      return
+    }
+    const t = new Date(updatedAt)
+    if (isNaN(t.getTime())) {
+      this.setData({ displayTime: String(updatedAt), timeStale: false })
+      return
+    }
+    const now = Date.now()
+    const diffMin = (now - t.getTime()) / 60000
+    const stale = diffMin > 10
+    const pad = n => String(n).padStart(2, '0')
+    const formatted = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`
+    const update = { displayTime: formatted, timeStale: stale }
+    if (stale) {
+      update.statusTag = 'tag-danger'
+      update.statusText = '定位异常'
+    }
+    this.setData(update)
+  },
+
+  // ── 复制地址到剪贴板 ──────────────────────────
+  copyAddress() {
+    const addr = this.data.location.address
+    if (!addr || addr === '正在获取位置…' || addr === '暂无地址信息') {
+      wx.showToast({ title: '暂无可复制的地址', icon: 'none' })
+      return
+    }
+    wx.setClipboardData({
+      data: addr,
+      success: () => wx.showToast({ title: '地址已复制', icon: 'success' })
+    })
+  },
+
+  // ── 安全状态标签点击 → 展开/收起围栏规则说明 ──────
+  onStatusTagTap() {
+    this.setData({ showFenceRule: !this.data.showFenceRule })
+  },
+
+  // ── 地址标签点击 → 筛选对应区域的历史轨迹 ──────
+  onAddrTagTap(e) {
+    const { tag, value } = e.currentTarget.dataset
+    if (!value) return
+    const filtered = (this.data.trajectory || []).filter(item => {
+      return (item.address || '').indexOf(value) !== -1
+    })
+    if (filtered.length === 0) {
+      wx.showToast({ title: `未找到「${value}」相关轨迹`, icon: 'none' })
+      return
+    }
+    wx.showToast({ title: `已筛选「${value}」${filtered.length} 条轨迹`, icon: 'none' })
+    // 高亮匹配的轨迹点
+    if (filtered.length >= 2) {
+      const points = filtered.map(t => ({
+        latitude: t.latitude, longitude: t.longitude
+      })).filter(p => p.latitude && p.longitude)
+      if (points.length >= 2) {
+        this.setData({
+          polyline: [{ points, color: '#2a9d6ecc', width: 6, dottedLine: false }]
+        })
+      }
+    }
+  },
+
+  // ── 更新时间点击 → 查看位置更新历史 ──────────
+  onTimeTap() {
+    const traj = this.data.trajectory || []
+    if (traj.length === 0) {
+      wx.showToast({ title: '暂无位置更新记录', icon: 'none' })
+      return
+    }
+    const items = traj.slice(0, 10).map(t => {
+      const time = t.recordedAt ? new Date(t.recordedAt).toLocaleTimeString() : (t.time || '')
+      return `${time}  ${t.address || '未知位置'}`
+    })
+    wx.showActionSheet({
+      itemList: items.length > 6 ? items.slice(0, 6) : items,
+      fail: () => {}
+    })
+  },
+
+  // ── 围栏开关快速切换 ──────────────────────────
+  toggleFence(e) {
+    const { id, index } = e.currentTarget.dataset
+    const fences = this.data.fences
+    if (!fences || !fences[index]) return
+    const newEnabled = !fences[index].enabled
+    const key = `fences[${index}].enabled`
+    this.setData({ [key]: newEnabled })
+
+    // 同步更新地图 circles
+    const circles = fences
+      .map((f, i) => ({ ...f, enabled: i === index ? newEnabled : f.enabled }))
+      .filter(f => f.enabled)
+      .map(f => ({
+        latitude: f.latitude,
+        longitude: f.longitude,
+        radius: f.radius,
+        color: '#3ecfcf33',
+        fillColor: '#3ecfcf11',
+        strokeWidth: 2
+      }))
+    this.setData({ circles })
+
+    // 调用云函数持久化
+    wx.cloud.callFunction({
+      name: 'locationFences',
+      data: { action: 'toggle', fenceId: id, enabled: newEnabled }
+    }).then(() => {
+      wx.showToast({ title: newEnabled ? '围栏已开启' : '围栏已关闭', icon: 'success' })
+    }).catch(() => {
+      this.setData({ [key]: !newEnabled })
+      wx.showToast({ title: '操作失败，请重试', icon: 'none' })
+    })
+  },
+
+  // ── 点击围栏项 → 跳转编辑页 ──────────────────
+  editFence(e) {
+    const { id } = e.currentTarget.dataset
+    wx.navigateTo({ url: `/pages/settings/settings?fenceId=${id}` })
+  },
+
   addFence() {
-    wx.navigateTo({ url: '/pages/settings/settings' })
+    wx.navigateTo({ url: '/pages/settings/settings?action=addFence' })
+  },
+
+  // ══════════════════════════════════════════
+  // 历史轨迹功能
+  // ══════════════════════════════════════════
+
+  onHistTrajTap() {
+    if (this.data.histTrajMode) {
+      this.setData({
+        histTrajMode: false,
+        showHistPicker: false,
+        showStopPopup: false,
+        markers: this.data._realtimeMarkers,
+        polyline: this.data._realtimePolyline
+      })
+      wx.showToast({ title: '已退出历史轨迹', icon: 'none' })
+      return
+    }
+    const pad = n => String(n).padStart(2, '0')
+    const now = new Date()
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+    this.setData({
+      showHistPicker: true,
+      histRange: 'today',
+      histStartDate: todayStr,
+      histEndDate: todayStr,
+      _realtimeMarkers: this.data.markers,
+      _realtimePolyline: this.data.polyline
+    })
+  },
+
+  closeHistPicker() {
+    this.setData({ showHistPicker: false })
+  },
+
+  onHistShortcut(e) {
+    const range = e.currentTarget.dataset.range
+    const pad = n => String(n).padStart(2, '0')
+    const now = new Date()
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const todayStr = fmt(now)
+    let start = todayStr
+    let end = todayStr
+    if (range === 'yesterday') {
+      const y = new Date(now)
+      y.setDate(y.getDate() - 1)
+      start = fmt(y)
+      end = fmt(y)
+    } else if (range === 'week') {
+      const w = new Date(now)
+      w.setDate(w.getDate() - 6)
+      start = fmt(w)
+    }
+    this.setData({ histRange: range, histStartDate: start, histEndDate: end })
+  },
+
+  onHistStartChange(e) {
+    this.setData({ histStartDate: e.detail.value })
+  },
+
+  onHistEndChange(e) {
+    this.setData({ histEndDate: e.detail.value })
+  },
+
+  async loadHistTrajectory() {
+    if (this.data.histLoading) return
+    const { histStartDate, histEndDate } = this.data
+    if (!histStartDate || !histEndDate) {
+      wx.showToast({ title: '请选择日期', icon: 'none' })
+      return
+    }
+    this.setData({ histLoading: true })
+    try {
+      const res = await new Promise((resolve, reject) => {
+        wx.cloud.callFunction({
+          name: 'locationTrajectory',
+          data: { startDate: histStartDate, endDate: histEndDate },
+          success: r => resolve(r.result),
+          fail: err => reject(err)
+        })
+      })
+      if (res.code !== 0 || !res.data || res.data.length === 0) {
+        wx.showToast({ title: '该时段暂无轨迹数据', icon: 'none' })
+        this.setData({ histLoading: false })
+        return
+      }
+      const trajData = res.data
+      const fences = this.data.fences || []
+      const normalPoints = []
+      const breachPoints = []
+      const stopMarkers = []
+      let markerId = 100
+      trajData.forEach((pt, idx) => {
+        if (!pt.latitude || !pt.longitude) return
+        const coord = { latitude: pt.latitude, longitude: pt.longitude }
+        const isOutside = this._isOutsideFences(coord, fences)
+        if (isOutside) {
+          breachPoints.push(coord)
+          if (normalPoints.length > 0) normalPoints.push(coord)
+        } else {
+          normalPoints.push(coord)
+          if (breachPoints.length > 0) breachPoints.push(coord)
+        }
+        if (idx > 0 && pt.stayMinutes && pt.stayMinutes >= 5) {
+          const pad2 = n => String(n).padStart(2, '0')
+          const arrive = pt.arriveAt ? new Date(pt.arriveAt) : null
+          const leave = pt.leaveAt ? new Date(pt.leaveAt) : null
+          stopMarkers.push({
+            id: markerId++,
+            latitude: pt.latitude,
+            longitude: pt.longitude,
+            title: pt.address || '停留点',
+            width: 28,
+            height: 28,
+            callout: {
+              content: `停留 ${pt.stayMinutes} 分钟`,
+              display: 'ALWAYS',
+              fontSize: 12,
+              borderRadius: 8,
+              padding: 6,
+              bgColor: '#fffbeb',
+              color: '#92400e'
+            },
+            _stopDetail: {
+              address: pt.address || '未知位置',
+              duration: this._formatDuration(pt.stayMinutes),
+              arriveTime: arrive ? `${pad2(arrive.getHours())}:${pad2(arrive.getMinutes())}` : '--',
+              leaveTime: leave ? `${pad2(leave.getHours())}:${pad2(leave.getMinutes())}` : '--'
+            }
+          })
+        }
+      })
+      const polylines = []
+      if (normalPoints.length >= 2) {
+        polylines.push({ points: normalPoints, color: '#38a169cc', width: 6, dottedLine: false })
+      }
+      if (breachPoints.length >= 2) {
+        polylines.push({ points: breachPoints, color: '#e53935cc', width: 6, dottedLine: false })
+      }
+      this._stopMarkersData = stopMarkers
+      this.setData({
+        histTrajMode: true,
+        showHistPicker: false,
+        histLoading: false,
+        polyline: polylines,
+        markers: stopMarkers
+      })
+      const allPts = [...normalPoints, ...breachPoints]
+      if (allPts.length > 0) {
+        const mapCtx = wx.createMapContext('elderlyMap', this)
+        mapCtx.includePoints({ points: allPts, padding: [60, 60, 60, 60] })
+      }
+      wx.showToast({ title: `已加载 ${trajData.length} 条轨迹`, icon: 'success' })
+    } catch (e) {
+      console.error('[历史轨迹] 加载失败:', e)
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' })
+      this.setData({ histLoading: false })
+    }
+  },
+
+  _isOutsideFences(coord, fences) {
+    if (!fences || fences.length === 0) return false
+    const enabledFences = fences.filter(f => f.enabled)
+    if (enabledFences.length === 0) return false
+    for (const f of enabledFences) {
+      if (!f.latitude || !f.longitude || !f.radius) continue
+      const dist = this._calcDistance(coord.latitude, coord.longitude, f.latitude, f.longitude)
+      if (dist <= f.radius) return false
+    }
+    return true
+  },
+
+  _calcDistance(lat1, lng1, lat2, lng2) {
+    const rad = Math.PI / 180
+    const dLat = (lat2 - lat1) * rad
+    const dLng = (lng2 - lng1) * rad
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2
+    return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  },
+
+  _formatDuration(minutes) {
+    if (!minutes || minutes < 1) return '不到 1 分钟'
+    if (minutes < 60) return `${minutes} 分钟`
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    return m > 0 ? `${h} 小时 ${m} 分钟` : `${h} 小时`
+  },
+
+  onMarkerTap(e) {
+    if (!this.data.histTrajMode) return
+    const markerId = e.markerId || e.detail?.markerId
+    const markers = this._stopMarkersData || []
+    const found = markers.find(m => m.id === markerId)
+    if (found && found._stopDetail) {
+      this.setData({ showStopPopup: true, stopDetail: found._stopDetail })
+    }
+  },
+
+  closeStopPopup() {
+    this.setData({ showStopPopup: false })
   }
 })

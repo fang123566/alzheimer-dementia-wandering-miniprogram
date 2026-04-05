@@ -155,12 +155,89 @@
 /* 状态卡片 */
 .section-wrap { padding: 0 36rpx; }
 .status-card  { border-left: 6rpx solid #22764d; }
+.status-card-safe    { border-left-color: #22764d; }
+.status-card-warning { border-left-color: #e6a23c; }
+.status-card-danger  { border-left-color: #ef4444; }
+
 .card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
 .card-title { font-size: 34rpx; font-weight: 800; color: #0d2b1f; }
-.location-address { font-size: 34rpx; font-weight: 700; color: #0d2b1f; display: block; line-height: 1.5; }
-.location-time    { font-size: 26rpx; color: #4a6355; margin-top: 10rpx; display: block; }
 .link-text { font-size: 28rpx; color: #1a6b42; font-weight: 600; }
 .mt-16 { margin-top: 20rpx; }
+
+/* 彩色状态标签 */
+.status-tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 999rpx;
+  font-weight: 700;
+}
+.status-tag-icon { font-size: 32rpx; }
+.status-tag-text { font-size: 28rpx; }
+.status-tag-safe    { background: rgba(34,118,77,0.12); color: #1a6b42; }
+.status-tag-warning { background: rgba(230,162,60,0.15); color: #b57b1a; }
+.status-tag-danger  { background: rgba(239,68,68,0.12); color: #dc2626; }
+.expand-arrow { font-size: 24rpx; color: #8a9e92; padding: 8rpx 12rpx; }
+
+/* 展开地址详情 */
+.address-detail {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 4rpx;
+}
+.address-detail.show {
+  max-height: 200rpx;
+  padding: 16rpx 4rpx;
+}
+.location-address { font-size: 30rpx; font-weight: 700; color: #0d2b1f; display: block; line-height: 1.6; }
+
+/* 更新时效 */
+.freshness-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-top: 16rpx;
+}
+.freshness-icon { font-size: 26rpx; }
+.freshness-text { font-size: 26rpx; color: #4a6355; font-weight: 500; }
+.freshness-text.stale { color: #dc2626; font-weight: 700; }
+
+/* 围栏快捷开关 */
+.fence-switch {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+.fence-track {
+  position: relative;
+  width: 72rpx;
+  height: 40rpx;
+  border-radius: 20rpx;
+  background: #cdd6d0;
+  transition: background 0.25s;
+}
+.fence-track.on { background: #22764d; }
+.fence-thumb {
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.15);
+  transition: left 0.25s;
+}
+.fence-track.on .fence-thumb { left: 36rpx; }
+.fence-label { font-size: 22rpx; color: #4a6355; font-weight: 600; }
 
 /* 统计格子 */
 .stat-grid {
@@ -170,44 +247,108 @@
   margin-bottom: 28rpx;
 }
 .stat-card {
+  position: relative;
   background: #ffffff;
   border: 1rpx solid rgba(47,133,90,0.08);
   border-radius: var(--radius);
   min-height: 190rpx;
-  padding: 32rpx 20rpx;
+  padding: 32rpx 16rpx;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   box-shadow: var(--shadow-card);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.stat-card-clickable:active {
+  transform: scale(0.97);
+  box-shadow: 0 2rpx 8rpx rgba(47,133,90,0.12);
+}
+.stat-card-hot {
+  border-color: rgba(239,68,68,0.2);
+  background: linear-gradient(180deg, #ffffff 0%, #fff8f8 100%);
+}
+.stat-red-dot {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #ef4444;
 }
 .stat-icon  { font-size: 40rpx; margin-bottom: 14rpx; }
-.stat-label { font-size: 26rpx; color: #4a6355; margin-bottom: 10rpx; }
-.stat-value { font-size: 44rpx; font-weight: 800; color: #0d2b1f; }
-.val-danger { color: var(--red); }
+.stat-label { font-size: 24rpx; color: #4a6355; margin-bottom: 10rpx; font-weight: 600; }
+.stat-value { font-size: 32rpx; font-weight: 800; color: #0d2b1f; text-align: center; }
+.stat-value-distance { font-size: 30rpx; }
+.val-danger { color: #ef4444; }
 .val-warn   { color: var(--amber); }
+.val-muted  { color: #8a9e92; }
 
-/* 快捷操作 */
-.quick-actions {
+/* 快捷操作 · 2×2 分类布局 */
+.quick-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18rpx;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
   margin-top: 28rpx;
 }
-.quick-btn {
+.quick-cell {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 160rpx;
-  padding: 28rpx 0;
-  background: #ffffff;
-  border: 1rpx solid rgba(47,133,90,0.08);
+  gap: 18rpx;
+  padding: 28rpx 24rpx;
   border-radius: var(--radius);
+  border: 1rpx solid transparent;
   box-shadow: var(--shadow-card);
+  transition: transform 0.15s, box-shadow 0.15s;
 }
-.quick-icon { font-size: 44rpx; }
-.quick-text { font-size: 26rpx; color: #3d5a4c; margin-top: 12rpx; font-weight: 600; }
+.quick-cell:active {
+  transform: scale(0.97);
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.08);
+}
+.quick-cell-icon { font-size: 44rpx; flex-shrink: 0; }
+.quick-icon-lg   { font-size: 56rpx; }
+.quick-cell-body { flex: 1; min-width: 0; }
+.quick-cell-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #0d2b1f;
+}
+.quick-cell-desc {
+  display: block;
+  font-size: 20rpx;
+  color: #6b8577;
+  margin-top: 6rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 紧急呼叫 · 红色 */
+.quick-emergency {
+  background: linear-gradient(145deg, #ffffff 0%, #fff0f0 60%, #ffe4e4 100%);
+  border-color: rgba(239,68,68,0.2);
+}
+.emergency-title { color: #dc2626; }
+
+/* 预警中心 · 橙色 */
+.quick-alert {
+  background: linear-gradient(145deg, #ffffff 0%, #fffaf0 60%, #fff3e0 100%);
+  border-color: rgba(230,162,60,0.2);
+}
+
+/* 记忆相册 · 蓝色 */
+.quick-memory {
+  background: linear-gradient(145deg, #ffffff 0%, #f0f7ff 60%, #e3f0ff 100%);
+  border-color: rgba(59,130,246,0.15);
+}
+
+/* 设置 · 灰色 */
+.quick-settings {
+  background: linear-gradient(145deg, #ffffff 0%, #f5f7f6 60%, #eef1f0 100%);
+  border-color: rgba(100,116,108,0.12);
+}
 
 /* SOS */
 .sos-card { border: 2rpx solid rgba(239,68,68,0.18); background: linear-gradient(145deg, #ffffff 0%, #fff5f5 100%); border-radius: var(--radius-lg); }

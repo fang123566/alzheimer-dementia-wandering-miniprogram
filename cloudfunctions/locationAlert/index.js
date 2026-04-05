@@ -83,10 +83,18 @@ exports.main = async (event, context) => {
     return { code: 0, alerted: false, msg: '冷却期内，跳过推送' }
   }
 
-  // 6. 获取家属手机号（从 family 表，关联 elderlyOpenid = openid）
-  const { data: familyList } = await db.collection('family')
-    .where({ elderlyOpenid: _.eq(openid) })
+  // 6. 获取家属手机号（通过 bindings 表找 family）
+  const { data: bindList } = await db.collection('bindings')
+    .where({ toOpenid: _.eq(openid) })
     .get()
+  const familyOpenids = bindList.map(b => b.fromOpenid).filter(Boolean)
+  let familyList = []
+  if (familyOpenids.length) {
+    const { data: fam } = await db.collection('family')
+      .where({ _openid: _.in(familyOpenids) })
+      .get()
+    familyList = fam
+  }
 
   // 7. 发送短信
   const smsResults = await sendSmsAlerts(familyList, topAlert, openid)

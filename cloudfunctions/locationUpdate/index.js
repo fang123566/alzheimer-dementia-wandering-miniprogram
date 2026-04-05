@@ -18,10 +18,8 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // ======================================
-    // 🔥 修复：直接查【老人表 elderly】，用 openid 查询（正确！）
-    // ======================================
-    const userSnap = await db.collection('elderly').where({ openid }).get()
+    // 查老人表 elderly，用 _openid 字段匹配
+    const userSnap = await db.collection('elderly').where({ _openid: openid }).get()
     if (!userSnap.data.length) {
       return { 
         code: 1, 

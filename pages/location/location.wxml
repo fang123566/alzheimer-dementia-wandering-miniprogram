@@ -19,51 +19,211 @@
       circles="{{circles}}"
       show-location
       scale="16"
+      bindmarkertap="onMarkerTap"
     ></map>
     <view class="map-refresh-btn {{locating ? 'disabled' : ''}}" bindtap="locate">
       <text class="map-refresh-icon">📡</text>
       <text class="map-refresh-text">{{locating ? (role === 'family' ? '刷新中…' : '定位中…') : (role === 'family' ? '刷新位置' : '重新定位')}}</text>
+    </view>
+    <!-- 历史轨迹入口按钮 -->
+    <view class="hist-traj-btn" bindtap="onHistTrajTap">
+      <text class="hist-traj-icon">🗺️</text>
+      <text class="hist-traj-text">{{histTrajMode ? '退出轨迹' : '历史轨迹'}}</text>
+    </view>
+  </view>
+
+  <!-- 历史轨迹时间选择器面板 -->
+  <view class="hist-picker-panel" wx:if="{{showHistPicker}}">
+    <view class="hist-picker-mask" bindtap="closeHistPicker"></view>
+    <view class="hist-picker-body">
+      <view class="hist-picker-header">
+        <text class="hist-picker-title">选择时间段</text>
+        <text class="hist-picker-close" bindtap="closeHistPicker">✕</text>
+      </view>
+      <!-- 快捷选项 -->
+      <view class="hist-picker-shortcuts">
+        <view class="hist-shortcut {{histRange === 'today' ? 'hist-shortcut-active' : ''}}" bindtap="onHistShortcut" data-range="today">
+          <text class="hist-shortcut-text">今日</text>
+        </view>
+        <view class="hist-shortcut {{histRange === 'yesterday' ? 'hist-shortcut-active' : ''}}" bindtap="onHistShortcut" data-range="yesterday">
+          <text class="hist-shortcut-text">昨日</text>
+        </view>
+        <view class="hist-shortcut {{histRange === 'week' ? 'hist-shortcut-active' : ''}}" bindtap="onHistShortcut" data-range="week">
+          <text class="hist-shortcut-text">近7天</text>
+        </view>
+        <view class="hist-shortcut {{histRange === 'custom' ? 'hist-shortcut-active' : ''}}" bindtap="onHistShortcut" data-range="custom">
+          <text class="hist-shortcut-text">自定义</text>
+        </view>
+      </view>
+      <!-- 自定义日期选择 -->
+      <view class="hist-custom-dates" wx:if="{{histRange === 'custom'}}">
+        <view class="hist-date-row">
+          <text class="hist-date-label">开始日期</text>
+          <picker mode="date" value="{{histStartDate}}" bindchange="onHistStartChange">
+            <text class="hist-date-value">{{histStartDate || '请选择'}}</text>
+          </picker>
+        </view>
+        <view class="hist-date-row">
+          <text class="hist-date-label">结束日期</text>
+          <picker mode="date" value="{{histEndDate}}" bindchange="onHistEndChange">
+            <text class="hist-date-value">{{histEndDate || '请选择'}}</text>
+          </picker>
+        </view>
+      </view>
+      <!-- 确认按钮 -->
+      <view class="hist-confirm-btn" bindtap="loadHistTrajectory">
+        <view class="loc-refresh-spinner" wx:if="{{histLoading}}"></view>
+        <text class="hist-confirm-text">{{histLoading ? '加载中…' : '查看轨迹'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 轨迹图例（历史轨迹模式下显示） -->
+  <view class="hist-legend" wx:if="{{histTrajMode}}">
+    <view class="hist-legend-item">
+      <view class="hist-legend-line hist-legend-normal"></view>
+      <text class="hist-legend-label">正常轨迹</text>
+    </view>
+    <view class="hist-legend-item">
+      <view class="hist-legend-line hist-legend-breach"></view>
+      <text class="hist-legend-label">越界轨迹</text>
+    </view>
+    <view class="hist-legend-item">
+      <view class="hist-legend-dot"></view>
+      <text class="hist-legend-label">停留点</text>
+    </view>
+  </view>
+
+  <!-- 停留点详情弹窗 -->
+  <view class="stop-popup" wx:if="{{showStopPopup}}" bindtap="closeStopPopup">
+    <view class="stop-popup-card" catchtap="">
+      <text class="stop-popup-title">📍 停留点详情</text>
+      <view class="stop-popup-row">
+        <text class="stop-popup-label">地址</text>
+        <text class="stop-popup-value">{{stopDetail.address || '未知位置'}}</text>
+      </view>
+      <view class="stop-popup-row">
+        <text class="stop-popup-label">停留时长</text>
+        <text class="stop-popup-value stop-popup-duration">{{stopDetail.duration || '--'}}</text>
+      </view>
+      <view class="stop-popup-row">
+        <text class="stop-popup-label">到达时间</text>
+        <text class="stop-popup-value">{{stopDetail.arriveTime || '--'}}</text>
+      </view>
+      <view class="stop-popup-row">
+        <text class="stop-popup-label">离开时间</text>
+        <text class="stop-popup-value">{{stopDetail.leaveTime || '--'}}</text>
+      </view>
     </view>
   </view>
 
   <!-- 位置信息卡片 -->
   <view class="section-wrap">
 
-    <view class="card location-status-card">
-      <view class="card-title-row">
-        <text class="card-title">当前位置</text>
-        <view class="tag {{statusTag}}">{{statusText}}</view>
+    <view class="card loc-card">
+      <!-- 标题行：定位图标 + 当前位置 + 安全状态标签 -->
+      <view class="loc-title-row">
+        <view class="loc-title-left">
+          <text class="loc-icon">📍</text>
+          <text class="loc-title">当前位置</text>
+        </view>
+        <view class="loc-status-tag {{statusTag}}" bindtap="onStatusTagTap">
+          <text class="loc-status-dot">{{statusTag === 'tag-safe' ? '✅' : (statusTag === 'tag-warning' ? '⚠️' : '🔴')}}</text>
+          <text class="loc-status-label">{{statusText}}</text>
+        </view>
       </view>
-      <text class="addr-text">{{location.address}}</text>
-      <view class="addr-detail" wx:if="{{addrDetail}}">
-        <text class="addr-chip" wx:if="{{addrDetail.city}}">{{addrDetail.city}}</text>
-        <text class="addr-chip" wx:if="{{addrDetail.district}}">{{addrDetail.district}}</text>
-        <text class="addr-chip" wx:if="{{addrDetail.street}}">{{addrDetail.street}}{{addrDetail.streetNum}}</text>
+
+      <!-- 围栏规则说明（点击标签展开） -->
+      <view class="loc-fence-rule" wx:if="{{showFenceRule}}">
+        <view class="fence-rule-box">
+          <text class="fence-rule-title">围栏预警规则</text>
+          <text class="fence-rule-item">✅ 安全范围内：老人在所有围栏区域内</text>
+          <text class="fence-rule-item">⚠️ 超出安全范围：老人离开围栏区域</text>
+          <text class="fence-rule-item">🔴 定位异常：超过 10 分钟未收到位置更新</text>
+        </view>
       </view>
-      <text class="time-text">更新于 {{location.updatedAt}}</text>
-      <view class="relocate-btn" bindtap="locate">
-        <text class="relocate-btn-text">{{locating ? (role === 'family' ? '正在刷新老人位置…' : '正在重新定位…') : (role === 'family' ? '刷新老人实时位置' : '重新定位')}}</text>
+
+      <!-- 无位置数据提示 -->
+      <view wx:if="{{noLocationData}}" class="no-data-hint">
+        <text class="no-data-text">暂无老人位置数据，请确认老人端已开启定位</text>
+      </view>
+
+      <!-- 详细地址（点击复制） -->
+      <view class="loc-addr-row" bindtap="copyAddress">
+        <text class="loc-addr-text">{{location.address || '暂无地址信息'}}</text>
+        <text class="loc-addr-copy-icon">📋</text>
+      </view>
+
+      <!-- 地址标签：市 / 区 / 门牌号 -->
+      <view class="loc-tags" wx:if="{{addrDetail}}">
+        <view class="loc-tag-chip" wx:if="{{addrDetail.city}}" bindtap="onAddrTagTap" data-tag="city" data-value="{{addrDetail.city}}">
+          <text class="loc-tag-text">{{addrDetail.city}}</text>
+        </view>
+        <view class="loc-tag-chip" wx:if="{{addrDetail.district}}" bindtap="onAddrTagTap" data-tag="district" data-value="{{addrDetail.district}}">
+          <text class="loc-tag-text">{{addrDetail.district}}</text>
+        </view>
+        <view class="loc-tag-chip" wx:if="{{addrDetail.street}}" bindtap="onAddrTagTap" data-tag="street" data-value="{{addrDetail.street}}{{addrDetail.streetNum}}">
+          <text class="loc-tag-text">{{addrDetail.street}}{{addrDetail.streetNum}}</text>
+        </view>
+      </view>
+
+      <!-- 更新时间（超时标红） -->
+      <view class="loc-time-row" bindtap="onTimeTap">
+        <text class="loc-time-label">更新于</text>
+        <text class="loc-time-value {{timeStale ? 'time-stale' : ''}}">{{displayTime}}</text>
+        <text class="loc-time-badge" wx:if="{{timeStale}}">定位超时</text>
+      </view>
+
+      <!-- 刷新按钮 -->
+      <view class="loc-refresh-btn {{locating ? 'loc-refresh-loading' : ''}}" bindtap="locate">
+        <view class="loc-refresh-spinner" wx:if="{{locating}}"></view>
+        <text class="loc-refresh-label">{{locating ? '正在刷新老人位置…' : '刷新老人实时位置'}}</text>
       </view>
     </view>
 
     <!-- 安全围栏设置 -->
-    <view class="card">
-      <text class="card-title">🔵 安全围栏</text>
-      <view class="fence-row">
-        <view class="fence-info">
-          <text class="fence-name">家（主围栏）</text>
-          <text class="fence-range">半径 500 米</text>
+    <view class="card fence-card">
+      <!-- 模块标题 -->
+      <view class="fence-title-row">
+        <view class="fence-title-left">
+          <view class="fence-title-dot"></view>
+          <text class="fence-title">安全围栏</text>
         </view>
-        <text class="fence-status on">已开启</text>
       </view>
-      <view class="fence-row">
-        <view class="fence-info">
-          <text class="fence-name">社区公园</text>
-          <text class="fence-range">半径 300 米</text>
+
+      <!-- 围栏列表 -->
+      <view class="fence-list">
+        <view class="fence-item" wx:for="{{fences}}" wx:key="id">
+          <!-- 左侧信息区（点击跳转编辑） -->
+          <view class="fence-item-info" bindtap="editFence" data-id="{{item.id}}" data-index="{{index}}">
+            <text class="fence-item-name">{{item.name || '围栏'}}</text>
+            <text class="fence-item-radius">半径 {{item.radius || 500}} 米</text>
+          </view>
+          <!-- 右侧开关（点击快速切换） -->
+          <view class="fence-switch-wrap" bindtap="toggleFence" data-id="{{item.id}}" data-index="{{index}}">
+            <view class="fence-switch {{item.enabled ? 'fence-switch-on' : ''}}">
+              <view class="fence-switch-thumb"></view>
+            </view>
+            <text class="fence-switch-label {{item.enabled ? 'fence-label-on' : ''}}">{{item.enabled ? '已开启' : '已关闭'}}</text>
+          </view>
         </view>
-        <text class="fence-status on">已开启</text>
+
+        <!-- 无围栏时的空状态 -->
+        <view class="fence-empty" wx:if="{{!fences || fences.length === 0}}">
+          <text class="fence-empty-text">暂无围栏，请添加安全区域</text>
+        </view>
       </view>
-      <view class="fence-add" bindtap="addFence">＋ 添加安全区域</view>
+
+      <!-- 添加围栏按钮 -->
+      <view class="fence-add-btn" bindtap="addFence">
+        <text class="fence-add-icon">+</text>
+        <text class="fence-add-text">添加新围栏</text>
+      </view>
+
+      <!-- 围栏预警规则说明 -->
+      <view class="fence-rule-hint">
+        <text class="fence-rule-hint-text">围栏开启后，老人越界将自动触发预警通知</text>
+      </view>
     </view>
 
     <!-- 今日轨迹时间线 -->

@@ -1,0 +1,71 @@
+.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 100rpx; }
+
+.page-header { padding: 48rpx 36rpx 28rpx; }
+.page-title { display: block; font-size: 40rpx; font-weight: 800; color: #0d2b1f; }
+.page-subtitle { display: block; font-size: 24rpx; color: #4a6355; margin-top: 10rpx; }
+
+/* 表单组 */
+.form-group {
+  margin: 0 36rpx 24rpx;
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(47,133,90,0.08);
+}
+.form-label {
+  display: block;
+  font-size: 24rpx;
+  color: #6b8577;
+  font-weight: 700;
+  margin-bottom: 16rpx;
+  letter-spacing: 2rpx;
+}
+.form-input {
+  font-size: 30rpx;
+  color: #0d2b1f;
+  padding: 16rpx 0;
+  border-bottom: 2rpx solid rgba(47,133,90,0.12);
+  width: 100%;
+}
+.form-textarea {
+  font-size: 28rpx;
+  color: #0d2b1f;
+  padding: 16rpx 0;
+  width: 100%;
+  min-height: 80rpx;
+}
+
+/* 选择器行 */
+.picker-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+}
+.picker-icon { font-size: 42rpx; margin-right: 20rpx; }
+.picker-text { flex: 1; font-size: 30rpx; color: #0d2b1f; font-weight: 600; }
+.picker-text.time-text { font-size: 40rpx; font-weight: 800; color: #1a6b42; }
+.picker-arrow { font-size: 36rpx; color: #8a9e92; }
+
+/* 按钮组 */
+.btn-group {
+  display: flex;
+  padding: 48rpx 36rpx;
+  gap: 24rpx;
+}
+.btn {
+  flex: 1;
+  font-size: 32rpx;
+  font-weight: 700;
+  border-radius: 16rpx;
+  padding: 26rpx 0;
+  text-align: center;
+}
+.btn-save {
+  background: #1a6b42;
+  color: #ffffff;
+}
+.btn-cancel {
+  background: #ffffff;
+  color: #4a6355;
+  border: 2rpx solid rgba(47,133,90,0.2);
+}

@@ -1,6 +1,6 @@
 // pages/index/index.js
 const app = getApp()
-const { locationAPI, alertsAPI, statsAPI, sosAPI } = require('../../utils/api')
+const { locationAPI, alertsAPI, statsAPI, sosAPI, settingsAPI } = require('../../utils/api')
 const amap = require('../../utils/amap')
 
 Page({
@@ -13,11 +13,22 @@ Page({
     currentLocation: {},
     statusTag: 'tag-safe',
     statusText: '安全范围内',
+    statusIcon: '✅',
+    statusLevel: 'safe',
+    addressExpanded: false,
+    freshnessText: '',
+    freshnessStale: false,
+    fenceEnabled: true,
     stats: {
       distance: 0,
       alerts: 0,
       aiChats: 0
     },
+    distanceIcon: '🏠',
+    distanceText: '在家中',
+    alertsIcon: '🛡️',
+    alertsText: '无预警',
+    alertsHot: false,
     recentAlerts: [],
     locating: false
   },
@@ -42,6 +53,7 @@ Page({
       currentDate: this._getDate()
     })
     this._fetchData()
+    this._startFreshnessTimer()
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
@@ -64,7 +76,10 @@ Page({
           'stats.alerts':   d.unreadAlerts,
           'stats.aiChats':  d.chatCount
         })
+        this._formatDistance(d.distance)
+        this._formatAlerts(d.unreadAlerts)
         this._updateStatusTag(loc.status)
+        this._updateFreshness()
       }
       if (alertsRes.code === 0) {
         const recent = alertsRes.data.slice(0, 3).map(a => ({
@@ -96,14 +111,93 @@ Page({
     return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日  星期${weeks[d.getDay()]}`
   },
 
+  // ── 智能距离显示 ──────────────────────────────────
+  _formatDistance(meters) {
+    const m = Number(meters) || 0
+    if (m === 0) {
+      this.setData({ distanceIcon: '🏠', distanceText: '在家中' })
+    } else if (m < 1000) {
+      this.setData({ distanceIcon: '🚶', distanceText: '距离家 ' + m + ' m' })
+    } else {
+      const km = (m / 1000).toFixed(1)
+      this.setData({ distanceIcon: '🚗', distanceText: '距离家 ' + km + ' km' })
+    }
+  },
+
+  // ── 预警状态显示 ──────────────────────────────────
+  _formatAlerts(count) {
+    const n = Number(count) || 0
+    if (n === 0) {
+      this.setData({ alertsIcon: '🛡️', alertsText: '无预警', alertsHot: false })
+    } else {
+      this.setData({ alertsIcon: '🔔', alertsText: n + ' 次预警', alertsHot: true })
+    }
+  },
+
   _updateStatusTag(status = 'safe') {
     const map = {
-      safe:      { tag: 'tag-safe',    text: '安全范围内' },
-      warning:   { tag: 'tag-warning', text: '轻微预警'  },
-      emergency: { tag: 'tag-danger',  text: '紧急！'    }
+      safe:      { tag: 'tag-safe',    text: '安全范围内',    icon: '✅', level: 'safe' },
+      warning:   { tag: 'tag-warning', text: '超出安全范围',  icon: '⚠️', level: 'warning' },
+      emergency: { tag: 'tag-danger',  text: '定位异常',      icon: '🔴', level: 'danger' }
     }
     const s = map[status] || map['safe']
-    this.setData({ statusTag: s.tag, statusText: s.text })
+    this.setData({ statusTag: s.tag, statusText: s.text, statusIcon: s.icon, statusLevel: s.level })
+  },
+
+  // ── 时效性计算 ──────────────────────────────────
+  _startFreshnessTimer() {
+    this._stopFreshnessTimer()
+    this._updateFreshness()
+    this._freshnessTimer = setInterval(() => this._updateFreshness(), 15000)
+  },
+  _stopFreshnessTimer() {
+    if (this._freshnessTimer) { clearInterval(this._freshnessTimer); this._freshnessTimer = null }
+  },
+  _updateFreshness() {
+    const loc = this.data.currentLocation
+    if (!loc || !loc.updatedAt) {
+      this.setData({ freshnessText: '暂无更新', freshnessStale: true })
+      return
+    }
+    const updatedTime = typeof loc.updatedAt === 'number' ? loc.updatedAt : new Date(loc.updatedAt).getTime()
+    if (isNaN(updatedTime)) {
+      this.setData({ freshnessText: loc.updatedAt, freshnessStale: false })
+      return
+    }
+    const diffMs = Date.now() - updatedTime
+    const diffMin = Math.floor(diffMs / 60000)
+    let text, stale = false
+    if (diffMin < 1) {
+      text = '刚刚更新（正常）'
+    } else if (diffMin < 10) {
+      text = '更新于 ' + diffMin + ' 分钟前（正常）'
+    } else if (diffMin < 60) {
+      text = '更新于 ' + diffMin + ' 分钟前（异常）'
+      stale = true
+    } else {
+      const diffH = Math.floor(diffMin / 60)
+      text = '更新于 ' + diffH + ' 小时前（异常）'
+      stale = true
+    }
+    this.setData({ freshnessText: text, freshnessStale: stale })
+    // 超过 10 分钟自动标为定位异常
+    if (stale && this.data.statusLevel === 'safe') {
+      this._updateStatusTag('emergency')
+    }
+  },
+
+  // ── 地址展开/收起 ──────────────────────────────────
+  toggleAddressExpand() {
+    this.setData({ addressExpanded: !this.data.addressExpanded })
+  },
+
+  // ── 围栏快捷开关 ──────────────────────────────────
+  async toggleFence() {
+    const next = !this.data.fenceEnabled
+    this.setData({ fenceEnabled: next })
+    wx.showToast({ title: next ? '围栏预警已开启' : '围栏预警已关闭', icon: 'none' })
+    // 持久化到设置（如有可用接口）
+    try { await settingsAPI.updateSettings({ fenceEnabled: next }) } catch (e) {}
   },
 
   goLocation()  { wx.switchTab({ url: '/pages/location/location' }) },
@@ -122,13 +216,42 @@ Page({
     const contact = app.globalData.contacts?.[0]
     const name  = contact?.name  || '紧急联系人'
     const phone = contact?.phone || ''
-    wx.showModal({
-      title: '紧急呼叫',
-      content: `确认立即拨打 ${name}？`,
-      confirmText: '立即呼叫',
-      confirmColor: '#ff5c5c',
-      success(res) {
-        if (res.confirm && phone) wx.makePhoneCall({ phoneNumber: phone })
+    wx.showActionSheet({
+      itemList: ['一键拨号 · ' + name, '发送紧急消息'],
+      success: (res) => {
+        if (res.tapIndex === 0) {
+          wx.showModal({
+            title: '确认紧急呼叫',
+            content: '确定向 ' + name + ' 发起紧急呼叫？',
+            confirmText: '立即呼叫',
+            confirmColor: '#dc2626',
+            success(r) {
+              if (r.confirm && phone) wx.makePhoneCall({ phoneNumber: phone })
+            }
+          })
+        } else if (res.tapIndex === 1) {
+          wx.showModal({
+            title: '发送紧急消息',
+            content: '确定向 ' + name + ' 发送紧急求助消息？',
+            confirmText: '立即发送',
+            confirmColor: '#dc2626',
+            success: async (r) => {
+              if (!r.confirm) return
+              try {
+                wx.showLoading({ title: '发送中…', mask: true })
+                await sosAPI.trigger({
+                  type: 'message',
+                  address: app.globalData.currentLocation?.address || ''
+                })
+                wx.hideLoading()
+                wx.showToast({ title: '紧急消息已发送', icon: 'success' })
+              } catch (e) {
+                wx.hideLoading()
+                wx.showToast({ title: '发送失败，请重试', icon: 'none' })
+              }
+            }
+          })
+        }
       }
     })
   },

@@ -7,13 +7,25 @@
 
     <!-- 用户信息卡 -->
     <view class="user-card">
-      <view class="avatar-wrap">
-        <view class="avatar-circle"><text class="avatar-emoji">👨‍👩‍👧</text></view>
+      <view class="avatar-wrap" bindtap="chooseAvatar">
+        <view class="avatar-circle">
+          <image wx:if="{{userInfo.avatar}}" class="avatar-img" src="{{avatarFullUrl}}" mode="aspectFill" />
+          <text wx:else class="avatar-emoji">👨‍👩‍👧</text>
+        </view>
+        <view class="avatar-edit-hint">
+          <text class="edit-camera">📷</text>
+        </view>
         <view class="badge-role badge-family">家属端</view>
       </view>
       <view class="user-info">
-        <text class="user-name">{{userInfo.name || '用户'}}</text>
-        <text class="user-phone">{{userInfo.phone || ''}}</text>
+        <view class="name-row" bindtap="editNickname">
+          <text class="user-name">{{userInfo.name || '用户'}}</text>
+          <text class="name-edit-icon">✏️</text>
+        </view>
+        <view class="phone-row">
+          <text class="phone-icon">📱</text>
+          <text class="user-phone">{{userInfo.phone || ''}}</text>
+        </view>
       </view>
     </view>
 
@@ -85,6 +97,11 @@
         <view class="menu-main"><text class="menu-label">实时位置</text><text class="menu-sub">轨迹 · 安全围栏</text></view>
         <text class="menu-arrow">›</text>
       </view>
+      <view class="menu-row" bindtap="goDevice">
+        <text class="menu-icon">📡</text>
+        <view class="menu-main"><text class="menu-label">蓝牙设备</text><text class="menu-sub">连接 ESP32-S3 智能语音设备</text></view>
+        <text class="menu-arrow">›</text>
+      </view>
     </view>
 
     <view class="section-title">账号</view>
@@ -110,10 +127,24 @@
 
     <!-- 老人信息卡（大字体） -->
     <view class="e-user-card">
-      <view class="e-avatar-circle"><text class="e-avatar-emoji">👴</text></view>
-      <text class="e-user-name">{{userInfo.name || '用户'}}</text>
+      <view class="e-avatar-wrap" bindtap="chooseAvatar">
+        <view class="e-avatar-circle">
+          <image wx:if="{{userInfo.avatar}}" class="e-avatar-img" src="{{avatarFullUrl}}" mode="aspectFill" />
+          <text wx:else class="e-avatar-emoji">👴</text>
+        </view>
+        <view class="e-avatar-edit-hint">
+          <text class="edit-camera">📷</text>
+        </view>
+      </view>
+      <view class="e-name-row" bindtap="editNickname">
+        <text class="e-user-name">{{userInfo.name || '用户'}}</text>
+        <text class="e-name-edit-icon">✏️</text>
+      </view>
       <view class="badge-role badge-elderly">老人端</view>
-      <text class="e-user-sub">守护·陪伴 为您服务</text>
+      <view class="e-phone-row">
+        <text class="e-phone-icon">📱</text>
+        <text class="e-user-phone">{{userInfo.phone || ''}}</text>
+      </view>
     </view>
 
     <!-- 紧急联系人（一键拨打） -->
@@ -152,6 +183,18 @@
       <view class="e-contact-info">
         <text class="e-contact-name">设置</text>
         <text class="e-contact-relation">紧急联系人 · 方言 · 围栏</text>
+      </view>
+      <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
+        <text class="e-call-icon">›</text>
+        <text class="e-call-text" style="color:var(--amber)">查看</text>
+      </view>
+    </view>
+
+    <view class="e-contact-card" bindtap="goDevice">
+      <view class="e-contact-avatar">📡</view>
+      <view class="e-contact-info">
+        <text class="e-contact-name">蓝牙设备</text>
+        <text class="e-contact-relation">连接智能语音设备</text>
       </view>
       <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
         <text class="e-call-icon">›</text>
