@@ -24,6 +24,7 @@
 
   <!-- 输入区 -->
   <view class="card input-card">
+<!-- 测试用：上传本地音频文件 -->
 
     <!-- 语音输入按钮（大型） -->
     <view
@@ -59,7 +60,10 @@
       </view>
     </view>
   </view>
-
+<!-- 测试用：上传本地音频文件 -->
+<button bindtap="chooseLocalAudio" type="primary" style="margin: 10rpx;">
+  上传音频文件测试
+</button>
   <!-- 翻译结果 -->
   <view class="card result-card" wx:if="{{result}}">
     <view class="result-header">

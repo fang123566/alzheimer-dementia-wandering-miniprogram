@@ -1,19 +1,18 @@
 // pages/aichat/aichat.js
+// 小守 AI 伴聊页面 —— 支持记忆提取 | 反诈预警气泡 | 提醒确认
+
 const app = getApp()
 const { chatAPI } = require('../../utils/api')
 
-let plugin = null
-try { plugin = requirePlugin('WechatSI') } catch (e) { console.warn('WechatSI插件未加载', e) }
-
 const QUICK_ACTIONS = [
-  { id: 'weather', label: '查天气', icon: '🌤️', text: '今天天气怎么样' },
-  { id: 'health', label: '记健康', icon: '💊', text: '我刚吃药了' },
+  { id: 'weather',   label: '查天气',   icon: '🌤️', text: '今天天气怎么样' },
+  { id: 'health',    label: '记健康',   icon: '💊', text: '我刚吃药了' },
   { id: 'emergency', label: '紧急求助', icon: '🆘', text: '我迷路了，救命' },
-  { id: 'chat', label: '陪我聊聊', icon: '💬', text: '你好小守，我想和你聊聊天' }
+  { id: 'chat',      label: '陪我聊聊', icon: '💬', text: '你好小守，我想和你聊聊天' }
 ]
 
 function normalizeMessage(message) {
-  const role = message.role || 'bot'
+  const role  = message.role || 'bot'
   const isBot = role === 'bot'
   const isUser = role === 'user'
   return {
@@ -23,46 +22,46 @@ function normalizeMessage(message) {
     isUser,
     displayName: isBot ? (message.botName || '小守') : '老人',
     bubbleClass: isBot ? 'bubble-bot' : 'bubble-user',
-    canSpeak: isBot && !!message.text
+    canSpeak:    isBot && !!message.text
   }
 }
 
 function buildViewState(patch = {}) {
   const elderlyMode = !!patch.elderlyMode
-  const autoSpeak = !!patch.autoSpeak
+  const autoSpeak   = !!patch.autoSpeak
   const isRecording = !!patch.isRecording
-  const inputText = patch.inputText || ''
-  const sending = !!patch.sending
+  const inputText   = patch.inputText || ''
+  const sending     = !!patch.sending
 
   return {
-    pageClass: elderlyMode ? 'elderly-mode' : '',
-    autoSpeakClass: autoSpeak ? 'active' : '',
-    autoSpeakLabel: autoSpeak ? '🔊' : '🔇',
+    pageClass:       elderlyMode ? 'elderly-mode' : '',
+    autoSpeakClass:  autoSpeak ? 'active' : '',
+    autoSpeakLabel:  autoSpeak ? '🔊' : '🔇',
     elderlyModeClass: elderlyMode ? 'active' : '',
     elderlyModeLabel: elderlyMode ? '大' : '标',
-    voiceBtnClass: isRecording ? 'recording' : '',
-    sendBtnClass: `${inputText ? 'active' : ''} ${sending ? 'sending' : ''}`.trim(),
-    sendBtnText: sending ? '发送中' : '发送'
+    voiceBtnClass:   isRecording ? 'recording' : '',
+    sendBtnClass:    `${inputText ? 'active' : ''} ${sending ? 'sending' : ''}`.trim(),
+    sendBtnText:     sending ? '发送中' : '发送'
   }
 }
 
 Page({
   data: {
-    role: 'family',
-    elderlyMode: false,
-    pageClass: '',
+    role:           'family',
+    elderlyMode:    false,
+    pageClass:      '',
     autoSpeakClass: '',
     autoSpeakLabel: '🔇',
     elderlyModeClass: '',
     elderlyModeLabel: '标',
-    voiceBtnClass: '',
-    sendBtnClass: '',
-    sendBtnText: '发送',
-    inputText: '',
-    scrollTo: '',
-    sending: false,
-    messages: [],
-    quickActions: QUICK_ACTIONS,
+    voiceBtnClass:  '',
+    sendBtnClass:   '',
+    sendBtnText:    '发送',
+    inputText:      '',
+    scrollTo:       '',
+    sending:        false,
+    messages:       [],
+    quickActions:   QUICK_ACTIONS,
     capabilityTags: ['天气提醒', '健康记录', '紧急协助', '反诈提醒', '日常陪聊'],
     suggestions: [
       '今天天气怎么样',
@@ -71,41 +70,35 @@ Page({
       '我迷路了怎么办'
     ],
     // 语音相关
-    isRecording: false,
+    isRecording:     false,
     recordingDuration: 0,
     // 语音播报
-    autoSpeak: false,
-    speaking: false,
+    autoSpeak:       false,
+    speaking:        false,
     // 安全区域
-    safeAreaBottom: 0
+    safeAreaBottom:  0,
+    // 反诈预警横幅（当前对话触发时临时展示）
+    fraudBanner:     null,   // { level, desc }
+    // 提醒确认条（AI 检测到用药提及时展示）
+    remindBanner:    null    // { type, content }
   },
 
-  innerAudioContext: null,
-  recordingTimer: null,
-  voiceRecognizeManager: null,
-
   onLoad() {
-    console.log('[AIChat] 页面加载开始')
-    if (!app.checkLogin()) {
-      console.log('[AIChat] 未登录，跳转登录')
-      return
-    }
+    if (!app.checkLogin()) return
     const elderlyMode = app.globalData.elderlyMode
-    // 计算安全区域高度（适配iPhone底部横条）
-    const safeArea = wx.getSystemInfoSync().safeArea
-    const screenHeight = wx.getSystemInfoSync().screenHeight
-    const safeAreaBottom = (screenHeight - safeArea.bottom) * (750 / wx.getSystemInfoSync().windowWidth)
-    console.log('[AIChat] 老人模式:', elderlyMode, '安全区域:', safeAreaBottom)
+    const sysInfo     = wx.getSystemInfoSync()
+    const safeArea    = sysInfo.safeArea
+    const safeAreaBottom = (sysInfo.screenHeight - safeArea.bottom) *
+      (750 / sysInfo.windowWidth)
+
     this.setData({
       role: app.globalData.role,
       elderlyMode,
       autoSpeak: elderlyMode,
       safeAreaBottom,
-      ...buildViewState({ elderlyMode, autoSpeak: elderlyMode, isRecording: false, inputText: '', sending: false })
+      ...buildViewState({ elderlyMode, autoSpeak: elderlyMode })
     })
-    this._initVoice()
     this._fetchHistory()
-    console.log('[AIChat] 页面加载完成')
   },
 
   onShow() {
@@ -115,168 +108,21 @@ Page({
     }
   },
 
-  onUnload() {
-    if (this.innerAudioContext) {
-      this.innerAudioContext.destroy()
-    }
-    if (this.recordingTimer) {
-      clearInterval(this.recordingTimer)
-    }
-    if (this.voiceRecognizeManager) {
-      this.voiceRecognizeManager.stop()
-    }
-  },
-
-  // ========== 语音初始化 ==========
-
-  _initVoice() {
-    // 初始化音频播放器（用于 TTS 播报）
-    this.innerAudioContext = wx.createInnerAudioContext()
-    this.innerAudioContext.onPlay(() => this.setData({ speaking: true }))
-    this.innerAudioContext.onStop(() => this.setData({ speaking: false }))
-    this.innerAudioContext.onEnded(() => this.setData({ speaking: false }))
-    this.innerAudioContext.onError(() => this.setData({ speaking: false }))
-
-    // 初始化语音识别管理器（WechatSI 插件）
-    if (plugin && plugin.getRecordRecognitionManager) {
-      this.voiceRecognizeManager = plugin.getRecordRecognitionManager()
-
-      this.voiceRecognizeManager.onStart = () => {
-        console.log('[ASR] 开始识别')
-        this.setData({ isRecording: true, recordingDuration: 0, ...buildViewState({ ...this.data, isRecording: true }) })
-        this.recordingTimer = setInterval(() => {
-          const d = this.data.recordingDuration + 1
-          this.setData({ recordingDuration: d })
-          if (d >= 59) this.voiceRecognizeManager.stop()
-        }, 1000)
-      }
-
-      this.voiceRecognizeManager.onRecognize = (res) => {
-        if (res.result) {
-          this.setData({ inputText: res.result })
-        }
-      }
-
-      this.voiceRecognizeManager.onStop = (res) => {
-        clearInterval(this.recordingTimer)
-        this.setData({ isRecording: false, ...buildViewState({ ...this.data, isRecording: false }) })
-        console.log('[ASR] 识别结束', res)
-        if (res.result) {
-          this.setData({ inputText: res.result })
-          this.sendMessage()
-        } else {
-          wx.showToast({ title: '没有识别到语音，请重试', icon: 'none' })
-        }
-      }
-
-      this.voiceRecognizeManager.onError = (err) => {
-        clearInterval(this.recordingTimer)
-        this.setData({ isRecording: false, ...buildViewState({ ...this.data, isRecording: false }) })
-        console.error('[ASR] 识别错误', err)
-        wx.showToast({ title: '语音识别失败', icon: 'none' })
-      }
-    }
-  },
-
-  // ========== 老人模式 ==========
-
+  // ── 老人模式切换 ──────────────────────────────────────────
   toggleElderlyMode() {
     const newMode = app.toggleElderlyMode()
     this.setData({ elderlyMode: newMode, ...buildViewState({ ...this.data, elderlyMode: newMode }) })
-    wx.showToast({
-      title: newMode ? '已开启大字模式' : '已关闭大字模式',
-      icon: 'none'
-    })
+    wx.showToast({ title: newMode ? '已开启大字模式' : '已关闭大字模式', icon: 'none' })
   },
 
-  // ========== 语音录入（语音识别） ==========
-
-  toggleRecording() {
-    if (this.data.isRecording) {
-      this._stopRecording()
-    } else {
-      this._startRecording()
-    }
-  },
-
-  _startRecording() {
-    if (this.data.isRecording || this.data.sending) return
-
-    if (!this.voiceRecognizeManager) {
-      wx.showToast({ title: '语音插件未加载，请用文字输入', icon: 'none' })
-      return
-    }
-
-    wx.authorize({
-      scope: 'scope.record',
-      success: () => {
-        this.voiceRecognizeManager.start({
-          lang: 'zh_CN'
-        })
-      },
-      fail: () => {
-        wx.showModal({
-          title: '需要录音权限',
-          content: '请在设置中开启录音权限，以便使用语音输入',
-          confirmText: '去设置',
-          success: (res) => { if (res.confirm) wx.openSetting() }
-        })
-      }
-    })
-  },
-
-  _stopRecording() {
-    if (!this.data.isRecording) return
-    if (this.voiceRecognizeManager) {
-      this.voiceRecognizeManager.stop()
-    }
-  },
-
-  // ========== TTS 语音播报 ==========
-
-  _speakText(text) {
-    if (!text || this.data.speaking) return
-    if (!plugin || !plugin.textToSpeech) {
-      console.warn('TTS 插件不可用')
-      return
-    }
-    plugin.textToSpeech({
-      lang: 'zh_CN',
-      tts: true,
-      content: text,
-      success: (res) => {
-        if (res.filename) {
-          this.innerAudioContext.src = res.filename
-          this.innerAudioContext.play()
-        }
-      },
-      fail: (err) => {
-        console.error('TTS 失败', err)
-      }
-    })
-  },
-
-  onSpeakTap(e) {
-    const text = e.currentTarget.dataset.text
-    if (text) this._speakText(text)
-  },
-
+  // ── 自动播报切换 ──────────────────────────────────────────
   toggleAutoSpeak() {
     const newVal = !this.data.autoSpeak
     this.setData({ autoSpeak: newVal, ...buildViewState({ ...this.data, autoSpeak: newVal }) })
-    wx.showToast({
-      title: newVal ? '已开启自动播报' : '已关闭自动播报',
-      icon: 'none'
-    })
+    wx.showToast({ title: newVal ? '已开启自动播报' : '已关闭自动播报', icon: 'none' })
   },
 
-  stopSpeaking() {
-    if (this.innerAudioContext) this.innerAudioContext.stop()
-    this.setData({ speaking: false })
-  },
-
-  // ========== 聊天数据 ==========
-
+  // ── 获取历史 ─────────────────────────────────────────────
   async _fetchHistory() {
     try {
       const res = await chatAPI.getHistory()
@@ -285,10 +131,11 @@ Page({
         this._scrollToBottom()
       }
     } catch (e) {
-      // 离线时静默降级
+      console.warn('[AIChat] 离线降级', e)
     }
   },
 
+  // ── 快捷操作 ─────────────────────────────────────────────
   onQuickAction(e) {
     const text = e.currentTarget.dataset.text || ''
     if (!text || this.data.sending) return
@@ -303,10 +150,10 @@ Page({
 
   onInput(e) {
     const inputText = e.detail.value || ''
-    console.log('[AIChat] 输入:', inputText)
     this.setData({ inputText, ...buildViewState({ ...this.data, inputText }) })
   },
 
+  // ── 清空对话 ─────────────────────────────────────────────
   async clearHistory() {
     if (!this.data.messages.length) return
     const res = await wx.showModal({
@@ -319,7 +166,7 @@ Page({
     try {
       wx.showLoading({ title: '清空中…' })
       await chatAPI.clearHistory()
-      this.setData({ messages: [], scrollTo: '' })
+      this.setData({ messages: [], scrollTo: '', fraudBanner: null, remindBanner: null })
       wx.showToast({ title: '已清空', icon: 'success' })
     } catch (e) {
       wx.showToast({ title: '清空失败', icon: 'none' })
@@ -328,51 +175,89 @@ Page({
     }
   },
 
-  // ========== 发送消息（核心链路） ==========
-
+  // ── 发送消息（核心链路）──────────────────────────────────
   async sendMessage() {
     const text = (this.data.inputText || '').trim()
-    console.log('[AIChat] 发送消息:', text, 'sending:', this.data.sending)
-    if (!text) {
-      console.log('[AIChat] 消息为空，不发送')
-      return
-    }
-    if (this.data.sending) {
-      console.log('[AIChat] 正在发送中，忽略')
-      return
-    }
+    if (!text || this.data.sending) return
 
-    this.setData({ inputText: '', sending: true, ...buildViewState({ ...this.data, inputText: '', sending: true }) })
+    this.setData({
+      inputText: '',
+      sending: true,
+      fraudBanner: null,
+      remindBanner: null,
+      ...buildViewState({ ...this.data, inputText: '', sending: true })
+    })
 
-    const now = new Date()
-    const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+    const now    = new Date()
+    const time   = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
     const tempId = Date.now()
+
+    // 先乐观追加用户消息气泡
     const tempMsg = normalizeMessage({ id: tempId, role: 'user', text, time, emotionNote: '' })
     this.setData({ messages: [...this.data.messages, tempMsg] })
     this._scrollToBottom()
 
     try {
-      console.log('[AIChat] 调用API发送:', text)
       const res = await chatAPI.sendMessage(text)
-      console.log('[AIChat] API返回:', res)
+
       if (res.code === 0) {
         const { userMsg, botMsg } = res.data
+        const meta = res.meta || {}
+
+        // 替换乐观消息
         const msgs = this.data.messages.filter(m => m.id !== tempId)
-        this.setData({ messages: [...msgs, normalizeMessage(userMsg), normalizeMessage(botMsg)] })
+        this.setData({
+          messages: [...msgs, normalizeMessage(userMsg), normalizeMessage(botMsg)]
+        })
         this._scrollToBottom()
 
-        // 自动播报
-        if (this.data.autoSpeak && botMsg && botMsg.text) {
-          this._speakText(botMsg.text)
+        // ── 反诈预警横幅 ─────────────────────────────────
+        if (meta.fraudAlert) {
+          const levelMap = { 3: '⚠️ 高危诈骗风险！', 2: '⚠️ 疑似诈骗', 1: '⚠️ 可疑内容' }
+          this.setData({
+            fraudBanner: {
+              level:    meta.fraudAlert.level,
+              desc:     meta.fraudAlert.desc,
+              title:    levelMap[meta.fraudAlert.level] || '⚠️ 注意风险',
+              bgClass:  meta.fraudAlert.level >= 3 ? 'banner-danger' : 'banner-warning'
+            }
+          })
+          // 高危自动震动提示
+          if (meta.fraudAlert.level >= 3) {
+            wx.vibrateShort({ type: 'heavy' })
+            wx.showModal({
+              title:   '⚠️ 反诈预警',
+              content: `检测到可疑内容：${meta.fraudAlert.desc}\n\n已为您记录预警，请务必谨慎！`,
+              showCancel: false,
+              confirmText: '我知道了'
+            })
+          }
         }
+
+        // ── 提醒确认条 ───────────────────────────────────
+        if (meta.remind) {
+          this.setData({
+            remindBanner: {
+              type:    meta.remind.type,
+              content: meta.remind.content || '用药提醒已记录',
+              icon:    meta.remind.type === 'medication' ? '💊' : '🔔'
+            }
+          })
+        }
+
+        // ── 记忆存储提示（静默，不打扰老人）────────────────
+        if (meta.memorySaved) {
+          console.log('[AIChat] 记忆已存储')
+        }
+
       }
     } catch (e) {
       console.error('[AIChat] 发送失败:', e)
       const fallback = normalizeMessage({
         id: Date.now(),
         role: 'bot', botName: '小守',
-        text: '网络好像有点问题，稍后再试试吧～',
-        time, isFraudAlert: false, isSoothe: false, tip: ''
+        text: '网络好像有点问题，您稍等一下，我马上回来陪您～',
+        time, emotionNote: ''
       })
       this.setData({ messages: [...this.data.messages, fallback] })
       this._scrollToBottom()
@@ -381,6 +266,23 @@ Page({
     }
   },
 
+  // ── 关闭反诈横幅 ──────────────────────────────────────────
+  closeFraudBanner() {
+    this.setData({ fraudBanner: null })
+  },
+
+  // ── 前往查看预警详情 ────────────────────────────────────
+  viewFraudAlert() {
+    this.setData({ fraudBanner: null })
+    wx.switchTab({ url: '/pages/alert/alert' })
+  },
+
+  // ── 关闭提醒横幅 ──────────────────────────────────────────
+  closeRemindBanner() {
+    this.setData({ remindBanner: null })
+  },
+
+  // ── 工具 ─────────────────────────────────────────────────
   _scrollToBottom() {
     const msgs = this.data.messages
     if (msgs.length > 0) {

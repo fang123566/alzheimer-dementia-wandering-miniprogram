@@ -1,0 +1,9 @@
+{
+  "name": "locationAlert",
+  "version": "1.0.0",
+  "description": "阿尔茨海默症老人定位预警云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

@@ -1,6 +1,5 @@
 // pages/location/location.js
 const app = getApp()
-const { locationAPI } = require('../../utils/api')
 const amap = require('../../utils/amap')
 
 function getWxLocation(type = 'gcj02') {
@@ -24,6 +23,48 @@ function authorize(scope) {
 function openSetting() {
   return new Promise((resolve, reject) => {
     wx.openSetting({ success: resolve, fail: reject })
+  })
+}
+
+// ── 云函数封装（替代 locationAPI 的四个接口）──────────────
+function cloudGetLocation() {
+  return new Promise((resolve, reject) => {
+    wx.cloud.callFunction({
+      name: 'locationGetCurrent',
+      success: res => resolve(res.result),
+      fail: err => reject(new Error(err.errMsg || '云函数调用失败'))
+    })
+  })
+}
+
+function cloudUpdateLocation(data) {
+  return new Promise((resolve, reject) => {
+    wx.cloud.callFunction({
+      name: 'locationUpdate',
+      data,
+      success: res => resolve(res.result),
+      fail: err => reject(new Error(err.errMsg || '云函数调用失败'))
+    })
+  })
+}
+
+function cloudGetTrajectory() {
+  return new Promise((resolve, reject) => {
+    wx.cloud.callFunction({
+      name: 'locationTrajectory',
+      success: res => resolve(res.result),
+      fail: err => reject(new Error(err.errMsg || '云函数调用失败'))
+    })
+  })
+}
+
+function cloudGetFences() {
+  return new Promise((resolve, reject) => {
+    wx.cloud.callFunction({
+      name: 'locationFences',
+      success: res => resolve(res.result),
+      fail: err => reject(new Error(err.errMsg || '云函数调用失败'))
+    })
   })
 }
 
@@ -60,9 +101,9 @@ Page({
   async _fetchAll() {
     try {
       const [locRes, trajRes, fenceRes] = await Promise.all([
-        locationAPI.getLocation(),
-        locationAPI.getTrajectory(),
-        locationAPI.getFences()
+        cloudGetLocation(),
+        cloudGetTrajectory(),
+        cloudGetFences()
       ])
 
       if (locRes.code === 0) {
@@ -159,7 +200,8 @@ Page({
         addrDetail = await amap.regeoDetail(res.latitude, res.longitude)
         if (addrDetail.formatted) fallbackAddress = addrDetail.formatted
       } catch (e) {}
-      const updateRes = await locationAPI.updateLocation({
+
+      const updateRes = await cloudUpdateLocation({
         latitude: res.latitude,
         longitude: res.longitude,
         address: fallbackAddress,

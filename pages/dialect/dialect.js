@@ -1,5 +1,6 @@
 // pages/dialect/dialect.js
 const app = getApp()
+const { speechAPI } = require('../../utils/api')
 
 // ── 翻译规则库（普通话 → 各方言） ────────────────────────
 const TO_DIALECT = {
@@ -25,7 +26,7 @@ const TO_DIALECT = {
       ['我不舒服', '我唔舒服'], ['需要帮助', '需要人帮手'],
       ['我想回家', '我想返屋企'], ['帮我打电话', '帮我打个电话'],
       ['我饿了', '我肚饿'], ['我需要吃药', '我要食药'],
-      ['我要去厕所', '我要去厕所'], ['我想休息', '我想休息下'],
+      ['我要去厕所', '我要上厕所'], ['我想休息', '我想休息下'],
       ['我很好', '我好好']
     ],
     phonetic: '（广州话，九声六调，注意平上去入各有阴阳）'
@@ -66,10 +67,24 @@ const PHRASES = [
 
 const DIALECTS = ['四川话', '粤语', '东北话']
 
+// ── 方言 → 讯飞 accent 参数映射 ──────────────────────────
+const DIALECT_ACCENT_MAP = {
+  '四川话': 'x3_yezi_sc',
+  '粤语':   'x3_xiaoyue',
+  '东北话': 'x4_ziyang_oral',
+}
+
+// ── 方言 → 讯飞 TTS 发音人映射 ───────────────────────────
+const DIALECT_VOICE_MAP = {
+  '四川话': 'x3_yezi_sc',
+  '粤语':   'x3_xiaoyue',
+  '东北话': 'x4_ziyang_oral',
+}
+
 Page({
   data: {
-    dialect: '四川话',    // 当前选择的方言
-    direction: 'toDialect', // 'toDialect' 普通话→方言 | 'toPutonghua' 方言→普通话
+    dialect: '四川话',
+    direction: 'toDialect',
     dirFrom: '普通话',
     dirTo: '四川话',
     inputText: '',
@@ -77,6 +92,8 @@ Page({
     phonetic: '',
     loading: false,
     recording: false,
+    isPlayingRecord: false,
+    recordTempPath: '',
     phrases: PHRASES,
     history: []
   },
@@ -86,7 +103,6 @@ Page({
     const settings = wx.getStorageSync('settings') || {}
     const dialect = settings.dialect || '四川话'
     this.setData({ dialect, dirTo: dialect })
-    this._initRecorder()
   },
 
   onShow() {
@@ -96,71 +112,80 @@ Page({
   },
 
   onUnload() {
-    if (this._recorder) {
-      this._recorder.stop()
+    if (this._recordAudio) {
+      this._recordAudio.destroy()
+      this._recordAudio = null
+    }
+    if (this._audioContext) {
+      this._audioContext.destroy()
+      this._audioContext = null
     }
   },
 
-  // ── 录音初始化 ─────────────────────────────────────────
-  _initRecorder() {
-    const recorder = wx.getRecorderManager()
-    this._recorder = recorder
-
-    recorder.onStart(() => {
-      this.setData({ recording: true })
-    })
-
-    recorder.onStop((res) => {
-      this.setData({ recording: false })
-      if (res.tempFilePath) {
-        this._recognizeSpeech(res.tempFilePath)
+  // ==============================================
+  // 新增：选择本地音频文件（测试专用）
+  // ==============================================
+  chooseLocalAudio() {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['mp3', 'wav', 'pcm', 'aac'],
+      success: (res) => {
+        const tempFilePath = res.tempFiles[0].path
+        console.log('选中音频文件路径：', tempFilePath)
+        this.setData({ recordTempPath: tempFilePath })
+        // 直接调用识别逻辑
+        this._recognizeSpeech(tempFilePath)
+      },
+      fail: (err) => {
+        console.error('选择文件失败：', err)
+        wx.showToast({ title: '选择音频失败', icon: 'none' })
       }
-    })
-
-    recorder.onError((err) => {
-      this.setData({ recording: false })
-      wx.showToast({ title: '录音失败，请重试', icon: 'none' })
-      console.error('录音错误:', err)
     })
   },
 
-  // ── 语音识别（模拟，接入云 ASR 后替换） ────────────────
+  // ==============================================
+  // 语音识别【修复：方言大模型mulacc参数】
+  // ==============================================
   _recognizeSpeech(tempFilePath) {
     wx.showLoading({ title: '识别中…', mask: true })
 
-    // TODO: 调用后端 /api/asr 上传音频，返回识别文字
-    // 当前模拟：1.5 秒后提示用户手动确认
-    setTimeout(() => {
-      wx.hideLoading()
-      wx.showToast({ title: '语音已录制，可手动补充', icon: 'none', duration: 2000 })
-      // 实际接入示例：
-      // wx.uploadFile({
-      //   url: app.globalData.serverUrl + '/api/asr',
-      //   filePath: tempFilePath,
-      //   name: 'audio',
-      //   success: (res) => {
-      //     const { text } = JSON.parse(res.data)
-      //     this.setData({ inputText: text })
-      //     this.translate()
-      //   }
-      // })
-    }, 1500)
-  },
+    wx.getFileSystemManager().readFile({
+      filePath: tempFilePath,
+      encoding: 'base64',
+      success: async (fileRes) => {
+        console.log('📂 音频读取成功，Base64长度：', fileRes.data?.length)
 
-  startRecord() {
-    if (this.data.recording) return
-    this._recorder.start({
-      duration: 30000,
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      encodeBitRate: 48000,
-      format: 'mp3'
+        if (!fileRes.data || fileRes.data.length === 0) {
+          wx.hideLoading()
+          wx.showToast({ title: '音频数据为空', icon: 'none' })
+          return
+        }
+
+        try {
+          // ✅ 核心修复：讯飞方言大模型 强制使用 mulacc
+          const accent = "mulacc"
+          const res = await speechAPI.asr(fileRes.data, 'zh_cn', accent)
+          wx.hideLoading()
+
+          if (res.success) {
+            this.setData({ inputText: res.data })
+            this.translate()
+          } else {
+            wx.showToast({ title: res.message || '识别失败', icon: 'none' })
+          }
+        } catch (err) {
+          wx.hideLoading()
+          console.error('❌ ASR 错误：', err)
+          wx.showToast({ title: '识别失败，请重试', icon: 'none' })
+        }
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        console.error('❌ 读取音频失败：', err)
+        wx.showToast({ title: '读取音频失败', icon: 'none' })
+      }
     })
-  },
-
-  stopRecord() {
-    if (!this.data.recording) return
-    this._recorder.stop()
   },
 
   // ── 方言 / 方向切换 ────────────────────────────────────
@@ -201,7 +226,7 @@ Page({
   translate() {
     const text = this.data.inputText.trim()
     if (!text) {
-      wx.showToast({ title: '请先输入或录音', icon: 'none' })
+      wx.showToast({ title: '请先输入或上传音频', icon: 'none' })
       return
     }
     this.setData({ loading: true })
@@ -232,10 +257,10 @@ Page({
     }, 500)
   },
 
+  // 修复BUG：for...in 改为 for...of
   _applyRules(text, rules) {
     if (!rules || rules.length === 0) return text
     let out = text
-    // 按词长降序排列，避免短词覆盖长词
     const sorted = [...rules].sort((a, b) => b[0].length - a[0].length)
     for (const [from, to] of sorted) {
       out = out.split(from).join(to)
@@ -243,9 +268,73 @@ Page({
     return out
   },
 
-  _speak(text) {
-    // 接入 TTS 后替换此处（如腾讯云 TTS 或微信同声传译插件）
-    wx.showToast({ title: '🔊 ' + text.slice(0, 10) + '…', icon: 'none', duration: 2000 })
+  getFileFormat(filePath) {
+    const ext = filePath.split('.').pop().toLowerCase()
+    return ext
+  },
+
+  detectAudioFormatByBuffer(buffer) {
+    const uint8 = new Uint8Array(buffer.slice(0, 16))
+    const hex = Array.from(uint8).map(b => b.toString(16).padStart(2, '0')).join('')
+    if (hex.startsWith('52494646')) return 'wav'
+    if (hex.startsWith('fff1') || hex.startsWith('fff9')) return 'aac'
+    if (hex.startsWith('020153494c4b')) return 'silk'
+    if (hex.startsWith('494433')) return 'mp3'
+    return 'pcm(原始音频)'
+  },
+
+  // ==============================================
+  // 语音合成
+  // ==============================================
+  async _speak(text) {
+    if (!text) return
+
+    if (this._audioContext) {
+      this._audioContext.destroy()
+      this._audioContext = null
+    }
+
+    wx.showLoading({ title: '合成中…', mask: true })
+
+    try {
+      const { dialect, direction } = this.data
+      const voiceName = direction === 'toDialect'
+        ? (DIALECT_VOICE_MAP[dialect] || 'x4_ziyang_oral')
+        : 'xiaoyan'
+
+      const res = await speechAPI.tts(text, 'zh_cn', voiceName)
+      wx.hideLoading()
+
+      if (!res.success) {
+        wx.showToast({ title: res.message || '合成失败', icon: 'none' })
+        return
+      }
+
+      const filePath = `${wx.env.USER_DATA_PATH}/tts_${Date.now()}.mp3`
+      wx.getFileSystemManager().writeFile({
+        filePath,
+        data: res.data,
+        encoding: 'base64',
+        success: () => {
+          const audio = wx.createInnerAudioContext()
+          this._audioContext = audio
+          audio.src = filePath
+          audio.obeyMuteSwitch = false
+          audio.play()
+
+          audio.onError((err) => {
+            console.error('播放失败:', err)
+          })
+        },
+        fail: (err) => {
+          console.error('音频写入失败:', err)
+        }
+      })
+    } catch (err) {
+      wx.hideLoading()
+      wx.showToast({ title: '合成失败', icon: 'none' })
+      console.error('TTS 错误:', err)
+    }
   },
 
   replay() {

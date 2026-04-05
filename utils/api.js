@@ -3,6 +3,27 @@
 
 const http = require('./request')
 
+// ── 云函数调用工具 ──────────────────────────────────────
+/**
+ * 调用微信云函数，返回与 http 模块风格一致的 Promise
+ * @param {string} name   - 云函数名称
+ * @param {object} data   - 传参
+ */
+function callCloud(name, data = {}) {
+  return new Promise((resolve, reject) => {
+    wx.cloud.callFunction({
+      name,
+      data,
+      success: res => resolve(res.result),
+      fail: err => {
+        console.error(`[云函数 ${name}] 调用失败`, err)
+        wx.showToast({ title: '网络请求失败', icon: 'none' })
+        reject(new Error(err.errMsg || '云函数调用失败'))
+      }
+    })
+  })
+}
+
 // ── 认证 ────────────────────────────────────────
 const authAPI = {
   login:    (phone, password)       => http.post('/auth/login',    { phone, password }),
@@ -12,72 +33,74 @@ const authAPI = {
   profile:  ()                      => http.get('/auth/profile')
 }
 
-// ── 位置 ──────────────────────────────────────────────
+// ── 位置（已迁移至微信云函数）────────────────────────────
 const locationAPI = {
-  // 获取当前位置
-  getLocation:    ()       => http.get('/location'),
-  // 上报位置
-  updateLocation: (data)   => http.post('/location', data),
-  // 今日轨迹
-  getTrajectory:  ()       => http.get('/location/trajectory'),
-  // 安全围栏列表
-  getFences:      ()       => http.get('/location/fences'),
-  // 添加围栏
+  getLocation:    ()     => callCloud('locationGetCurrent'),
+  updateLocation: (data) => callCloud('locationUpdate', data),
+  getTrajectory:  ()     => callCloud('locationTrajectory'),
+  getFences:      ()     => callCloud('locationFences'),
   addFence:       (data)   => http.post('/location/fences', data),
-  // 切换围栏开关
   toggleFence:    (id, en) => http.patch(`/location/fences/${id}`, { enabled: en }),
-  // 删除围栏
   deleteFence:    (id)     => http.delete(`/location/fences/${id}`)
 }
 
 // ── 预警 ──────────────────────────────────────────────
 const alertsAPI = {
-  // 获取全部预警，可选 category 筛选
   getAlerts:      (category) => http.get('/alerts', category ? { category } : {}),
-  // 未读数量
   getUnreadCount: ()         => http.get('/alerts/unread-count'),
-  // 新建预警
   createAlert:    (data)     => http.post('/alerts', data),
-  // 标记已读
   markRead:       (id)       => http.patch(`/alerts/${id}/read`),
-  // 删除预警
   deleteAlert:    (id)       => http.delete(`/alerts/${id}`)
 }
 
 // ── AI 伴聊 ───────────────────────────────────────────
+// 全部迁移至 aiChat 云函数，不再走后端 HTTP
 const chatAPI = {
-  // 获取聊天历史
-  getHistory:  ()     => http.get('/chat/history', {}, true),
-  // 发送消息
-  sendMessage: (text) => http.post('/chat/message', { text }),
-  // 清空记录
-  clearHistory:()     => http.delete('/chat/history')
+  /**
+   * 获取历史聊天记录（最近40条）
+   */
+  getHistory: () =>
+    callCloud('aiChat', { action: 'getHistory' }),
+
+  /**
+   * 发送消息，云函数负责：
+   *   - 调用千问 AI
+   *   - 提取记忆并存入 chat_memories
+   *   - 检测反诈并写入 alerts
+   *   - 触发提醒写入 reminders
+   * @param {string} text
+   */
+  sendMessage: (text) =>
+    callCloud('aiChat', { action: 'sendMessage', text }),
+
+  /**
+   * 清空当前用户的聊天记录
+   */
+  clearHistory: () =>
+    callCloud('aiChat', { action: 'clearHistory' }),
+
+  /**
+   * 获取 AI 提取的老人记忆列表
+   * 可在设置/家庭看板页展示
+   */
+  getMemories: () =>
+    callCloud('aiChat', { action: 'getMemories' })
 }
 
 // ── 记忆相册 ──────────────────────────────────────────
 const memoryAPI = {
-  // 获取照片列表，可选 member 筛选
   getPhotos:    (member) => http.get('/memory/photos', member ? { member } : {}),
-  // 获取单条记忆详情
   getPhoto:     (id)     => http.get(`/memory/photos/${id}`),
-  // 获取语音记忆详情
   getVoiceNote: (id)     => http.get(`/memory/photos/${id}/voice`),
-  // 上传媒体文件
   uploadMedia:  (filePath, mediaType) => http.upload('/memory/upload', filePath, 'file', { mediaType }, true),
-  // 新增照片
   addPhoto:     (data)   => http.post('/memory/photos', data),
-  // 更新照片说明/标注
   updatePhoto:  (id, d)  => http.put(`/memory/photos/${id}`, d),
-  // 删除语音记忆
   deleteVoiceNote: (id)  => http.delete(`/memory/photos/${id}/voice`),
-  // 删除照片
   deletePhoto:  (id)     => http.delete(`/memory/photos/${id}`),
-  // 家庭成员
   getMembers:   ()       => http.get('/memory/members'),
   addMember:    (data)   => http.post('/memory/members', data),
-  updateMember: (id, d)   => http.put(`/memory/members/${id}`, d),
-  deleteMember: (id)      => http.delete(`/memory/members/${id}`),
-  // AI 记忆提示
+  updateMember: (id, d)  => http.put(`/memory/members/${id}`, d),
+  deleteMember: (id)     => http.delete(`/memory/members/${id}`),
   getHints:     ()       => http.get('/memory/hints'),
   addHint:      (text)   => http.post('/memory/hints', { text }),
   deleteHint:   (id)     => http.delete(`/memory/hints/${id}`)
@@ -85,18 +108,13 @@ const memoryAPI = {
 
 // ── 设置 ──────────────────────────────────────────────
 const settingsAPI = {
-  // 获取全部设置
   getSettings:     ()     => http.get('/settings', {}, true),
-  // 更新设置
   updateSettings:  (data) => http.put('/settings', data),
-  // 更新老人信息
   updateElderly:   (data) => http.put('/settings/elderly', data),
-  // 紧急联系人
   getContacts:     ()     => http.get('/settings/contacts'),
   addContact:      (data) => http.post('/settings/contacts', data),
   updateContact:   (id, d)=> http.put(`/settings/contacts/${id}`, d),
   deleteContact:   (id)   => http.delete(`/settings/contacts/${id}`),
-  // 防诈关键词
   getKeywords:     ()     => http.get('/settings/keywords'),
   addKeyword:      (kw)   => http.post('/settings/keywords', { keyword: kw }),
   deleteKeyword:   (kw)   => http.delete(`/settings/keywords/${encodeURIComponent(kw)}`)
@@ -118,13 +136,10 @@ const bindingAPI = {
 
 // ── 今日提醒 ───────────────────────────────────────────
 const remindersAPI = {
-  // 模板 CRUD（双方管理用）
   getTemplates:   ()        => http.get('/reminders/templates'),
   addTemplate:    (data)    => http.post('/reminders/templates', data),
   updateTemplate: (id, d)   => http.put(`/reminders/templates/${id}`, d),
   deleteTemplate: (id)      => http.delete(`/reminders/templates/${id}`),
-
-  // 老人端展示用（按“今天”生成实例）
   getToday:       ()        => http.get('/reminders/today'),
   markDone:       (id)      => http.post(`/reminders/${encodeURIComponent(id)}/done`),
   markUndone:     (id)      => http.post(`/reminders/${encodeURIComponent(id)}/undone`)
@@ -132,13 +147,33 @@ const remindersAPI = {
 
 // ── SOS ───────────────────────────────────────────────
 const sosAPI = {
-  // 触发 SOS，携带当前位置
   trigger: (data) => http.post('/sos', data)
 }
 
 // ── 统计 ──────────────────────────────────────────────
 const statsAPI = {
   getStats: () => http.get('/stats')
+}
+
+// ── 语音识别 & 语音合成（asrTts 云函数）──────────────────
+const speechAPI = {
+  /**
+   * 语音识别 ASR
+   * @param {string} audioBase64 - base64 编码的音频数据
+   * @param {string} language    - 语言，默认 'zh_cn'
+   * @param {string} accent      - 方言accent，默认 'mandarin'
+   */
+  asr: (audioBase64, language = 'zh_cn', accent = 'mandarin') =>
+    callCloud('asrTts', { type: 'asr', data: audioBase64, language, accent }),
+
+  /**
+   * 语音合成 TTS
+   * @param {string} text      - 待合成文本
+   * @param {string} language  - 语言，默认 'zh_cn'
+   * @param {string} voiceName - 发音人，默认 'xiaoyan'
+   */
+  tts: (text, language = 'zh_cn', voiceName = 'xiaoyan') =>
+    callCloud('asrTts', { type: 'tts', data: text, language, voiceName }),
 }
 
 module.exports = {
@@ -151,5 +186,6 @@ module.exports = {
   bindingAPI,
   remindersAPI,
   sosAPI,
-  statsAPI
+  statsAPI,
+  speechAPI,
 }

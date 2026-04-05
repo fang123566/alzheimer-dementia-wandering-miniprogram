@@ -37,6 +37,9 @@
       {"pagePath": "pages/device/device","text":"蓝牙"}
     ]
   },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
   "permission": {
     "scope.userLocation": {
       "desc": "需要获取您的位置信息，用于实时监测老人安全状态和安全围栏检测"
