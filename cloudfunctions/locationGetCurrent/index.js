@@ -61,6 +61,25 @@ exports.main = async (event, context) => {
     if (!locSnap.data.length) return { code: 1, msg: '暂无位置数据' }
 
     const loc = locSnap.data[0]
+
+    // 在服务端计算超时状态，避免前端日期解析问题
+    let minutesAgo = -1
+    let isStale = false
+    let updatedAtISO = ''
+    if (loc.updatedAt) {
+      const updatedTime = loc.updatedAt instanceof Date
+        ? loc.updatedAt.getTime()
+        : new Date(loc.updatedAt).getTime()
+      if (!isNaN(updatedTime)) {
+        minutesAgo = Math.round((Date.now() - updatedTime) / 60000)
+        isStale = minutesAgo > 10
+        updatedAtISO = new Date(updatedTime).toISOString()
+      }
+    }
+
+    console.log('[locationGetCurrent] updatedAt原始值:', loc.updatedAt,
+      '类型:', typeof loc.updatedAt, 'minutesAgo:', minutesAgo)
+
     return {
       code: 0,
       data: {
@@ -69,7 +88,9 @@ exports.main = async (event, context) => {
         address:   loc.address || '',
         status:    loc.status  || 'safe',
         distance:  loc.distance || 0,
-        updatedAt: loc.updatedAt
+        updatedAt: updatedAtISO || '',
+        minutesAgo,
+        isStale
       }
     }
   } catch (e) {

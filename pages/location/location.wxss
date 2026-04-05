@@ -49,7 +49,7 @@
   position: relative; z-index: 1;
   width: 100%; background: #fff;
   border-radius: 32rpx 32rpx 0 0;
-  padding: 40rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+  padding: 40rpx 40rpx calc(160rpx + env(safe-area-inset-bottom));
   animation: slideUp 0.25s ease;
 }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }

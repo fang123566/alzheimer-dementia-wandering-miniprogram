@@ -13,7 +13,8 @@
     "pages/settings/settings",
     "pages/device/device",
     "pages/reminders/reminders",
-    "pages/reminders/edit/edit"
+    "pages/reminders/edit/edit",
+    "pages/family-group/family-group"
   ],
   "window": {
     "backgroundTextStyle": "dark",
@@ -38,7 +39,9 @@
     ]
   },
   "requiredPrivateInfos": [
-    "getLocation"
+    "getLocation",
+    "startLocationUpdate",
+    "startLocationUpdateBackground"
   ],
   "permission": {
     "scope.userLocation": {

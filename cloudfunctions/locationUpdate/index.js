@@ -4,6 +4,28 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
 
+/** 家属端查绑定的老人 openid */
+async function findElderlyOpenid(familyOpenid) {
+  const { data } = await db.collection('bindings')
+    .where({ fromOpenid: familyOpenid })
+    .orderBy('createdAt', 'desc')
+    .limit(1)
+    .get()
+  if (!data.length) return null
+  const binding = data[0]
+  if (binding.toOpenid) return binding.toOpenid
+  if (binding.toPhone) {
+    const { data: elders } = await db.collection('elderly')
+      .where({ phone: binding.toPhone }).limit(1).get()
+    if (elders.length && elders[0]._openid) {
+      await db.collection('bindings').doc(binding._id)
+        .update({ data: { toOpenid: elders[0]._openid } }).catch(() => {})
+      return elders[0]._openid
+    }
+  }
+  return null
+}
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID || '获取失败'
@@ -18,26 +40,36 @@ exports.main = async (event, context) => {
   }
 
   try {
-    // 查老人表 elderly，用 _openid 字段匹配
-    const userSnap = await db.collection('elderly').where({ _openid: openid }).get()
-    if (!userSnap.data.length) {
-      return { 
-        code: 1, 
-        msg: '用户不存在',
-        currentOpenid: openid,
-        tip: '请先注册老人账号，再上报位置'
-      }
-    }
+    // 先判断调用者是老人还是家属
+    let targetOpenid = openid
 
-    const user = userSnap.data[0]
-    // 双重校验角色
-    if (user.role !== 'elderly') {
-      return { code: 1, msg: '仅老人端可上报位置' }
+    const elderlySnap = await db.collection('elderly').where({ _openid: openid }).get()
+    if (elderlySnap.data.length && elderlySnap.data[0].role === 'elderly') {
+      // 老人端直接上报
+      targetOpenid = openid
+    } else {
+      // 尝试作为家属端：查找绑定的老人
+      const familySnap = await db.collection('family').where({ _openid: openid }).get()
+      if (familySnap.data.length) {
+        const eid = await findElderlyOpenid(openid)
+        if (!eid) {
+          return { code: 1, msg: '未绑定老人账号，无法刷新位置' }
+        }
+        targetOpenid = eid
+        console.log('[locationUpdate] 家属代替老人上报, elderlyOpenid:', eid)
+      } else {
+        return {
+          code: 1,
+          msg: '用户不存在',
+          currentOpenid: openid,
+          tip: '请先注册账号'
+        }
+      }
     }
 
     // 判断围栏状态
     const fenceSnap = await db.collection('fences')
-      .where({ ownerOpenid: openid, enabled: true })
+      .where({ ownerOpenid: targetOpenid, enabled: true })
       .get()
 
     let status = 'safe'
@@ -54,7 +86,7 @@ exports.main = async (event, context) => {
 
     const now = db.serverDate()
     const locData = {
-      openid,
+      openid: targetOpenid,
       latitude,
       longitude,
       address: address || '',
@@ -65,7 +97,7 @@ exports.main = async (event, context) => {
 
     // upsert：有记录则更新，无则新建
     const existSnap = await db.collection('locations')
-      .where({ openid })
+      .where({ openid: targetOpenid })
       .limit(1)
       .get()
 
@@ -79,7 +111,7 @@ exports.main = async (event, context) => {
     // 同时写一条轨迹记录
     await db.collection('trajectories').add({
       data: {
-        openid,
+        openid: targetOpenid,
         latitude,
         longitude,
         address: address || '',

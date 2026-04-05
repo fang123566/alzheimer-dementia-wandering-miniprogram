@@ -4,144 +4,195 @@
 <view class="container">
   <view class="page-header">
     <text class="page-title">⚙️ 基础设置</text>
-    <text class="page-subtitle">紧急联系人 · 方言 · 预警灵敏度 · 通知</text>
+    <text class="page-subtitle">紧急联系人 · 方言 · 围栏 · 通知</text>
   </view>
 
   <!-- 紧急联系人 -->
   <view class="setting-group">
-    <text class="group-title">📞 紧急联系人</text>
-    <view wx:for="{{contacts}}" wx:key="id" class="setting-row" bindtap="editContact" data-id="{{item.id}}">
-      <text class="row-icon">{{item.avatar}}</text>
-      <view class="row-main">
-        <text class="row-label">{{item.relation}} · {{item.name}}</text>
-        <text class="row-sub">{{item.phone}} · 优先级 {{item.priority}}</text>
-      </view>
-      <text class="row-arrow">›</text>
+    <view class="contact-header">
+      <text class="contact-header-icon">📞</text>
+      <text class="contact-header-title">紧急联系人</text>
+      <text class="contact-header-count" wx:if="{{contacts.length}}">{{contacts.length}}人</text>
     </view>
-    <view class="setting-row add-row" bindtap="addContact">
-      <text class="row-icon">＋</text>
-      <text class="row-label-amber">添加紧急联系人</text>
+
+    <!-- 添加按钮 -->
+    <view class="contact-add-btn" bindtap="addContact">
+      <view class="contact-add-icon-wrap">
+        <text class="contact-add-icon">+</text>
+      </view>
+      <text class="contact-add-text">添加紧急联系人</text>
+    </view>
+
+    <!-- 联系人列表 -->
+    <view wx:for="{{contacts}}" wx:key="id" class="contact-card">
+      <view class="contact-card-body" bindtap="editContact" data-id="{{item.id}}">
+        <view class="contact-avatar-wrap">
+          <text class="contact-avatar">{{item.avatar || '👤'}}</text>
+        </view>
+        <view class="contact-info">
+          <view class="contact-name-row">
+            <text class="contact-name">{{item.name}}</text>
+            <text class="contact-relation-tag">{{item.relation || '家属'}}</text>
+          </view>
+          <view class="contact-phone-row" catchtap="callContact" data-phone="{{item.phone}}" data-name="{{item.name}}">
+            <text class="contact-phone-icon">📱</text>
+            <text class="contact-phone">{{item.phone}}</text>
+            <text class="contact-dial-hint">点击拨号</text>
+          </view>
+        </view>
+        <text class="contact-edit-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="contact-empty" wx:if="{{!contacts.length}}">
+      <text class="contact-empty-icon">📋</text>
+      <text class="contact-empty-text">暂无紧急联系人，请添加</text>
     </view>
   </view>
 
-  <!-- 老人信息 -->
+  <!-- 老人基本信息 -->
   <view class="setting-group">
-    <text class="group-title">👴 老人基本信息</text>
-    <view class="setting-row" bindtap="editElderly">
-      <text class="row-icon">🪪</text>
-      <view class="row-main">
-        <text class="row-label">姓名 / 年龄</text>
-        <text class="row-sub">{{elderly.name}} · {{elderly.age}}岁</text>
-      </view>
-      <text class="row-arrow">›</text>
+    <view class="elderly-header">
+      <text class="elderly-header-icon">👴</text>
+      <text class="elderly-header-title">老人基本信息</text>
     </view>
-    <view class="setting-row" bindtap="editDialect">
-      <text class="row-icon">🗣️</text>
-      <view class="row-main">
-        <text class="row-label">老人方言</text>
-        <text class="row-sub">{{settings.dialect}}</text>
+
+    <!-- 姓名 / 年龄 -->
+    <view class="elderly-row" bindtap="editElderly">
+      <view class="elderly-row-icon-wrap elderly-row-icon-blue">
+        <text class="elderly-row-icon">🪪</text>
       </view>
-      <text class="row-arrow">›</text>
+      <view class="elderly-row-main">
+        <text class="elderly-row-label">姓名 / 年龄</text>
+        <text class="elderly-row-value">{{elderly.name || '未填写'}} · {{elderly.age ? (elderly.age + '岁') : '未填写'}}</text>
+      </view>
+      <text class="elderly-row-arrow">›</text>
     </view>
-    <view class="setting-row" bindtap="editSpeed">
-      <text class="row-icon">🔊</text>
-      <view class="row-main">
-        <text class="row-label">语音播报语速</text>
-        <text class="row-sub">{{settings.speechSpeed}}</text>
+
+    <!-- 老人方言 -->
+    <view class="elderly-row" bindtap="editDialect">
+      <view class="elderly-row-icon-wrap elderly-row-icon-purple">
+        <text class="elderly-row-icon">🗣️</text>
       </view>
-      <text class="row-arrow">›</text>
+      <view class="elderly-row-main">
+        <text class="elderly-row-label">老人方言</text>
+        <text class="elderly-row-value">{{settings.dialect || '未设置'}}</text>
+      </view>
+      <text class="elderly-row-arrow">›</text>
+    </view>
+
+    <!-- 语音播报语速 -->
+    <view class="elderly-row" bindtap="editSpeed">
+      <view class="elderly-row-icon-wrap elderly-row-icon-amber">
+        <text class="elderly-row-icon">🔊</text>
+      </view>
+      <view class="elderly-row-main">
+        <text class="elderly-row-label">语音播报语速</text>
+        <text class="elderly-row-value">{{settings.speechSpeed || '正常'}}</text>
+      </view>
+      <text class="elderly-row-arrow">›</text>
     </view>
   </view>
 
   <!-- 预警设置 -->
   <view class="setting-group">
-    <text class="group-title">🛡️ 预警设置</text>
-    <view class="setting-row" bindtap="editSensitivity">
-      <text class="row-icon">🎚️</text>
-      <view class="row-main">
-        <text class="row-label">预警灵敏度</text>
-        <text class="row-sub">{{settings.sensitivity}}</text>
-      </view>
-      <text class="row-arrow">›</text>
+    <view class="section-header">
+      <text class="section-header-icon">🛡️</text>
+      <text class="section-header-title">预警设置</text>
     </view>
-    <view class="setting-row" bindtap="editNotifyMethod">
-      <text class="row-icon">📳</text>
-      <view class="row-main">
-        <text class="row-label">通知方式</text>
-        <text class="row-sub">{{settings.notifyMethod}}</text>
+
+    <!-- 夜间静音模式 -->
+    <view class="section-row">
+      <view class="section-row-icon-wrap section-icon-indigo">
+        <text class="section-row-icon">🌙</text>
       </view>
-      <text class="row-arrow">›</text>
-    </view>
-    <view class="setting-row">
-      <text class="row-icon">🌙</text>
-      <view class="row-main">
-        <text class="row-label">夜间静音模式</text>
-        <text class="row-sub">22:00 – 06:00</text>
+      <view class="section-row-main">
+        <text class="section-row-label">夜间静音模式</text>
+        <text class="section-row-value">22:00 – 06:00</text>
       </view>
       <switch checked="{{settings.nightMode}}" bindchange="toggleNightMode" color="#f5a623"/>
     </view>
-    <view class="setting-row" bindtap="editFence">
-      <text class="row-icon">🔵</text>
-      <view class="row-main">
-        <text class="row-label">安全围栏管理</text>
-        <text class="row-sub">家 · 500m｜公园 · 300m</text>
+
+    <!-- 安全围栏管理 -->
+    <view class="section-row" bindtap="editFence">
+      <view class="section-row-icon-wrap section-icon-cyan">
+        <text class="section-row-icon">🔵</text>
       </view>
-      <text class="row-arrow">›</text>
+      <view class="section-row-main">
+        <text class="section-row-label">安全围栏管理</text>
+        <text class="section-row-value">家 · 500m｜公园 · 300m</text>
+      </view>
+      <text class="section-row-arrow">›</text>
     </view>
   </view>
 
   <!-- 今日提醒 -->
   <view class="setting-group">
-    <text class="group-title">⏰ 今日提醒</text>
-    <view class="setting-row" bindtap="goReminders">
-      <text class="row-icon">🗓️</text>
-      <view class="row-main">
-        <text class="row-label">今日提醒管理</text>
-        <text class="row-sub">新增 · 编辑 · 删除 · 完成</text>
+    <view class="section-header">
+      <text class="section-header-icon">⏰</text>
+      <text class="section-header-title">今日提醒</text>
+    </view>
+
+    <view class="section-row" bindtap="goReminders">
+      <view class="section-row-icon-wrap section-icon-rose">
+        <text class="section-row-icon">🗓️</text>
       </view>
-      <text class="row-arrow">›</text>
+      <view class="section-row-main">
+        <text class="section-row-label">今日提醒管理</text>
+        <text class="section-row-value">新增 · 编辑 · 删除 · 完成</text>
+      </view>
+      <text class="section-row-arrow">›</text>
     </view>
   </view>
 
-  <!-- 防诈关键词 -->
+  <!-- 家庭组与设备 -->
   <view class="setting-group">
-    <text class="group-title">🛡️ 防诈关键词库</text>
-    <view class="keyword-wrap">
-      <view wx:for="{{fraudKeywords}}" wx:key="index" class="kw-tag">{{item}}</view>
-      <view class="kw-tag kw-add" bindtap="addKeyword">＋ 自定义</view>
+    <view class="family-header">
+      <text class="family-header-icon">👥</text>
+      <text class="family-header-title">家庭组</text>
     </view>
-  </view>
 
-  <!-- 家庭组 -->
-  <view class="setting-group">
-    <text class="group-title">👥 家庭组</text>
-    <view class="setting-row" bindtap="showFamilyGroupInfo">
-      <text class="row-icon">🏠</text>
-      <view class="row-main">
-        <text class="row-label">{{family.name}}</text>
-        <text class="row-sub">{{family.members}} 名成员</text>
+    <!-- 家庭组成员 -->
+    <view class="family-row" bindtap="showFamilyGroupInfo">
+      <view class="family-row-icon-wrap family-row-icon-green">
+        <text class="family-row-icon">🏠</text>
       </view>
-      <text class="row-arrow">›</text>
+      <view class="family-row-main">
+        <text class="family-row-label">家庭组成员</text>
+        <text class="family-row-value" wx:if="{{family.members > 0}}">{{family.members}} 名成员</text>
+        <text class="family-row-value family-row-hint" wx:else>邀请家人共同守护</text>
+      </view>
+      <text class="family-row-arrow">›</text>
     </view>
-    <view class="setting-row" bindtap="goBinding">
-      <text class="row-icon">📱</text>
-      <view class="row-main">
-        <text class="row-label">老人设备绑定</text>
-        <text class="row-sub row-sub-green">已绑定</text>
+
+    <!-- 老人设备绑定 -->
+    <view class="family-row" bindtap="goBinding">
+      <view class="family-row-icon-wrap family-row-icon-blue">
+        <text class="family-row-icon">📱</text>
       </view>
-      <text class="row-arrow">›</text>
+      <view class="family-row-main">
+        <text class="family-row-label">老人设备绑定</text>
+        <view class="family-device-status">
+          <view class="family-status-dot {{deviceBound ? 'dot-bound' : 'dot-unbound'}}"></view>
+          <text class="family-row-value {{deviceBound ? 'family-row-bound' : ''}}">{{deviceBound ? '已绑定' : '未绑定'}}</text>
+        </view>
+      </view>
+      <text class="family-row-arrow">›</text>
     </view>
   </view>
 
   <!-- 退出登录 -->
-  <view class="logout-wrap" bindtap="logout">
-    <text class="logout-text">退出登录</text>
+  <view class="logout-btn" bindtap="logout">
+    <text class="logout-btn-icon">🚪</text>
+    <text class="logout-btn-text">退出登录</text>
   </view>
 
   <!-- 关于 -->
-  <view class="about-wrap">
-    <text class="about-text">守护·陪伴 v1.0.0</text>
-    <text class="about-sub">关爱老人，科技守护</text>
+  <view class="about-footer">
+    <text class="about-logo">🛡️</text>
+    <text class="about-name">守护·陪伴 v1.0.0</text>
+    <text class="about-slogan">关爱老人，科技守护</text>
   </view>
 
 </view>

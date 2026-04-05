@@ -13,7 +13,8 @@ Page({
       nightMode: true
     },
     fraudKeywords: [],
-    family: { name: '', members: 0 }
+    family: { name: '', members: 0 },
+    deviceBound: false
   },
 
   onLoad() {
@@ -38,7 +39,8 @@ Page({
         this.setData({
           elderly: d.elderly,
           settings: d.settings,
-          family: d.family
+          family: d.family,
+          deviceBound: !!(d.family && d.family.deviceBound)
         })
       }
       if (contactsRes.code === 0) {
@@ -62,68 +64,69 @@ Page({
     return r
   },
 
+  callContact(e) {
+    const { phone, name } = e.currentTarget.dataset
+    if (!phone) return
+    wx.makePhoneCall({
+      phoneNumber: phone,
+      fail() {}
+    })
+  },
+
   editContact(e) {
     const id = e.currentTarget.dataset.id
     const contact = this.data.contacts.find(c => String(c.id) === String(id))
     if (!contact) return
 
-    const actions = ['编辑联系人信息', '设为最高优先级', '上移优先级', '下移优先级', '删除联系人']
     wx.showActionSheet({
-      itemList: actions,
+      itemList: ['修改姓名', '修改手机号', '修改关系', '删除联系人'],
       success: async (res) => {
         const tap = res.tapIndex
         try {
           if (tap === 0) {
-            const current = [contact.name, contact.phone, contact.relation, contact.avatar].map(s => (s == null ? '' : String(s))).join(',')
             wx.showModal({
-              title: '编辑紧急联系人',
+              title: '修改姓名',
               editable: true,
-              content: current,
-              placeholderText: '姓名,电话,关系,头像（逗号分隔）',
+              content: contact.name || '',
+              placeholderText: '请输入姓名',
               success: async (m) => {
                 if (!m.confirm) return
-                const content = (m.content || '').trim()
-                if (!content) return
-                const parts = content.split(',').map(s => s.trim())
-                if (parts.length < 2) {
-                  wx.showToast({ title: '格式：姓名,电话,关系,头像', icon: 'none' })
-                  return
-                }
-                const name = parts[0]
-                const phone = parts[1]
-                const relation = parts[2] || contact.relation
-                const avatar = parts[3] || contact.avatar
-                if (!name || !phone || !relation) {
-                  wx.showToast({ title: '姓名/电话/关系不能为空', icon: 'none' })
-                  return
-                }
-                await settingsAPI.updateContact(contact.id, { name, phone, relation, avatar })
+                const name = (m.content || '').trim()
+                if (!name) { wx.showToast({ title: '姓名不能为空', icon: 'none' }); return }
+                await settingsAPI.updateContact(contact.id, { name })
                 await this._refreshContacts()
                 wx.showToast({ title: '已保存', icon: 'success' })
               }
             })
-            return
-          }
-          if (tap === 1) {
-            await settingsAPI.updateContact(contact.id, { priority: 1 })
-            await this._refreshContacts()
-            wx.showToast({ title: '已置顶', icon: 'success' })
-            return
-          }
-          if (tap === 2) {
-            await settingsAPI.updateContact(contact.id, { priority: Math.max(1, (contact.priority || 1) - 1) })
-            await this._refreshContacts()
-            return
-          }
-          if (tap === 3) {
-            await settingsAPI.updateContact(contact.id, { priority: (contact.priority || 1) + 1 })
-            await this._refreshContacts()
-            return
-          }
-          if (tap === 4) {
+          } else if (tap === 1) {
+            wx.showModal({
+              title: '修改手机号',
+              editable: true,
+              content: contact.phone || '',
+              placeholderText: '请输入手机号',
+              success: async (m) => {
+                if (!m.confirm) return
+                const phone = (m.content || '').trim()
+                if (!phone) { wx.showToast({ title: '手机号不能为空', icon: 'none' }); return }
+                await settingsAPI.updateContact(contact.id, { phone })
+                await this._refreshContacts()
+                wx.showToast({ title: '已保存', icon: 'success' })
+              }
+            })
+          } else if (tap === 2) {
+            const relations = ['子女', '配偶', '亲属', '邻居', '护工', '朋友']
+            wx.showActionSheet({
+              itemList: relations,
+              success: async (r) => {
+                await settingsAPI.updateContact(contact.id, { relation: relations[r.tapIndex] })
+                await this._refreshContacts()
+                wx.showToast({ title: '已保存', icon: 'success' })
+              }
+            })
+          } else if (tap === 3) {
             wx.showModal({
               title: '删除联系人',
-              content: `确认删除 ${contact.name}？`,
+              content: `确认删除「${contact.name}」？`,
               confirmText: '删除',
               confirmColor: '#ff5c5c',
               success: async (m) => {
@@ -142,76 +145,159 @@ Page({
   },
 
   addContact() {
+    // 第一步：输入姓名
     wx.showModal({
       title: '添加紧急联系人',
       editable: true,
-      placeholderText: '姓名,电话,关系（逗号分隔）',
-      success: async (res) => {
-        if (res.confirm && res.content) {
-          const parts = res.content.split(',').map(s => s.trim())
-          if (parts.length < 2) {
-            wx.showToast({ title: '格式：姓名,电话,关系', icon: 'none' })
-            return
-          }
-          try {
-            await settingsAPI.addContact({
-              name: parts[0],
-              phone: parts[1],
-              relation: parts[2] || '家属',
-              avatar: '👤'
+      placeholderText: '请输入联系人姓名',
+      success: (res) => {
+        if (!res.confirm) return
+        const name = (res.content || '').trim()
+        if (!name) { wx.showToast({ title: '姓名不能为空', icon: 'none' }); return }
+        // 第二步：输入手机号
+        wx.showModal({
+          title: `${name} 的手机号`,
+          editable: true,
+          placeholderText: '请输入手机号码',
+          success: (res2) => {
+            if (!res2.confirm) return
+            const phone = (res2.content || '').trim()
+            if (!phone) { wx.showToast({ title: '手机号不能为空', icon: 'none' }); return }
+            // 第三步：选择关系
+            const relations = ['子女', '配偶', '亲属', '邻居', '护工', '朋友']
+            wx.showActionSheet({
+              itemList: relations,
+              success: async (res3) => {
+                const relation = relations[res3.tapIndex]
+                try {
+                  await settingsAPI.addContact({ name, phone, relation, avatar: '👤' })
+                  await this._refreshContacts()
+                  wx.showToast({ title: '添加成功', icon: 'success' })
+                } catch (e) {
+                  wx.showToast({ title: '添加失败', icon: 'none' })
+                }
+              },
+              fail: async () => {
+                // 未选择关系，默认"家属"
+                try {
+                  await settingsAPI.addContact({ name, phone, relation: '家属', avatar: '👤' })
+                  await this._refreshContacts()
+                  wx.showToast({ title: '添加成功', icon: 'success' })
+                } catch (e) {
+                  wx.showToast({ title: '添加失败', icon: 'none' })
+                }
+              }
             })
-            await this._refreshContacts()
-            wx.showToast({ title: '添加成功', icon: 'success' })
-          } catch (e) {
-            wx.showToast({ title: '添加失败', icon: 'none' })
           }
-        }
+        })
       }
     })
   },
 
   editElderly() {
-    const { name, age } = this.data.elderly
-    wx.showModal({
-      title: '编辑老人信息',
-      editable: true,
-      content: `${name},${age}`,
-      placeholderText: '姓名,年龄',
-      success: async (res) => {
-        if (res.confirm && res.content) {
-          const parts = res.content.split(',').map(s => s.trim())
-          try {
-            await settingsAPI.updateElderly({ name: parts[0], age: parseInt(parts[1]) || age })
-            this.setData({ 'elderly.name': parts[0], 'elderly.age': parseInt(parts[1]) || age })
-            wx.showToast({ title: '已保存', icon: 'success' })
-          } catch (e) {
-            wx.showToast({ title: '保存失败', icon: 'none' })
-          }
+    const fields = ['修改姓名', '修改年龄', '修改身份证号', '修改病史']
+    wx.showActionSheet({
+      itemList: fields,
+      success: (res) => {
+        const tap = res.tapIndex
+        if (tap === 0) {
+          wx.showModal({
+            title: '修改姓名',
+            editable: true,
+            content: this.data.elderly.name || '',
+            placeholderText: '请输入老人姓名',
+            success: async (m) => {
+              if (!m.confirm) return
+              const name = (m.content || '').trim()
+              if (!name) { wx.showToast({ title: '姓名不能为空', icon: 'none' }); return }
+              try {
+                await settingsAPI.updateElderly({ name })
+                this.setData({ 'elderly.name': name })
+                wx.showToast({ title: '已保存', icon: 'success' })
+              } catch (e) { wx.showToast({ title: '保存失败', icon: 'none' }) }
+            }
+          })
+        } else if (tap === 1) {
+          wx.showModal({
+            title: '修改年龄',
+            editable: true,
+            content: String(this.data.elderly.age || ''),
+            placeholderText: '请输入年龄',
+            success: async (m) => {
+              if (!m.confirm) return
+              const age = parseInt((m.content || '').trim())
+              if (!age || age <= 0) { wx.showToast({ title: '请输入有效年龄', icon: 'none' }); return }
+              try {
+                await settingsAPI.updateElderly({ age })
+                this.setData({ 'elderly.age': age })
+                wx.showToast({ title: '已保存', icon: 'success' })
+              } catch (e) { wx.showToast({ title: '保存失败', icon: 'none' }) }
+            }
+          })
+        } else if (tap === 2) {
+          wx.showModal({
+            title: '修改身份证号',
+            editable: true,
+            content: this.data.elderly.idCard || '',
+            placeholderText: '请输入身份证号码',
+            success: async (m) => {
+              if (!m.confirm) return
+              const idCard = (m.content || '').trim()
+              if (!idCard) { wx.showToast({ title: '身份证号不能为空', icon: 'none' }); return }
+              try {
+                await settingsAPI.updateElderly({ idCard })
+                this.setData({ 'elderly.idCard': idCard })
+                wx.showToast({ title: '已保存', icon: 'success' })
+              } catch (e) { wx.showToast({ title: '保存失败', icon: 'none' }) }
+            }
+          })
+        } else if (tap === 3) {
+          wx.showModal({
+            title: '修改病史',
+            editable: true,
+            content: this.data.elderly.medicalHistory || '',
+            placeholderText: '请输入病史信息（如：高血压、糖尿病）',
+            success: async (m) => {
+              if (!m.confirm) return
+              const medicalHistory = (m.content || '').trim()
+              try {
+                await settingsAPI.updateElderly({ medicalHistory })
+                this.setData({ 'elderly.medicalHistory': medicalHistory })
+                wx.showToast({ title: '已保存', icon: 'success' })
+              } catch (e) { wx.showToast({ title: '保存失败', icon: 'none' }) }
+            }
+          })
         }
       }
     })
   },
 
   editDialect() {
-    const dialects = ['普通话', '四川话', '粤语', '东北话', '闽南语']
+    const dialects = ['普通话', '武汉话', '四川话', '粤语', '东北话', '闽南语', '湖南话', '上海话', '河南话', '客家话']
     wx.showActionSheet({
       itemList: dialects,
       success: async (res) => {
         const dialect = dialects[res.tapIndex]
         this.setData({ 'settings.dialect': dialect })
-        await settingsAPI.updateSettings({ dialect })
+        try {
+          await settingsAPI.updateSettings({ dialect })
+          wx.showToast({ title: '方言已切换为' + dialect, icon: 'success' })
+        } catch (e) { wx.showToast({ title: '保存失败', icon: 'none' }) }
       }
     })
   },
 
   editSpeed() {
-    const speeds = ['正常', '较慢（-15%）', '较慢（-30%）', '很慢（-50%）']
+    const speeds = ['慢速', '正常', '快速']
     wx.showActionSheet({
       itemList: speeds,
       success: async (res) => {
         const speechSpeed = speeds[res.tapIndex]
         this.setData({ 'settings.speechSpeed': speechSpeed })
-        await settingsAPI.updateSettings({ speechSpeed })
+        try {
+          await settingsAPI.updateSettings({ speechSpeed })
+          wx.showToast({ title: '语速已调整为' + speechSpeed, icon: 'success' })
+        } catch (e) { wx.showToast({ title: '保存失败', icon: 'none' }) }
       }
     })
   },
@@ -251,14 +337,7 @@ Page({
   },
 
   showFamilyGroupInfo() {
-    const familyName = this.data.family.name || '我的家庭组'
-    const members = this.data.family.members || 0
-    wx.showModal({
-      title: '家庭组信息',
-      content: `${familyName}\n当前共有 ${members} 名成员`,
-      showCancel: false,
-      confirmText: '知道了'
-    })
+    wx.navigateTo({ url: '/pages/family-group/family-group' })
   },
 
   goBinding() {

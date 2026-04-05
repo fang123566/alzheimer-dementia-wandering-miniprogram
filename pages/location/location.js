@@ -134,6 +134,16 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
+    // 启动自动追踪
+    this._startAutoTracking()
+  },
+
+  onHide() {
+    this._stopAutoTracking()
+  },
+
+  onUnload() {
+    this._stopAutoTracking()
   },
 
   async _fetchAll() {
@@ -181,7 +191,12 @@ Page({
             width: 40, height: 40
           }]
         })
-        this._updateTimeDisplay(loc.updatedAt)
+        // 优先使用服务端计算的超时状态，避免日期解析问题
+        if (typeof loc.isStale === 'boolean') {
+          this._applyServerStale(loc)
+        } else {
+          this._updateTimeDisplay(loc.updatedAt)
+        }
       } else {
         // 云函数返回异常，给出提示
         const errMsg = locRes.msg || '获取位置失败'
@@ -241,6 +256,23 @@ Page({
 
     if (this.data.role === 'family') {
       try {
+        // 先获取当前设备 GPS，上报到云端更新老人位置
+        const hasPermission = await this._ensureLocationPermission()
+        if (hasPermission) {
+          const gps = await getWxLocation('gcj02')
+          let addr = ''
+          try {
+            const detail = await amap.regeoDetail(gps.latitude, gps.longitude)
+            if (detail && detail.formatted) addr = detail.formatted
+          } catch (e) {}
+          await cloudUpdateLocation({
+            latitude: gps.latitude,
+            longitude: gps.longitude,
+            address: addr,
+            distance: 0
+          }).catch(e => console.warn('[位置] 家属代替上报失败:', e))
+        }
+        // 然后拉取最新数据展示
         await this._fetchAll()
         if (this._lastFetchOk) {
           wx.showToast({ title: '老人位置已刷新', icon: 'success' })
@@ -301,6 +333,8 @@ Page({
             width: 40, height: 40
           }]
         })
+        // 老人端刚更新，用当前时间刷新显示
+        this._updateTimeDisplay(new Date().toISOString())
         wx.showToast({ title: '位置已更新', icon: 'success' })
       }
     } catch (e) {
@@ -354,13 +388,156 @@ Page({
     }
   },
 
-  // ── 时间展示与超时检测 ──────────────────────────
+  // ══════════════════════════════════════════
+  // 自动位置追踪（老人端上报）
+  // ══════════════════════════════════════════
+
+  _startAutoTracking() {
+    this._stopAutoTracking()
+    if (this.data.role === 'elderly') {
+      this._startElderlyTracking()
+    }
+  },
+
+  _stopAutoTracking() {
+    // 清除老人端降级轮询定时器
+    if (this._elderlyFallbackTimer) {
+      clearInterval(this._elderlyFallbackTimer)
+      this._elderlyFallbackTimer = null
+    }
+    // 停止老人端位置监听
+    if (this._elderlyTracking) {
+      wx.stopLocationUpdate({
+        success: () => console.log('[位置] 已停止位置监听'),
+        fail: () => {}
+      })
+      wx.offLocationChange()
+      this._elderlyTracking = false
+    }
+  },
+
+  // ── 老人端：开启实时位置上报 ──────────────────
+  _startElderlyTracking() {
+    const self = this
+    this._lastReportTime = 0
+    wx.startLocationUpdate({
+      success() {
+        console.log('[位置] 老人端位置监听已开启')
+        self._elderlyTracking = true
+        wx.onLocationChange(function (res) {
+          self._onElderlyLocationChange(res)
+        })
+      },
+      fail(err) {
+        console.warn('[位置] 开启位置监听失败:', err)
+        // 降级：每 30 秒主动获取一次
+        self._elderlyFallbackTimer = setInterval(() => {
+          self._elderlyFallbackReport()
+        }, 30000)
+        // 先立即获取一次
+        self._elderlyFallbackReport()
+      }
+    })
+  },
+
+  // 老人端位置变化回调（节流：至少 15 秒上报一次）
+  _onElderlyLocationChange(res) {
+    const now = Date.now()
+    if (now - this._lastReportTime < 15000) return
+    this._lastReportTime = now
+    this._reportElderlyLocation(res.latitude, res.longitude)
+  },
+
+  // 老人端降级：主动获取位置并上报
+  async _elderlyFallbackReport() {
+    try {
+      const res = await getWxLocation('gcj02')
+      this._reportElderlyLocation(res.latitude, res.longitude)
+    } catch (e) {
+      console.warn('[位置] 降级定位失败:', e)
+    }
+  },
+
+  // 老人端位置上报到云端
+  async _reportElderlyLocation(latitude, longitude) {
+    try {
+      let address = this.data.location.address || '当前位置'
+      try {
+        const addrDetail = await amap.regeoDetail(latitude, longitude)
+        if (addrDetail && addrDetail.formatted) address = addrDetail.formatted
+      } catch (e) {}
+
+      const updateRes = await cloudUpdateLocation({
+        latitude, longitude, address,
+        distance: this.data.location.distance
+      })
+
+      if (updateRes.code === 0) {
+        const loc = { ...updateRes.data }
+        const statusMap = {
+          safe:      { tag: 'tag-safe',    text: '安全范围内' },
+          warning:   { tag: 'tag-warning', text: '轻微预警'  },
+          emergency: { tag: 'tag-danger',  text: '紧急！'    }
+        }
+        const s = statusMap[loc.status] || statusMap['safe']
+        loc.address = address
+        app.globalData.currentLocation = loc
+        const elderlyName = app.globalData.elderlyInfo?.name || '老人'
+        this.setData({
+          location: loc,
+          statusTag: s.tag,
+          statusText: s.text,
+          markers: [{
+            id: 1, latitude: loc.latitude, longitude: loc.longitude,
+            title: elderlyName + '（当前）', width: 40, height: 40
+          }]
+        })
+        this._updateTimeDisplay(new Date().toISOString())
+      }
+    } catch (e) {
+      console.warn('[位置] 自动上报失败:', e)
+    }
+  },
+
+  // ── 使用服务端计算的超时状态（最可靠） ──────────────
+  _applyServerStale(loc) {
+    const stale = loc.isStale
+    const pad = n => String(n).padStart(2, '0')
+    let displayTime = '暂无'
+    if (loc.updatedAt) {
+      try {
+        const t = new Date(loc.updatedAt)
+        if (!isNaN(t.getTime())) {
+          displayTime = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())} ${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`
+        }
+      } catch (e) {}
+    }
+    const update = { displayTime, timeStale: stale }
+    if (stale) {
+      update.statusTag = 'tag-danger'
+      update.statusText = loc.minutesAgo >= 0 ? `定位超时(${loc.minutesAgo}分钟前)` : '定位异常'
+    }
+    console.log('[位置] 服务端超时判断: isStale=', stale, 'minutesAgo=', loc.minutesAgo, 'updatedAt=', loc.updatedAt)
+    this.setData(update)
+  },
+
+  // ── 时间展示与超时检测（客户端降级） ──────────────────
   _updateTimeDisplay(updatedAt) {
     if (!updatedAt) {
       this.setData({ displayTime: '暂无', timeStale: false })
       return
     }
-    const t = new Date(updatedAt)
+    // 兼容 Cloud DB serverDate 返回的多种格式
+    let t
+    if (updatedAt instanceof Date) {
+      t = updatedAt
+    } else if (typeof updatedAt === 'number') {
+      t = new Date(updatedAt)
+    } else if (typeof updatedAt === 'object' && updatedAt.$date) {
+      t = new Date(updatedAt.$date)
+    } else {
+      t = new Date(updatedAt)
+    }
     if (isNaN(t.getTime())) {
       this.setData({ displayTime: String(updatedAt), timeStale: false })
       return

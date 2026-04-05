@@ -48,6 +48,10 @@ App({
       this.globalData.userInfo = userInfo
       this.globalData.role     = role || userInfo.role || 'family'
       this._loadContacts()
+      // 老人端启动后自动开启位置上报
+      if (this.globalData.role === 'elderly') {
+        this._startElderlyLocationReporting()
+      }
     }
   },
 
@@ -71,6 +75,7 @@ App({
 
   // 退出登录
   logout() {
+    this._stopElderlyLocationReporting()
     try {
       wx.removeStorageSync('token')
       wx.removeStorageSync('userInfo')
@@ -95,6 +100,80 @@ App({
         }
       },
       fail: () => {}
+    })
+  },
+
+  // ── 老人端全局位置上报 ──────────────────────────
+  _startElderlyLocationReporting() {
+    if (this._elderlyReporting) return
+    const self = this
+    this._lastReportTime = 0
+
+    wx.startLocationUpdate({
+      success() {
+        console.log('[App] 老人端全局位置上报已启动')
+        self._elderlyReporting = true
+        wx.onLocationChange(function (res) {
+          const now = Date.now()
+          if (now - self._lastReportTime < 15000) return
+          self._lastReportTime = now
+          self._reportLocation(res.latitude, res.longitude)
+        })
+      },
+      fail(err) {
+        console.warn('[App] 开启位置监听失败，使用降级轮询:', err)
+        self._elderlyReporting = true
+        self._elderlyReportTimer = setInterval(() => {
+          wx.getLocation({
+            type: 'gcj02',
+            success(res) {
+              self._reportLocation(res.latitude, res.longitude)
+            },
+            fail() {}
+          })
+        }, 30000)
+        // 立即获取一次
+        wx.getLocation({
+          type: 'gcj02',
+          success(res) {
+            self._reportLocation(res.latitude, res.longitude)
+          },
+          fail() {}
+        })
+      }
+    })
+  },
+
+  _stopElderlyLocationReporting() {
+    if (this._elderlyReportTimer) {
+      clearInterval(this._elderlyReportTimer)
+      this._elderlyReportTimer = null
+    }
+    if (this._elderlyReporting) {
+      wx.stopLocationUpdate({ fail() {} })
+      wx.offLocationChange()
+      this._elderlyReporting = false
+    }
+  },
+
+  _reportLocation(latitude, longitude) {
+    wx.cloud.callFunction({
+      name: 'locationUpdate',
+      data: { latitude, longitude, address: '', distance: 0 },
+      success(res) {
+        const result = res.result
+        if (result && result.code === 0 && result.data) {
+          getApp().globalData.currentLocation = {
+            latitude, longitude,
+            address: result.data.address || '',
+            status: result.data.status || 'safe',
+            updatedAt: new Date().toISOString()
+          }
+        }
+      },
+      fail(err) {
+        console.warn('[App] 位置上报失败:', err)
+      }
     })
   }
 })
