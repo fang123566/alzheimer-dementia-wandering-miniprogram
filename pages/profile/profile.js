@@ -1,6 +1,6 @@
 // pages/profile/profile.js
 const app = getApp()
-const { statsAPI, alertsAPI, settingsAPI, bindingAPI, authAPI, remindersAPI } = require('../../utils/api')
+const { alertsAPI, settingsAPI, bindingAPI, authAPI, remindersAPI, locationAPI } = require('../../utils/api')
 
 function todayNoticeKey() {
   const now = new Date()
@@ -90,22 +90,26 @@ Page({
       }
 
       if (role === 'family') {
-        const [statsRes, alertsRes] = await Promise.all([
-          statsAPI.getStats(),
-          alertsAPI.getAlerts()
+        const [locRes, unreadRes, alertsRes] = await Promise.all([
+          locationAPI.getLocation().catch(e => ({ code: -1, msg: e.message })),
+          alertsAPI.getUnreadCount().catch(e => ({ code: -1, msg: e.message })),
+          alertsAPI.getAlerts().catch(e => ({ code: -1, msg: e.message })),
         ])
-        if (statsRes.code === 0) {
-          const d = statsRes.data
-          app.globalData.currentLocation = d.location
+
+        if (locRes.code === 0 && locRes.data) {
+          app.globalData.currentLocation = locRes.data
           this.setData({
-            currentLocation: d.location,
-            locationStatus:  d.location.status || 'safe',
-            'stats.unreadAlerts': d.unreadAlerts,
-            'stats.chatCount':    d.chatCount
+            currentLocation: locRes.data,
+            locationStatus:  locRes.data.status || 'safe',
           })
         }
+        if (unreadRes.code === 0) {
+          this.setData({ 'stats.unreadAlerts': unreadRes.data?.count || 0 })
+        }
+        // chatCount 先保留 0（原先来自本地后端 /stats）
+        this.setData({ 'stats.chatCount': 0 })
         if (alertsRes.code === 0) {
-          this.setData({ 'stats.totalAlerts': alertsRes.data.length })
+          this.setData({ 'stats.totalAlerts': (alertsRes.data || []).length })
         }
       } else {
         const [contactsRes, remindersRes] = await Promise.all([

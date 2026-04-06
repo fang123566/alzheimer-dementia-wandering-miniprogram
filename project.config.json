@@ -58,5 +58,6 @@
         "tabIndent": "insertSpaces",
         "tabSize": 4
     },
-    "simulatorPluginLibVersion": {}
+    "simulatorPluginLibVersion": {},
+    "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
 }

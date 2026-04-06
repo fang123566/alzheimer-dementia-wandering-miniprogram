@@ -91,13 +91,12 @@ App({
   },
 
   _loadContacts() {
-    wx.request({
-      url: this.globalData.serverUrl + '/api/settings/contacts',
-      method: 'GET',
+    wx.cloud.callFunction({
+      name: 'settings',
+      data: { action: 'getContacts' },
       success: (res) => {
-        if (res.data?.code === 0) {
-          this.globalData.contacts = res.data.data
-        }
+        const r = res.result
+        if (r?.code === 0) this.globalData.contacts = r.data || []
       },
       fail: () => {}
     })

@@ -1,4 +1,3 @@
-// pages/location/location.js
 const app = getApp()
 const amap = require('../../utils/amap')
 
@@ -62,6 +61,7 @@ function cloudGetFences() {
   return new Promise((resolve, reject) => {
     wx.cloud.callFunction({
       name: 'locationFences',
+      data: { action: 'list' },
       success: res => resolve(res.result),
       fail: err => reject(new Error(err.errMsg || '云函数调用失败'))
     })
@@ -102,14 +102,27 @@ Page({
     stopDetail: {},
     // 备份实时数据，退出历史模式时恢复
     _realtimePolyline: [],
-    _realtimeMarkers: []
+    _realtimeMarkers: [],
+    // 围栏地点选择相关
+    showFencePicker: false,
+    fenceSearchKeyword: '',
+    fenceSearchResults: [],
+    fenceSearching: false,
+    fenceSelectedPoint: null,
+    fenceMapCenter: {
+      latitude: 30.572815,
+      longitude: 104.066803
+    },
+    fenceTempMarker: null,
+    fencePlaceType: '',
+    fenceName: '',
+    fenceRadius: '300'
   },
 
   _loaded: false,
 
   onLoad() {
     if (!getApp().checkLogin()) return
-    // 用 globalData 缓存初始化地图，保证地图立即可见
     const cached = app.globalData.currentLocation
     if (cached && cached.latitude) {
       this.setData({
@@ -134,7 +147,6 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
-    // 启动自动追踪
     this._startAutoTracking()
   },
 
@@ -191,19 +203,16 @@ Page({
             width: 40, height: 40
           }]
         })
-        // 优先使用服务端计算的超时状态，避免日期解析问题
         if (typeof loc.isStale === 'boolean') {
           this._applyServerStale(loc)
         } else {
           this._updateTimeDisplay(loc.updatedAt)
         }
       } else {
-        // 云函数返回异常，给出提示
         const errMsg = locRes.msg || '获取位置失败'
         console.warn('[位置] 获取位置失败:', errMsg)
         this.setData({ noLocationData: true })
         wx.showToast({ title: errMsg, icon: 'none', duration: 3000 })
-        // 使用缓存位置兜底
         const cached = app.globalData.currentLocation
         if (cached && cached.latitude) {
           locData = cached
@@ -233,15 +242,15 @@ Page({
 
       if (fenceRes.code === 0 && fenceRes.data) {
         const circles = fenceRes.data
-          .filter(f => f.enabled)
-          .map(f => ({
-            latitude: f.latitude,
-            longitude: f.longitude,
-            radius: f.radius,
-            color: '#3ecfcf33',
-            fillColor: '#3ecfcf11',
-            strokeWidth: 2
-          }))
+            .filter(f => f.enabled)
+            .map(f => ({
+              latitude: f.latitude,
+              longitude: f.longitude,
+              radius: f.radius,
+              color: '#3ecfcf33',
+              fillColor: '#3ecfcf11',
+              strokeWidth: 2
+            }))
         this.setData({ fences: fenceRes.data, circles })
       }
     } catch (e) {
@@ -256,7 +265,6 @@ Page({
 
     if (this.data.role === 'family') {
       try {
-        // 先获取当前设备 GPS，上报到云端更新老人位置
         const hasPermission = await this._ensureLocationPermission()
         if (hasPermission) {
           const gps = await getWxLocation('gcj02')
@@ -272,7 +280,6 @@ Page({
             distance: 0
           }).catch(e => console.warn('[位置] 家属代替上报失败:', e))
         }
-        // 然后拉取最新数据展示
         await this._fetchAll()
         if (this._lastFetchOk) {
           wx.showToast({ title: '老人位置已刷新', icon: 'success' })
@@ -333,7 +340,6 @@ Page({
             width: 40, height: 40
           }]
         })
-        // 老人端刚更新，用当前时间刷新显示
         this._updateTimeDisplay(new Date().toISOString())
         wx.showToast({ title: '位置已更新', icon: 'success' })
       }
@@ -388,10 +394,6 @@ Page({
     }
   },
 
-  // ══════════════════════════════════════════
-  // 自动位置追踪（老人端上报）
-  // ══════════════════════════════════════════
-
   _startAutoTracking() {
     this._stopAutoTracking()
     if (this.data.role === 'elderly') {
@@ -400,12 +402,10 @@ Page({
   },
 
   _stopAutoTracking() {
-    // 清除老人端降级轮询定时器
     if (this._elderlyFallbackTimer) {
       clearInterval(this._elderlyFallbackTimer)
       this._elderlyFallbackTimer = null
     }
-    // 停止老人端位置监听
     if (this._elderlyTracking) {
       wx.stopLocationUpdate({
         success: () => console.log('[位置] 已停止位置监听'),
@@ -416,7 +416,6 @@ Page({
     }
   },
 
-  // ── 老人端：开启实时位置上报 ──────────────────
   _startElderlyTracking() {
     const self = this
     this._lastReportTime = 0
@@ -430,17 +429,14 @@ Page({
       },
       fail(err) {
         console.warn('[位置] 开启位置监听失败:', err)
-        // 降级：每 30 秒主动获取一次
         self._elderlyFallbackTimer = setInterval(() => {
           self._elderlyFallbackReport()
         }, 30000)
-        // 先立即获取一次
         self._elderlyFallbackReport()
       }
     })
   },
 
-  // 老人端位置变化回调（节流：至少 15 秒上报一次）
   _onElderlyLocationChange(res) {
     const now = Date.now()
     if (now - this._lastReportTime < 15000) return
@@ -448,7 +444,6 @@ Page({
     this._reportElderlyLocation(res.latitude, res.longitude)
   },
 
-  // 老人端降级：主动获取位置并上报
   async _elderlyFallbackReport() {
     try {
       const res = await getWxLocation('gcj02')
@@ -458,7 +453,6 @@ Page({
     }
   },
 
-  // 老人端位置上报到云端
   async _reportElderlyLocation(latitude, longitude) {
     try {
       let address = this.data.location.address || '当前位置'
@@ -499,7 +493,6 @@ Page({
     }
   },
 
-  // ── 使用服务端计算的超时状态（最可靠） ──────────────
   _applyServerStale(loc) {
     const stale = loc.isStale
     const pad = n => String(n).padStart(2, '0')
@@ -521,13 +514,11 @@ Page({
     this.setData(update)
   },
 
-  // ── 时间展示与超时检测（客户端降级） ──────────────────
   _updateTimeDisplay(updatedAt) {
     if (!updatedAt) {
       this.setData({ displayTime: '暂无', timeStale: false })
       return
     }
-    // 兼容 Cloud DB serverDate 返回的多种格式
     let t
     if (updatedAt instanceof Date) {
       t = updatedAt
@@ -555,7 +546,6 @@ Page({
     this.setData(update)
   },
 
-  // ── 复制地址到剪贴板 ──────────────────────────
   copyAddress() {
     const addr = this.data.location.address
     if (!addr || addr === '正在获取位置…' || addr === '暂无地址信息') {
@@ -568,12 +558,10 @@ Page({
     })
   },
 
-  // ── 安全状态标签点击 → 展开/收起围栏规则说明 ──────
   onStatusTagTap() {
     this.setData({ showFenceRule: !this.data.showFenceRule })
   },
 
-  // ── 地址标签点击 → 筛选对应区域的历史轨迹 ──────
   onAddrTagTap(e) {
     const { tag, value } = e.currentTarget.dataset
     if (!value) return
@@ -585,7 +573,6 @@ Page({
       return
     }
     wx.showToast({ title: `已筛选「${value}」${filtered.length} 条轨迹`, icon: 'none' })
-    // 高亮匹配的轨迹点
     if (filtered.length >= 2) {
       const points = filtered.map(t => ({
         latitude: t.latitude, longitude: t.longitude
@@ -598,7 +585,6 @@ Page({
     }
   },
 
-  // ── 更新时间点击 → 查看位置更新历史 ──────────
   onTimeTap() {
     const traj = this.data.trajectory || []
     if (traj.length === 0) {
@@ -615,8 +601,11 @@ Page({
     })
   },
 
-  // ── 围栏开关快速切换 ──────────────────────────
   toggleFence(e) {
+    if (this.data.role !== 'family') {
+      wx.showToast({ title: '仅家属端可修改围栏', icon: 'none' })
+      return
+    }
     const { id, index } = e.currentTarget.dataset
     const fences = this.data.fences
     if (!fences || !fences[index]) return
@@ -624,21 +613,19 @@ Page({
     const key = `fences[${index}].enabled`
     this.setData({ [key]: newEnabled })
 
-    // 同步更新地图 circles
     const circles = fences
-      .map((f, i) => ({ ...f, enabled: i === index ? newEnabled : f.enabled }))
-      .filter(f => f.enabled)
-      .map(f => ({
-        latitude: f.latitude,
-        longitude: f.longitude,
-        radius: f.radius,
-        color: '#3ecfcf33',
-        fillColor: '#3ecfcf11',
-        strokeWidth: 2
-      }))
+        .map((f, i) => ({ ...f, enabled: i === index ? newEnabled : f.enabled }))
+        .filter(f => f.enabled)
+        .map(f => ({
+          latitude: f.latitude,
+          longitude: f.longitude,
+          radius: f.radius,
+          color: '#3ecfcf33',
+          fillColor: '#3ecfcf11',
+          strokeWidth: 2
+        }))
     this.setData({ circles })
 
-    // 调用云函数持久化
     wx.cloud.callFunction({
       name: 'locationFences',
       data: { action: 'toggle', fenceId: id, enabled: newEnabled }
@@ -650,19 +637,328 @@ Page({
     })
   },
 
-  // ── 点击围栏项 → 跳转编辑页 ──────────────────
   editFence(e) {
     const { id } = e.currentTarget.dataset
     wx.navigateTo({ url: `/pages/settings/settings?fenceId=${id}` })
   },
 
-  addFence() {
-    wx.navigateTo({ url: '/pages/settings/settings?action=addFence' })
+  deleteFence(e) {
+    const { id, index } = e.currentTarget.dataset
+    if (!id) return
+
+    wx.showModal({
+      title: '确认删除',
+      content: '删除后将不再对该区域进行监控，确定要删除此围栏吗？',
+      confirmText: '删除',
+      confirmColor: '#e53935',
+      success: async (res) => {
+        if (!res.confirm) return
+
+        wx.showLoading({ title: '删除中…', mask: true })
+        try {
+          const result = await new Promise((resolve, reject) => {
+            wx.cloud.callFunction({
+              name: 'locationFences',
+              data: { action: 'delete', fenceId: id },
+              success: r => resolve(r.result),
+              fail: err => reject(err)
+            })
+          })
+
+          wx.hideLoading()
+          if (result.code === 0) {
+            const fences = this.data.fences
+            fences.splice(index, 1)
+            const circles = fences
+                .filter(f => f.enabled)
+                .map(f => ({
+                  latitude: f.latitude,
+                  longitude: f.longitude,
+                  radius: f.radius,
+                  color: '#3ecfcf33',
+                  fillColor: '#3ecfcf11',
+                  strokeWidth: 2
+                }))
+            this.setData({ fences, circles })
+            wx.showToast({ title: '围栏已删除', icon: 'success' })
+          } else {
+            wx.showToast({ title: result.msg || '删除失败', icon: 'none' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          console.error('[围栏] 删除失败:', e)
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' })
+        }
+      }
+    })
   },
 
-  // ══════════════════════════════════════════
-  // 历史轨迹功能
-  // ══════════════════════════════════════════
+  addFence() {
+    if (this.data.role !== 'family') {
+      wx.showToast({ title: '仅家属端可添加围栏', icon: 'none' })
+      return
+    }
+
+    const currentLat = this.data.location.latitude || 30.572815
+    const currentLng = this.data.location.longitude || 104.066803
+
+    this.setData({
+      showFencePicker: true,
+      fenceSearchKeyword: '',
+      fenceSearchResults: [],
+      fenceSearching: false,
+      fenceSelectedPoint: null,
+      fenceMapCenter: {
+        latitude: currentLat,
+        longitude: currentLng
+      },
+      fenceTempMarker: {
+        id: 999,
+        latitude: currentLat,
+        longitude: currentLng,
+        width: 30,
+        height: 30
+      },
+      fencePlaceType: '',
+      fenceName: '',
+      fenceRadius: '300'
+    })
+  },
+
+  closeFencePicker() {
+    this.setData({ showFencePicker: false })
+  },
+
+  onFenceMapRegionChange(e) {
+    if (e.type === 'end') {
+      const mapCtx = wx.createMapContext('fenceMap', this)
+      mapCtx.getCenterLocation({
+        success: (res) => {
+          this.setData({
+            fenceMapCenter: {
+              latitude: res.latitude,
+              longitude: res.longitude
+            },
+            fenceTempMarker: {
+              id: 999,
+              latitude: res.latitude,
+              longitude: res.longitude,
+              width: 30,
+              height: 30
+            }
+          })
+          this._updateFenceAddress(res.latitude, res.longitude)
+        }
+      })
+    }
+  },
+
+  onFenceMarkerTap() {
+    const mapCtx = wx.createMapContext('fenceMap', this)
+    mapCtx.getCenterLocation({
+      success: (res) => {
+        this.setData({
+          fenceTempMarker: {
+            id: 999,
+            latitude: res.latitude,
+            longitude: res.longitude,
+            width: 30,
+            height: 30
+          }
+        })
+        this._updateFenceAddress(res.latitude, res.longitude)
+      }
+    })
+  },
+
+  async _updateFenceAddress(latitude, longitude) {
+    try {
+      const addrDetail = await amap.regeoDetail(latitude, longitude)
+      if (addrDetail && addrDetail.formatted) {
+        this.setData({
+          fenceName: addrDetail.formatted
+        })
+      }
+    } catch (e) {
+      console.warn('[围栏] 逆地理编码失败:', e)
+    }
+  },
+
+  onFenceSearchInput(e) {
+    this.setData({ fenceSearchKeyword: e.detail.value })
+  },
+
+  async searchFenceLocation() {
+    const keyword = this.data.fenceSearchKeyword.trim()
+    if (!keyword) {
+      wx.showToast({ title: '请输入搜索关键词', icon: 'none' })
+      return
+    }
+
+    this.setData({ fenceSearching: true })
+
+    try {
+      const AMAP_KEY = '4334064e1d33a0a68b2f33d33f48d5b3'
+      const res = await new Promise((resolve, reject) => {
+        wx.request({
+          url: 'https://restapi.amap.com/v3/place/text',
+          method: 'GET',
+          data: {
+            key: AMAP_KEY,
+            keywords: keyword,
+            city: '全国',
+            offset: 10,
+            page: 1,
+            extensions: 'all'
+          },
+          success: (res) => {
+            if (res.statusCode === 200 && res.data.status === '1') {
+              resolve(res.data)
+            } else {
+              reject(new Error('搜索失败'))
+            }
+          },
+          fail: reject
+        })
+      })
+
+      const pois = res.pois || []
+      if (pois.length === 0) {
+        wx.showToast({ title: '未找到相关地点', icon: 'none' })
+        this.setData({ fenceSearching: false })
+        return
+      }
+
+      const results = pois.map((poi, index) => {
+        const location = poi.location.split(',')
+        return {
+          id: index + 1,
+          name: poi.name,
+          address: poi.address || poi.pname + poi.cityname + poi.adname,
+          latitude: parseFloat(location[1]),
+          longitude: parseFloat(location[0]),
+          type: poi.type
+        }
+      })
+
+      this.setData({
+        fenceSearchResults: results,
+        fenceSearching: false
+      })
+
+      if (results.length > 0) {
+        const first = results[0]
+        this.setData({
+          fenceMapCenter: {
+            latitude: first.latitude,
+            longitude: first.longitude
+          },
+          fenceTempMarker: {
+            id: 999,
+            latitude: first.latitude,
+            longitude: first.longitude,
+            width: 30,
+            height: 30
+          },
+          fenceName: first.name,
+          fenceSelectedPoint: first
+        })
+      }
+    } catch (e) {
+      console.error('[围栏] 地点搜索失败:', e)
+      wx.showToast({ title: '搜索失败，请重试', icon: 'none' })
+      this.setData({ fenceSearching: false })
+    }
+  },
+
+  selectFenceResult(e) {
+    const { index } = e.currentTarget.dataset
+    const result = this.data.fenceSearchResults[index]
+    if (!result) return
+
+    this.setData({
+      fenceMapCenter: {
+        latitude: result.latitude,
+        longitude: result.longitude
+      },
+      fenceTempMarker: {
+        id: 999,
+        latitude: result.latitude,
+        longitude: result.longitude,
+        width: 30,
+        height: 30
+      },
+      fenceName: result.name,
+      fenceSelectedPoint: result
+    })
+  },
+
+  onFenceNameInput(e) {
+    this.setData({ fenceName: e.detail.value })
+  },
+
+  onFenceRadiusInput(e) {
+    this.setData({ fenceRadius: e.detail.value })
+  },
+
+  selectFencePlaceType(e) {
+    const { type } = e.currentTarget.dataset
+    this.setData({ fencePlaceType: type })
+    if (type && !this.data.fenceName) {
+      this.setData({ fenceName: type })
+    }
+  },
+
+  async confirmAddFence() {
+    const name = this.data.fenceName.trim()
+    if (!name) {
+      wx.showToast({ title: '请输入围栏名称', icon: 'none' })
+      return
+    }
+
+    const radius = parseInt(this.data.fenceRadius, 10)
+    if (!radius || radius <= 10) {
+      wx.showToast({ title: '请输入有效半径（大于10米）', icon: 'none' })
+      return
+    }
+
+    const lat = this.data.fenceTempMarker?.latitude
+    const lng = this.data.fenceTempMarker?.longitude
+    if (!lat || !lng) {
+      wx.showToast({ title: '请选择围栏位置', icon: 'none' })
+      return
+    }
+
+    wx.showLoading({ title: '保存中…', mask: true })
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'locationFences',
+        data: {
+          action: 'add',
+          placeType: this.data.fencePlaceType,
+          name: name,
+          latitude: lat,
+          longitude: lng,
+          radius: radius
+        }
+      })
+
+      wx.hideLoading()
+      const r = res.result
+      if (r?.code === 0) {
+        wx.showToast({ title: '围栏已添加', icon: 'success' })
+        this.setData({ showFencePicker: false })
+        this._fetchAll()
+      } else {
+        wx.showToast({ title: r?.msg || '添加失败', icon: 'none' })
+      }
+    } catch (e) {
+      wx.hideLoading()
+      console.error('[围栏] 添加失败:', e)
+      wx.showToast({ title: '添加失败，请重试', icon: 'none' })
+    }
+  },
 
   onHistTrajTap() {
     if (this.data.histTrajMode) {
@@ -835,7 +1131,7 @@ Page({
     const dLat = (lat2 - lat1) * rad
     const dLng = (lng2 - lng1) * rad
     const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2
+        Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2
     return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   },
 

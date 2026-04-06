@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="aiChat">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/cloudfunctions/aiChat/lc-sp-spark_mucl_cn_iat_demo_java-1735546021682.zip!/" />
+      <root url="jar://$PROJECT_DIR$/cloudfunctions/aiChat/tts-demo.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

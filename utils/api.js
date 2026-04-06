@@ -1,8 +1,6 @@
 // utils/api.js
 // 所有接口调用的统一封装
-
 const http = require('./request')
-
 // ── 云函数调用工具 ──────────────────────────────────────
 /**
  * 调用微信云函数，返回与 http 模块风格一致的 Promise
@@ -23,7 +21,6 @@ function callCloud(name, data = {}) {
     })
   })
 }
-
 // ── 认证（已迁移至 auth 云函数）────────────────────────────
 const authAPI = {
   login:         (phone, password)              => callCloud('auth', { action: 'login', phone, password }),
@@ -34,27 +31,23 @@ const authAPI = {
   updateProfile: (data)                         => callCloud('auth', { action: 'updateProfile', ...data }),
   uploadAvatar:  (fileID)                       => callCloud('auth', { action: 'uploadAvatar', fileID })
 }
-
 // ── 位置（已迁移至微信云函数）────────────────────────────
 const locationAPI = {
   getLocation:    ()     => callCloud('locationGetCurrent'),
   updateLocation: (data) => callCloud('locationUpdate', data),
   getTrajectory:  ()     => callCloud('locationTrajectory'),
-  getFences:      ()     => callCloud('locationFences'),
-  addFence:       (data)   => http.post('/location/fences', data),
-  toggleFence:    (id, en) => http.patch(`/location/fences/${id}`, { enabled: en }),
-  deleteFence:    (id)     => http.delete(`/location/fences/${id}`)
+  getFences:      ()     => callCloud('locationFences', { action: 'list' }),
+  addFence:       (data) => callCloud('locationFences', { action: 'add', ...data }),
+  toggleFence:    (id, en) => callCloud('locationFences', { action: 'toggle', fenceId: id, enabled: en }),
+  deleteFence:    (id)     => callCloud('locationFences', { action: 'delete', fenceId: id })
 }
-
 // ── 预警 ──────────────────────────────────────────────
 const alertsAPI = {
-  getAlerts:      (category) => http.get('/alerts', category ? { category } : {}),
-  getUnreadCount: ()         => http.get('/alerts/unread-count'),
-  createAlert:    (data)     => http.post('/alerts', data),
-  markRead:       (id)       => http.patch(`/alerts/${id}/read`),
-  deleteAlert:    (id)       => http.delete(`/alerts/${id}`)
+  getAlerts:      (category) => callCloud('alerts', { action: 'get', ...(category ? { category } : {}) }),
+  getUnreadCount: ()         => callCloud('alerts', { action: 'unreadCount' }),
+  markRead:       (id)       => callCloud('alerts', { action: 'markRead', id }),
+  deleteAlert:    (id)       => callCloud('alerts', { action: 'delete', id })
 }
-
 // ── AI 伴聊 ───────────────────────────────────────────
 // 全部迁移至 aiChat 云函数，不再走后端 HTTP
 const chatAPI = {
@@ -63,7 +56,6 @@ const chatAPI = {
    */
   getHistory: () =>
     callCloud('aiChat', { action: 'getHistory' }),
-
   /**
    * 发送消息，云函数负责：
    *   - 调用千问 AI
@@ -74,13 +66,11 @@ const chatAPI = {
    */
   sendMessage: (text) =>
     callCloud('aiChat', { action: 'sendMessage', text }),
-
   /**
    * 清空当前用户的聊天记录
    */
   clearHistory: () =>
     callCloud('aiChat', { action: 'clearHistory' }),
-
   /**
    * 获取 AI 提取的老人记忆列表
    * 可在设置/家庭看板页展示
@@ -88,7 +78,6 @@ const chatAPI = {
   getMemories: () =>
     callCloud('aiChat', { action: 'getMemories' })
 }
-
 // ── 记忆相册 ──────────────────────────────────────────
 const memoryAPI = {
   getPhotos:    (member) => http.get('/memory/photos', member ? { member } : {}),
@@ -107,21 +96,19 @@ const memoryAPI = {
   addHint:      (text)   => http.post('/memory/hints', { text }),
   deleteHint:   (id)     => http.delete(`/memory/hints/${id}`)
 }
-
 // ── 设置 ──────────────────────────────────────────────
 const settingsAPI = {
-  getSettings:     ()     => http.get('/settings', {}, true),
-  updateSettings:  (data) => http.put('/settings', data),
-  updateElderly:   (data) => http.put('/settings/elderly', data),
-  getContacts:     ()     => http.get('/settings/contacts'),
-  addContact:      (data) => http.post('/settings/contacts', data),
-  updateContact:   (id, d)=> http.put(`/settings/contacts/${id}`, d),
-  deleteContact:   (id)   => http.delete(`/settings/contacts/${id}`),
-  getKeywords:     ()     => http.get('/settings/keywords'),
-  addKeyword:      (kw)   => http.post('/settings/keywords', { keyword: kw }),
-  deleteKeyword:   (kw)   => http.delete(`/settings/keywords/${encodeURIComponent(kw)}`)
+  getSettings:     ()     => callCloud('settings', { action: 'getSettings' }),
+  updateSettings:  (data) => callCloud('settings', { action: 'updateSettings', data }),
+  updateElderly:   (data) => callCloud('settings', { action: 'updateElderly', data }),
+  getContacts:     ()     => callCloud('settings', { action: 'getContacts' }),
+  addContact:      (data) => callCloud('settings', { action: 'addContact', data }),
+  updateContact:   (id, d)=> callCloud('settings', { action: 'updateContact', id, data: d }),
+  deleteContact:   (id)   => callCloud('settings', { action: 'deleteContact', id }),
+  getKeywords:     ()     => callCloud('settings', { action: 'getKeywords' }),
+  addKeyword:      (kw)   => callCloud('settings', { action: 'addKeyword', keyword: kw }),
+  deleteKeyword:   (kw)   => callCloud('settings', { action: 'deleteKeyword', keyword: kw })
 }
-
 // ── 账号关联（已迁移至 binding 云函数）──────────────────────
 const bindingAPI = {
   getBinding: () => {
@@ -145,7 +132,6 @@ const bindingAPI = {
     return callCloud('binding', { action: 'deleteBinding', role, bindingId: id })
   }
 }
-
 // ── 今日提醒（已迁移至 reminders 云函数）─────────────────
 const remindersAPI = {
   getTemplates: () => {
@@ -185,17 +171,14 @@ const remindersAPI = {
     return callCloud('reminders', { action: 'toggleAutoRemind', role, enabled })
   }
 }
-
 // ── SOS ───────────────────────────────────────────────
 const sosAPI = {
   trigger: (data) => http.post('/sos', data)
 }
-
 // ── 统计 ──────────────────────────────────────────────
 const statsAPI = {
   getStats: () => http.get('/stats')
 }
-
 // ── 语音识别 & 语音合成（asrTts 云函数）──────────────────
 const speechAPI = {
   /**
@@ -206,7 +189,6 @@ const speechAPI = {
    */
   asr: (audioBase64, language = 'zh_cn', accent = 'mandarin') =>
     callCloud('asrTts', { type: 'asr', data: audioBase64, language, accent }),
-
   /**
    * 语音合成 TTS
    * @param {string} text      - 待合成文本
@@ -216,7 +198,6 @@ const speechAPI = {
   tts: (text, language = 'zh_cn', voiceName = 'xiaoyan') =>
     callCloud('asrTts', { type: 'tts', data: text, language, voiceName }),
 }
-
 module.exports = {
   authAPI,
   locationAPI,

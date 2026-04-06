@@ -3,7 +3,33 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
-
+async function writeLocationAlert({ openid, type, category, level, reason, latitude, longitude }) {
+  // 冷却：同类型 20 分钟内不重复写
+  const since = new Date(Date.now() - 20 * 60 * 1000)
+  const { data } = await db.collection('location_alerts')
+    .where({
+      openid: _.eq(openid),
+      type: _.eq(type),
+      createdAt: _.gte(since)
+    })
+    .limit(1)
+    .get()
+    .catch(() => ({ data: [] }))
+  if (data && data.length) return
+  await db.collection('location_alerts').add({
+    data: {
+      openid,
+      type,
+      category,
+      level,
+      reason,
+      latitude,
+      longitude,
+      read: false,
+      createdAt: db.serverDate()
+    }
+  })
+}
 /** 家属端查绑定的老人 openid */
 async function findElderlyOpenid(familyOpenid) {
   const { data } = await db.collection('bindings')
@@ -25,7 +51,6 @@ async function findElderlyOpenid(familyOpenid) {
   }
   return null
 }
-
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
   const openid = wxContext.OPENID || '获取失败'
@@ -34,15 +59,12 @@ exports.main = async (event, context) => {
   console.log('当前用户 OPENID：', openid)
   console.log('=====================================')
   const { latitude, longitude, address, distance } = event
-
   if (!latitude || !longitude) {
     return { code: 1, msg: '缺少经纬度参数' }
   }
-
   try {
     // 先判断调用者是老人还是家属
     let targetOpenid = openid
-
     const elderlySnap = await db.collection('elderly').where({ _openid: openid }).get()
     if (elderlySnap.data.length && elderlySnap.data[0].role === 'elderly') {
       // 老人端直接上报
@@ -66,15 +88,12 @@ exports.main = async (event, context) => {
         }
       }
     }
-
     // 判断围栏状态
     const fenceSnap = await db.collection('fences')
       .where({ ownerOpenid: targetOpenid, enabled: true })
       .get()
-
     let status = 'safe'
     let minDistance = Infinity
-
     fenceSnap.data.forEach(fence => {
       const dist = getDistanceMeters(latitude, longitude, fence.latitude, fence.longitude)
       if (dist < minDistance) minDistance = dist
@@ -83,7 +102,6 @@ exports.main = async (event, context) => {
         if (dist > fence.radius * 1.5) status = 'emergency'
       }
     })
-
     const now = db.serverDate()
     const locData = {
       openid: targetOpenid,
@@ -94,20 +112,17 @@ exports.main = async (event, context) => {
       status,
       updatedAt: now
     }
-
     // upsert：有记录则更新，无则新建
     const existSnap = await db.collection('locations')
       .where({ openid: targetOpenid })
       .limit(1)
       .get()
-
     if (existSnap.data.length) {
       await db.collection('locations').doc(existSnap.data[0]._id).update({ data: locData })
     } else {
       locData.createdAt = now
       await db.collection('locations').add({ data: locData })
     }
-
     // 同时写一条轨迹记录
     await db.collection('trajectories').add({
       data: {
@@ -119,7 +134,31 @@ exports.main = async (event, context) => {
         dateStr: new Date().toISOString().slice(0, 10)
       }
     })
-
+    // 位置预警写入（围栏越界）
+    if (fenceSnap.data && fenceSnap.data.length) {
+      if (status === 'warning') {
+        await writeLocationAlert({
+          openid: targetOpenid,
+          type: 'GEOFENCE',
+          category: 'fence',
+          level: 2,
+          reason: '老人已离开安全区域（轻微越界）',
+          latitude,
+          longitude
+        })
+      }
+      if (status === 'emergency') {
+        await writeLocationAlert({
+          openid: targetOpenid,
+          type: 'GEOFENCE',
+          category: 'fence',
+          level: 3,
+          reason: '老人已明显离开安全区域（紧急越界）',
+          latitude,
+          longitude
+        })
+      }
+    }
     return {
       code: 0,
       data: {
@@ -136,7 +175,6 @@ exports.main = async (event, context) => {
     return { code: 500, msg: e.message || '服务器错误' }
   }
 }
-
 /** Haversine 距离（米） */
 function getDistanceMeters(lat1, lng1, lat2, lng2) {
   const R = 6371000

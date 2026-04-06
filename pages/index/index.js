@@ -1,8 +1,7 @@
 // pages/index/index.js
 const app = getApp()
-const { locationAPI, alertsAPI, statsAPI, sosAPI, settingsAPI } = require('../../utils/api')
+const { locationAPI, alertsAPI, sosAPI, settingsAPI } = require('../../utils/api')
 const amap = require('../../utils/amap')
-
 Page({
   data: {
     role: 'family',
@@ -32,7 +31,6 @@ Page({
     recentAlerts: [],
     locating: false
   },
-
   onLoad() {
     if (!app.checkLogin()) return
     this.setData({
@@ -44,7 +42,6 @@ Page({
     })
     this._fetchData()
   },
-
   onShow() {
     if (!app.checkLogin()) return
     this.setData({
@@ -58,35 +55,38 @@ Page({
       this.getTabBar().init()
     }
   },
-
   async _fetchData() {
     try {
-      const [statsRes, alertsRes] = await Promise.all([
-        statsAPI.getStats(),
-        alertsAPI.getAlerts()
+      // 全部使用云函数，避免真机访问 localhost 后端失败
+      const [locRes, unreadRes, alertsRes] = await Promise.all([
+        locationAPI.getLocation().catch(e => ({ code: -1, msg: e.message })),
+        alertsAPI.getUnreadCount().catch(e => ({ code: -1, msg: e.message })),
+        alertsAPI.getAlerts().catch(e => ({ code: -1, msg: e.message }))
       ])
-      if (statsRes.code === 0) {
-        const d = statsRes.data
-        const loc = d.location
+      if (locRes.code === 0 && locRes.data) {
+        const loc = locRes.data
         app.globalData.currentLocation = loc
-        app.globalData.unreadAlerts = d.unreadAlerts
         this.setData({
           currentLocation: loc,
-          'stats.distance': d.distance,
-          'stats.alerts':   d.unreadAlerts,
-          'stats.aiChats':  d.chatCount
+          'stats.distance': loc.distance || 0
         })
-        this._formatDistance(d.distance)
-        this._formatAlerts(d.unreadAlerts)
+        this._formatDistance(loc.distance || 0)
         this._updateStatusTag(loc.status)
         this._updateFreshness()
       }
+      let unreadCount = 0
+      if (unreadRes.code === 0) unreadCount = unreadRes.data?.count || 0
+      app.globalData.unreadAlerts = unreadCount
+      this.setData({ 'stats.alerts': unreadCount })
+      this._formatAlerts(unreadCount)
+      // aiChats 统计若需要，可后续做云函数补齐；这里先保持 0
+      this.setData({ 'stats.aiChats': 0 })
       if (alertsRes.code === 0) {
-        const recent = alertsRes.data.slice(0, 3).map(a => ({
+        const recent = (alertsRes.data || []).slice(0, 3).map(a => ({
           id: a.id,
           level: a.level,
-          title: a.type + '：' + a.content.slice(0, 18) + '…',
-          time: a.timeLabel
+          title: (a.type || '预警') + '：' + String(a.content || '').slice(0, 18) + (String(a.content || '').length > 18 ? '…' : ''),
+          time: a.time || ''
         }))
         this.setData({ recentAlerts: recent })
       }
@@ -96,7 +96,6 @@ Page({
       this._updateStatusTag(app.globalData.currentLocation.status)
     }
   },
-
   _getGreeting() {
     const h = new Date().getHours()
     if (h < 6)  return '凌晨好'
@@ -104,13 +103,11 @@ Page({
     if (h < 18) return '下午好'
     return '晚上好'
   },
-
   _getDate() {
     const d = new Date()
     const weeks = ['日', '一', '二', '三', '四', '五', '六']
     return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日  星期${weeks[d.getDay()]}`
   },
-
   // ── 智能距离显示 ──────────────────────────────────
   _formatDistance(meters) {
     const m = Number(meters) || 0
@@ -123,7 +120,6 @@ Page({
       this.setData({ distanceIcon: '🚗', distanceText: '距离家 ' + km + ' km' })
     }
   },
-
   // ── 预警状态显示 ──────────────────────────────────
   _formatAlerts(count) {
     const n = Number(count) || 0
@@ -133,7 +129,6 @@ Page({
       this.setData({ alertsIcon: '🔔', alertsText: n + ' 次预警', alertsHot: true })
     }
   },
-
   _updateStatusTag(status = 'safe') {
     const map = {
       safe:      { tag: 'tag-safe',    text: '安全范围内',    icon: '✅', level: 'safe' },
@@ -143,7 +138,6 @@ Page({
     const s = map[status] || map['safe']
     this.setData({ statusTag: s.tag, statusText: s.text, statusIcon: s.icon, statusLevel: s.level })
   },
-
   // ── 时效性计算 ──────────────────────────────────
   _startFreshnessTimer() {
     this._stopFreshnessTimer()
@@ -185,12 +179,10 @@ Page({
       this._updateStatusTag('emergency')
     }
   },
-
   // ── 地址展开/收起 ──────────────────────────────────
   toggleAddressExpand() {
     this.setData({ addressExpanded: !this.data.addressExpanded })
   },
-
   // ── 围栏快捷开关 ──────────────────────────────────
   async toggleFence() {
     const next = !this.data.fenceEnabled
@@ -199,19 +191,16 @@ Page({
     // 持久化到设置（如有可用接口）
     try { await settingsAPI.updateSettings({ fenceEnabled: next }) } catch (e) {}
   },
-
   goLocation()  { wx.switchTab({ url: '/pages/location/location' }) },
   goAlert()     { wx.switchTab({ url: '/pages/alert/alert' }) },
   goMemory()    { wx.navigateTo({ url: '/pages/memory/memory' }) },
   goSettings()  { wx.navigateTo({ url: '/pages/settings/settings' }) },
   goChat()      { wx.switchTab({ url: '/pages/aichat/aichat' }) },
   goDialect()   { wx.switchTab({ url: '/pages/dialect/dialect' }) },
-
   // 老人端单次点击 SOS 提示（长按才真正触发）
   triggerSOSTap() {
     wx.showToast({ title: '长按 3 秒发送位置', icon: 'none', duration: 2000 })
   },
-
   callEmergency() {
     const contact = app.globalData.contacts?.[0]
     const name  = contact?.name  || '紧急联系人'
@@ -255,7 +244,6 @@ Page({
       }
     })
   },
-
   async triggerSOS() {
     wx.showLoading({ title: 'SOS 发送中…', mask: true })
     try {
@@ -282,23 +270,19 @@ Page({
       wx.showToast({ title: 'SOS 发送失败，请重试', icon: 'none' })
     }
   },
-
   // 老人端重新定位 - 使用高德API解析地址并上报
   async refreshLocation() {
     if (this.data.locating) return
     this.setData({ locating: true })
-
     try {
       const hasPermission = await this._ensureLocationPermission()
       if (!hasPermission) {
         this.setData({ locating: false })
         return
       }
-
       console.log('[定位] 开始获取位置...')
       const res = await this._getWxLocation('gcj02')
       console.log('[定位] wx.getLocation 成功:', res)
-
       let address = '当前位置'
       try {
         console.log('[定位] 调用高德逆地理编码...')
@@ -308,7 +292,6 @@ Page({
       } catch (e) {
         console.error('[定位] 高德解析失败:', e)
       }
-
       console.log('[定位] 上报位置到后端...', { latitude: res.latitude, longitude: res.longitude, address })
       const updateRes = await locationAPI.updateLocation({
         latitude: res.latitude,
@@ -317,7 +300,6 @@ Page({
         distance: this.data.stats.distance
       })
       console.log('[定位] 后端响应:', updateRes)
-
       if (updateRes.code === 0) {
         const loc = updateRes.data
         app.globalData.currentLocation = loc
@@ -338,22 +320,18 @@ Page({
       this.setData({ locating: false })
     }
   },
-
   _getWxLocation(type = 'gcj02') {
     return new Promise((resolve, reject) => {
       wx.getLocation({ type, success: resolve, fail: reject })
     })
   },
-
   async _ensureLocationPermission() {
     try {
       const settingRes = await new Promise((resolve, reject) => {
         wx.getSetting({ success: resolve, fail: reject })
       })
       const auth = settingRes.authSetting['scope.userLocation']
-
       if (auth === true) return true
-
       if (auth === undefined) {
         try {
           await new Promise((resolve, reject) => {
@@ -369,7 +347,6 @@ Page({
           return false
         }
       }
-
       return await new Promise((resolve) => {
         wx.showModal({
           title: '定位权限未开启',

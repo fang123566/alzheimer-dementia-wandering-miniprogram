@@ -7,6 +7,7 @@
 
     <!-- 用户信息卡 -->
     <view class="user-card">
+      <image class="user-card-bg" src="../../assets/background.png" mode="aspectFill"></image>
       <view class="avatar-wrap" bindtap="chooseAvatar">
         <view class="avatar-circle">
           <image wx:if="{{userInfo.avatar}}" class="avatar-img" src="{{avatarFullUrl}}" mode="aspectFill" />
@@ -127,6 +128,7 @@
 
     <!-- 老人信息卡（大字体） -->
     <view class="e-user-card">
+      <image class="e-user-card-bg" src="../../assets/background.png" mode="aspectFill"></image>
       <view class="e-avatar-wrap" bindtap="chooseAvatar">
         <view class="e-avatar-circle">
           <image wx:if="{{userInfo.avatar}}" class="e-avatar-img" src="{{avatarFullUrl}}" mode="aspectFill" />
