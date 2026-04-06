@@ -19,13 +19,15 @@ Page({
     freshnessText: '',
     freshnessStale: false,
     fenceEnabled: true,
+    fenceName: '',
     stats: {
       distance: 0,
       alerts: 0,
       aiChats: 0
     },
-    distanceIcon: '🏠',
-    distanceText: '在家中',
+    distanceIcon: '📍',
+    distanceLabel: '安全范围',
+    distanceText: '在范围内',
     alertsIcon: '🛡️',
     alertsText: '无预警',
     alertsHot: false,
@@ -44,7 +46,6 @@ Page({
     })
     this._fetchData()
 
-    // 老人端启动自动定位上报
     if (this.data.role === 'elderly') {
       this._startAutoLocationTracking()
     }
@@ -60,7 +61,6 @@ Page({
     this._fetchData()
     this._startFreshnessTimer()
 
-    // 老人端重新启动自动定位
     if (this.data.role === 'elderly') {
       this._startAutoLocationTracking()
     }
@@ -97,9 +97,10 @@ Page({
         app.globalData.currentLocation = loc
         this.setData({
           currentLocation: loc,
-          'stats.distance': loc.distance || 0
+          'stats.distance': loc.distance || 0,
+          fenceName: loc.fenceName || ''
         })
-        this._formatDistance(loc.distance || 0)
+        this._formatDistance(loc.distance || 0, loc.fenceName || '')
         this._updateStatusTag(loc.status)
         this._updateFreshness()
       }
@@ -151,15 +152,29 @@ Page({
     return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日  星期${weeks[d.getDay()]}`
   },
 
-  _formatDistance(meters) {
+  _formatDistance(meters, fenceName) {
     const m = Number(meters) || 0
+    const name = fenceName || '安全范围'
+
     if (m === 0) {
-      this.setData({ distanceIcon: '🏠', distanceText: '在家中' })
+      this.setData({
+        distanceIcon: '✅',
+        distanceLabel: name,
+        distanceText: '在范围内'
+      })
     } else if (m < 1000) {
-      this.setData({ distanceIcon: '🚶', distanceText: '距离家 ' + m + ' m' })
+      this.setData({
+        distanceIcon: '📍',
+        distanceLabel: '离' + name,
+        distanceText: m + ' m'
+      })
     } else {
       const km = (m / 1000).toFixed(1)
-      this.setData({ distanceIcon: '🚗', distanceText: '距离家 ' + km + ' km' })
+      this.setData({
+        distanceIcon: '📍',
+        distanceLabel: '离' + name,
+        distanceText: km + ' km'
+      })
     }
   },
 
@@ -355,8 +370,10 @@ Page({
         app.globalData.currentLocation = loc
         this.setData({
           currentLocation: loc,
-          'stats.distance': loc.distance || 0
+          'stats.distance': loc.distance || 0,
+          fenceName: loc.fenceName || ''
         })
+        this._formatDistance(loc.distance || 0, loc.fenceName || '')
         this._updateStatusTag(loc.status)
         wx.showToast({ title: '位置已更新', icon: 'success' })
       } else {
@@ -424,14 +441,12 @@ Page({
     }
   },
 
-  // 老人端自动定位追踪
   _startAutoLocationTracking() {
     this._stopAutoLocationTracking()
 
     const self = this
     let lastReportTime = 0
 
-    // 尝试开启实时位置监听
     wx.startLocationUpdate({
       success() {
         console.log('[自动定位] 实时位置监听已开启')
@@ -439,20 +454,16 @@ Page({
 
         wx.onLocationChange(function(res) {
           const now = Date.now()
-          // 每30秒上报一次
           if (now - lastReportTime < 30000) return
           lastReportTime = now
-
           self._reportLocation(res.latitude, res.longitude)
         })
       },
       fail(err) {
         console.warn('[自动定位] 开启实时监听失败，降级为定时上报:', err)
-        // 降级方案：每30秒获取一次位置
         self._autoLocationTimer = setInterval(() => {
           self._getLocationAndReport()
         }, 30000)
-        // 立即执行一次
         self._getLocationAndReport()
       }
     })
@@ -504,12 +515,13 @@ Page({
         app.globalData.currentLocation = loc
         this.setData({
           currentLocation: loc,
-          'stats.distance': loc.distance || 0
+          'stats.distance': loc.distance || 0,
+          fenceName: loc.fenceName || ''
         })
+        this._formatDistance(loc.distance || 0, loc.fenceName || '')
         this._updateStatusTag(loc.status)
         console.log('[自动定位] 位置上报成功:', loc.status)
 
-        // 如果超出围栏，显示提示
         if (loc.status === 'warning' || loc.status === 'emergency') {
           wx.showToast({
             title: loc.status === 'warning' ? '已离开安全区域' : '紧急：远离安全区域',

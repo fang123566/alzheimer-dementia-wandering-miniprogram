@@ -126,7 +126,7 @@
     <view class="stat-grid">
       <view class="stat-card stat-card-clickable" bindtap="goLocation">
         <text class="stat-icon">{{distanceIcon}}</text>
-        <text class="stat-label">离家距离</text>
+        <text class="stat-label">{{distanceLabel}}</text>
         <text class="stat-value stat-value-distance">{{distanceText}}</text>
       </view>
       <view class="stat-card stat-card-clickable {{alertsHot ? 'stat-card-hot' : ''}}" bindtap="goAlert">

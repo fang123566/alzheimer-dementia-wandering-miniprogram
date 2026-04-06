@@ -208,8 +208,10 @@
         </view>
 
         <!-- 确认按钮 -->
+        <!-- 确认按钮 -->
         <view class="fence-confirm-btn" bindtap="confirmAddFence">
-          <text class="fence-confirm-text">✓ 确认添加围栏</text>
+          <view class="loc-refresh-spinner" wx:if="{{fenceSearching}}"></view>
+          <text class="fence-confirm-text">{{fenceConfirmLabel}}</text>
         </view>
       </view>
     </view>

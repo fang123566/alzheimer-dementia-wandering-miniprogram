@@ -25,7 +25,6 @@ function openSetting() {
   })
 }
 
-// ── 云函数封装（替代 locationAPI 的四个接口）──────────────
 function cloudGetLocation() {
   return new Promise((resolve, reject) => {
     wx.cloud.callFunction({
@@ -116,7 +115,12 @@ Page({
     fenceTempMarker: null,
     fencePlaceType: '',
     fenceName: '',
-    fenceRadius: '300'
+    fenceRadius: '300',
+    // 围栏编辑模式
+    fenceEditMode: false,
+    fenceEditId: '',
+    fenceEditIndex: -1,
+    fenceConfirmLabel: '确认添加'
   },
 
   _loaded: false,
@@ -200,132 +204,102 @@ Page({
             latitude: loc.latitude,
             longitude: loc.longitude,
             title: elderlyName + '（当前）',
-            width: 40, height: 40
+            width: 40,
+            height: 40
           }]
         })
-        if (typeof loc.isStale === 'boolean') {
-          this._applyServerStale(loc)
-        } else {
-          this._updateTimeDisplay(loc.updatedAt)
-        }
+        this._updateTimeDisplay(loc.updatedAt || new Date().toISOString())
+        this._applyServerStale(loc)
+        this._renderCircles()
       } else {
-        const errMsg = locRes.msg || '获取位置失败'
-        console.warn('[位置] 获取位置失败:', errMsg)
-        this.setData({ noLocationData: true })
-        wx.showToast({ title: errMsg, icon: 'none', duration: 3000 })
-        const cached = app.globalData.currentLocation
-        if (cached && cached.latitude) {
-          locData = cached
-          this.setData({
-            location: cached,
-            markers: [{
-              id: 1, latitude: cached.latitude, longitude: cached.longitude,
-              title: '上次位置', width: 40, height: 40
-            }]
-          })
-        }
+        this.setData({
+          noLocationData: true,
+          statusTag: 'tag-danger',
+          statusText: '无法获取位置'
+        })
       }
 
       if (trajRes.code === 0 && trajRes.data) {
-        const traj = trajRes.data
+        const traj = trajRes.data.map((t, i) => ({
+          id: t._id || i,
+          time: this._formatTrajTime(t.recordedAt || t.dateStr),
+          address: t.address || '未知位置',
+          note: t.note || '',
+          latitude: t.latitude,
+          longitude: t.longitude
+        }))
         this.setData({ trajectory: traj })
-        if (traj.length >= 2) {
-          const points = traj.map(t => ({
-            latitude: t.latitude || (locData ? locData.latitude : 30.5),
-            longitude: t.longitude || (locData ? locData.longitude : 114.3)
-          }))
-          this.setData({
-            polyline: [{ points, color: '#f5a623aa', width: 5, dottedLine: false }]
-          })
-        }
       }
 
       if (fenceRes.code === 0 && fenceRes.data) {
-        const circles = fenceRes.data
-            .filter(f => f.enabled)
-            .map(f => ({
-              latitude: f.latitude,
-              longitude: f.longitude,
-              radius: f.radius,
-              color: '#3ecfcf33',
-              fillColor: '#3ecfcf11',
-              strokeWidth: 2
-            }))
-        this.setData({ fences: fenceRes.data, circles })
+        this.setData({ fences: fenceRes.data })
+        this._renderCircles()
       }
     } catch (e) {
-      const loc = app.globalData.currentLocation
-      if (loc) this.setData({ location: loc })
+      console.error('[位置] 数据加载异常:', e)
     }
   },
 
-  async locate() {
+  _formatTrajTime(recordedAt) {
+    if (!recordedAt) return ''
+    try {
+      const t = new Date(recordedAt)
+      const pad = n => String(n).padStart(2, '0')
+      return `${pad(t.getHours())}:${pad(t.getMinutes())}`
+    } catch (e) {
+      return ''
+    }
+  },
+
+  _renderCircles() {
+    const fences = this.data.fences || []
+    const circles = fences
+        .filter(f => f.enabled && f.latitude && f.longitude && f.radius)
+        .map(f => ({
+          latitude: f.latitude,
+          longitude: f.longitude,
+          radius: f.radius,
+          color: '#3ecfcf33',
+          fillColor: '#3ecfcf11',
+          strokeWidth: 2
+        }))
+    this.setData({ circles })
+  },
+
+  locate() {
     if (this.data.locating) return
     this.setData({ locating: true })
 
-    if (this.data.role === 'family') {
-      try {
-        const hasPermission = await this._ensureLocationPermission()
-        if (hasPermission) {
-          const gps = await getWxLocation('gcj02')
-          let addr = ''
-          try {
-            const detail = await amap.regeoDetail(gps.latitude, gps.longitude)
-            if (detail && detail.formatted) addr = detail.formatted
-          } catch (e) {}
-          await cloudUpdateLocation({
-            latitude: gps.latitude,
-            longitude: gps.longitude,
-            address: addr,
-            distance: 0
-          }).catch(e => console.warn('[位置] 家属代替上报失败:', e))
-        }
-        await this._fetchAll()
-        if (this._lastFetchOk) {
-          wx.showToast({ title: '老人位置已刷新', icon: 'success' })
-        } else {
-          wx.showToast({ title: '刷新失败，请稍后重试', icon: 'none' })
-        }
-      } catch (e) {
-        wx.showToast({ title: '刷新失败，请稍后重试', icon: 'none' })
-      } finally {
-        this.setData({ locating: false })
-      }
-      return
+    if (this.data.role === 'elderly') {
+      this._locateElderly()
+    } else {
+      this._locateFamily()
     }
+  },
 
+  async _locateFamily() {
     try {
       const hasPermission = await this._ensureLocationPermission()
       if (!hasPermission) {
         this.setData({ locating: false })
         return
       }
-
-      const res = await getWxLocation('gcj02')
-      const elderlyName = app.globalData.elderlyInfo?.name || '老人'
-      let fallbackAddress = this.data.location.address || '当前位置'
-      let addrDetail = null
-      try {
-        addrDetail = await amap.regeoDetail(res.latitude, res.longitude)
-        if (addrDetail.formatted) fallbackAddress = addrDetail.formatted
-      } catch (e) {}
-
-      const updateRes = await cloudUpdateLocation({
-        latitude: res.latitude,
-        longitude: res.longitude,
-        address: fallbackAddress,
-        distance: this.data.location.distance
-      })
-
-      if (updateRes.code === 0) {
-        const loc = { ...updateRes.data }
+      const locRes = await cloudGetLocation()
+      this.setData({ locating: false })
+      if (locRes.code === 0 && locRes.data) {
+        const loc = locRes.data
         const statusMap = {
           safe:      { tag: 'tag-safe',    text: '安全范围内' },
           warning:   { tag: 'tag-warning', text: '轻微预警'  },
           emergency: { tag: 'tag-danger',  text: '紧急！'    }
         }
         const s = statusMap[loc.status] || statusMap['safe']
-        if (addrDetail?.formatted) loc.address = addrDetail.formatted
+        const elderlyName = app.globalData.elderlyInfo?.name || '老人'
+        let addrDetail = null
+        try {
+          addrDetail = await amap.regeoDetail(loc.latitude, loc.longitude)
+          if (addrDetail.formatted) loc.address = addrDetail.formatted
+        } catch (e) {}
         app.globalData.currentLocation = loc
         this.setData({
           location: loc,
@@ -337,16 +311,70 @@ Page({
             latitude: loc.latitude,
             longitude: loc.longitude,
             title: elderlyName + '（当前）',
-            width: 40, height: 40
+            width: 40,
+            height: 40
+          }]
+        })
+        this._updateTimeDisplay(loc.updatedAt || new Date().toISOString())
+        this._applyServerStale(loc)
+        wx.showToast({ title: '位置已刷新', icon: 'success' })
+      } else {
+        wx.showToast({ title: locRes.msg || '刷新失败', icon: 'none' })
+      }
+    } catch (e) {
+      this.setData({ locating: false })
+      console.error('[位置] 刷新失败:', e)
+      wx.showToast({ title: '刷新失败', icon: 'none' })
+    }
+  },
+
+  async _locateElderly() {
+    try {
+      const hasPermission = await this._ensureLocationPermission()
+      if (!hasPermission) {
+        this.setData({ locating: false })
+        return
+      }
+      const res = await getWxLocation('gcj02')
+      let address = '当前位置'
+      try {
+        const addrDetail = await amap.regeoDetail(res.latitude, res.longitude)
+        if (addrDetail.formatted) address = addrDetail.formatted
+      } catch (e) {}
+      const updateRes = await cloudUpdateLocation({
+        latitude: res.latitude,
+        longitude: res.longitude,
+        address,
+        distance: this.data.location.distance
+      })
+      this.setData({ locating: false })
+      if (updateRes.code === 0) {
+        const loc = { ...updateRes.data, address }
+        const statusMap = {
+          safe:      { tag: 'tag-safe',    text: '安全范围内' },
+          warning:   { tag: 'tag-warning', text: '轻微预警'  },
+          emergency: { tag: 'tag-danger',  text: '紧急！'    }
+        }
+        const s = statusMap[loc.status] || statusMap['safe']
+        loc.address = address
+        app.globalData.currentLocation = loc
+        const elderlyName = app.globalData.elderlyInfo?.name || '老人'
+        this.setData({
+          location: loc,
+          statusTag: s.tag,
+          statusText: s.text,
+          markers: [{
+            id: 1, latitude: loc.latitude, longitude: loc.longitude,
+            title: elderlyName + '（当前）', width: 40, height: 40
           }]
         })
         this._updateTimeDisplay(new Date().toISOString())
         wx.showToast({ title: '位置已更新', icon: 'success' })
       }
     } catch (e) {
-      wx.showToast({ title: '定位失败，请检查权限', icon: 'none' })
-    } finally {
       this.setData({ locating: false })
+      console.error('[位置] 定位失败:', e)
+      wx.showToast({ title: '定位失败', icon: 'none' })
     }
   },
 
@@ -354,9 +382,7 @@ Page({
     try {
       const settingRes = await getSetting()
       const auth = settingRes.authSetting['scope.userLocation']
-
       if (auth === true) return true
-
       if (auth === undefined) {
         try {
           await authorize('scope.userLocation')
@@ -370,11 +396,10 @@ Page({
           return false
         }
       }
-
       return await new Promise((resolve) => {
         wx.showModal({
           title: '定位权限未开启',
-          content: '请在设置中开启位置权限，才能使用重新定位。',
+          content: '请在设置中开启位置权限。',
           confirmText: '去设置',
           cancelText: '取消',
           success: async (res) => {
@@ -395,7 +420,6 @@ Page({
   },
 
   _startAutoTracking() {
-    this._stopAutoTracking()
     if (this.data.role === 'elderly') {
       this._startElderlyTracking()
     }
@@ -601,98 +625,45 @@ Page({
     })
   },
 
-  toggleFence(e) {
+  // ── 围栏：点击编辑 ──────────────────────────────────────
+  editFence(e) {
     if (this.data.role !== 'family') {
-      wx.showToast({ title: '仅家属端可修改围栏', icon: 'none' })
+      wx.showToast({ title: '仅家属端可编辑围栏', icon: 'none' })
       return
     }
     const { id, index } = e.currentTarget.dataset
-    const fences = this.data.fences
-    if (!fences || !fences[index]) return
-    const newEnabled = !fences[index].enabled
-    const key = `fences[${index}].enabled`
-    this.setData({ [key]: newEnabled })
+    const fences = this.data.fences || []
+    const fence = fences.find(f => f.id === id)
+    if (!fence) return
 
-    const circles = fences
-        .map((f, i) => ({ ...f, enabled: i === index ? newEnabled : f.enabled }))
-        .filter(f => f.enabled)
-        .map(f => ({
-          latitude: f.latitude,
-          longitude: f.longitude,
-          radius: f.radius,
-          color: '#3ecfcf33',
-          fillColor: '#3ecfcf11',
-          strokeWidth: 2
-        }))
-    this.setData({ circles })
-
-    wx.cloud.callFunction({
-      name: 'locationFences',
-      data: { action: 'toggle', fenceId: id, enabled: newEnabled }
-    }).then(() => {
-      wx.showToast({ title: newEnabled ? '围栏已开启' : '围栏已关闭', icon: 'success' })
-    }).catch(() => {
-      this.setData({ [key]: !newEnabled })
-      wx.showToast({ title: '操作失败，请重试', icon: 'none' })
+    this.setData({
+      showFencePicker: true,
+      fenceEditMode: true,
+      fenceEditId: id,
+      fenceEditIndex: index,
+      fenceConfirmLabel: '更新围栏',
+      fenceSearchKeyword: '',
+      fenceSearchResults: [],
+      fenceSearching: false,
+      fenceSelectedPoint: null,
+      fenceMapCenter: {
+        latitude: fence.latitude,
+        longitude: fence.longitude
+      },
+      fenceTempMarker: {
+        id: 999,
+        latitude: fence.latitude,
+        longitude: fence.longitude,
+        width: 30,
+        height: 30
+      },
+      fencePlaceType: fence.placeType || '',
+      fenceName: fence.name || '',
+      fenceRadius: String(fence.radius || 300)
     })
   },
 
-  editFence(e) {
-    const { id } = e.currentTarget.dataset
-    wx.navigateTo({ url: `/pages/settings/settings?fenceId=${id}` })
-  },
-
-  deleteFence(e) {
-    const { id, index } = e.currentTarget.dataset
-    if (!id) return
-
-    wx.showModal({
-      title: '确认删除',
-      content: '删除后将不再对该区域进行监控，确定要删除此围栏吗？',
-      confirmText: '删除',
-      confirmColor: '#e53935',
-      success: async (res) => {
-        if (!res.confirm) return
-
-        wx.showLoading({ title: '删除中…', mask: true })
-        try {
-          const result = await new Promise((resolve, reject) => {
-            wx.cloud.callFunction({
-              name: 'locationFences',
-              data: { action: 'delete', fenceId: id },
-              success: r => resolve(r.result),
-              fail: err => reject(err)
-            })
-          })
-
-          wx.hideLoading()
-          if (result.code === 0) {
-            const fences = this.data.fences
-            fences.splice(index, 1)
-            const circles = fences
-                .filter(f => f.enabled)
-                .map(f => ({
-                  latitude: f.latitude,
-                  longitude: f.longitude,
-                  radius: f.radius,
-                  color: '#3ecfcf33',
-                  fillColor: '#3ecfcf11',
-                  strokeWidth: 2
-                }))
-            this.setData({ fences, circles })
-            wx.showToast({ title: '围栏已删除', icon: 'success' })
-          } else {
-            wx.showToast({ title: result.msg || '删除失败', icon: 'none' })
-          }
-        } catch (e) {
-          wx.hideLoading()
-          console.error('[围栏] 删除失败:', e)
-          wx.showToast({ title: '删除失败，请重试', icon: 'none' })
-        }
-      }
-    })
-  },
-
+  // ── 围栏：添加 ──────────────────────────────────────────
   addFence() {
     if (this.data.role !== 'family') {
       wx.showToast({ title: '仅家属端可添加围栏', icon: 'none' })
@@ -704,6 +675,10 @@ Page({
 
     this.setData({
       showFencePicker: true,
+      fenceEditMode: false,
+      fenceEditId: '',
+      fenceEditIndex: -1,
+      fenceConfirmLabel: '确认添加',
       fenceSearchKeyword: '',
       fenceSearchResults: [],
       fenceSearching: false,
@@ -932,32 +907,142 @@ Page({
     wx.showLoading({ title: '保存中…', mask: true })
 
     try {
-      const res = await wx.cloud.callFunction({
-        name: 'locationFences',
-        data: {
-          action: 'add',
-          placeType: this.data.fencePlaceType,
-          name: name,
-          latitude: lat,
-          longitude: lng,
-          radius: radius
-        }
-      })
+      let res
+      if (this.data.fenceEditMode) {
+        // 编辑模式：调用 update
+        res = await wx.cloud.callFunction({
+          name: 'locationFences',
+          data: {
+            action: 'update',
+            fenceId: this.data.fenceEditId,
+            placeType: this.data.fencePlaceType,
+            name: name,
+            latitude: lat,
+            longitude: lng,
+            radius: radius
+          }
+        })
+      } else {
+        // 添加模式：调用 add
+        res = await wx.cloud.callFunction({
+          name: 'locationFences',
+          data: {
+            action: 'add',
+            placeType: this.data.fencePlaceType,
+            name: name,
+            latitude: lat,
+            longitude: lng,
+            radius: radius
+          }
+        })
+      }
 
       wx.hideLoading()
       const r = res.result
       if (r?.code === 0) {
-        wx.showToast({ title: '围栏已添加', icon: 'success' })
+        wx.showToast({ title: this.data.fenceEditMode ? '围栏已更新' : '围栏已添加', icon: 'success' })
         this.setData({ showFencePicker: false })
         this._fetchAll()
       } else {
-        wx.showToast({ title: r?.msg || '添加失败', icon: 'none' })
+        wx.showToast({ title: r?.msg || '操作失败', icon: 'none' })
       }
     } catch (e) {
       wx.hideLoading()
-      console.error('[围栏] 添加失败:', e)
-      wx.showToast({ title: '添加失败，请重试', icon: 'none' })
+      console.error('[围栏] 操作失败:', e)
+      wx.showToast({ title: '操作失败，请重试', icon: 'none' })
     }
+  },
+
+  async toggleFence(e) {
+    if (this.data.role !== 'family') {
+      wx.showToast({ title: '仅家属端可管理围栏', icon: 'none' })
+      return
+    }
+    const { id, index } = e.currentTarget.dataset
+    const fences = this.data.fences || []
+    const fence = fences[index]
+    if (!fence || fence.id !== id) return
+
+    const nextEnabled = !fence.enabled
+    wx.showLoading({ title: '更新中…', mask: true })
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'locationFences',
+        data: {
+          action: 'toggle',
+          fenceId: id,
+          enabled: nextEnabled
+        }
+      })
+      wx.hideLoading()
+      const r = res.result
+      if (r?.code === 0) {
+        fences[index].enabled = nextEnabled
+        this.setData({ fences })
+        this._renderCircles()
+        wx.showToast({ title: nextEnabled ? '围栏已开启' : '围栏已关闭', icon: 'success' })
+      } else {
+        wx.showToast({ title: r?.msg || '操作失败', icon: 'none' })
+      }
+    } catch (e) {
+      wx.hideLoading()
+      console.error('[围栏] 切换失败:', e)
+      wx.showToast({ title: '操作失败', icon: 'none' })
+    }
+  },
+
+  async deleteFence(e) {
+    if (this.data.role !== 'family') {
+      wx.showToast({ title: '仅家属端可删除围栏', icon: 'none' })
+      return
+    }
+    const { id, index } = e.currentTarget.dataset
+    if (!id) return
+
+    wx.showModal({
+      title: '确认删除',
+      content: '删除后将不再对该区域进行监控，确定要删除此围栏吗？',
+      confirmText: '删除',
+      confirmColor: '#e53935',
+      success: async (res) => {
+        if (!res.confirm) return
+        wx.showLoading({ title: '删除中…', mask: true })
+        try {
+          const result = await new Promise((resolve, reject) => {
+            wx.cloud.callFunction({
+              name: 'locationFences',
+              data: { action: 'delete', fenceId: id },
+              success: r => resolve(r.result),
+              fail: err => reject(err)
+            })
+          })
+          wx.hideLoading()
+          if (result.code === 0) {
+            const fences = this.data.fences
+            fences.splice(index, 1)
+            const circles = fences
+                .filter(f => f.enabled)
+                .map(f => ({
+                  latitude: f.latitude,
+                  longitude: f.longitude,
+                  radius: f.radius,
+                  color: '#3ecfcf33',
+                  fillColor: '#3ecfcf11',
+                  strokeWidth: 2
+                }))
+            this.setData({ fences, circles })
+            wx.showToast({ title: '围栏已删除', icon: 'success' })
+          } else {
+            wx.showToast({ title: result.msg || '删除失败', icon: 'none' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          console.error('[围栏] 删除失败:', e)
+          wx.showToast({ title: '删除失败，请重试', icon: 'none' })
+        }
+      }
+    })
   },
 
   onHistTrajTap() {

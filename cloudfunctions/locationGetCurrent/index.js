@@ -17,20 +17,19 @@ async function findUser(openid) {
 /** 家属端查绑定的老人 openid（兼容 toOpenid 为空时按手机号回填） */
 async function findElderlyOpenid(familyOpenid) {
   const { data } = await db.collection('bindings')
-    .where({ fromOpenid: familyOpenid })
-    .orderBy('createdAt', 'desc')
-    .limit(1)
-    .get()
+      .where({ fromOpenid: familyOpenid })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get()
   if (!data.length) return null
   const binding = data[0]
   if (binding.toOpenid) return binding.toOpenid
-  // toOpenid 为空，用手机号查找并回填
   if (binding.toPhone) {
     const { data: elders } = await db.collection('elderly')
-      .where({ phone: binding.toPhone }).limit(1).get()
+        .where({ phone: binding.toPhone }).limit(1).get()
     if (elders.length && elders[0]._openid) {
       await db.collection('bindings').doc(binding._id)
-        .update({ data: { toOpenid: elders[0]._openid } }).catch(() => {})
+          .update({ data: { toOpenid: elders[0]._openid } }).catch(() => {})
       return elders[0]._openid
     }
   }
@@ -53,14 +52,29 @@ exports.main = async (event, context) => {
 
     // 取最新一条位置记录
     const locSnap = await db.collection('locations')
-      .where({ openid: targetOpenid })
-      .orderBy('updatedAt', 'desc')
-      .limit(1)
-      .get()
+        .where({ openid: targetOpenid })
+        .orderBy('updatedAt', 'desc')
+        .limit(1)
+        .get()
 
     if (!locSnap.data.length) return { code: 1, msg: '暂无位置数据' }
 
     const loc = locSnap.data[0]
+
+    // 查询最近的围栏名称（取第一个启用的围栏）
+    let fenceName = ''
+    try {
+      const fenceSnap = await db.collection('fences')
+          .where({ ownerOpenid: targetOpenid, enabled: true })
+          .orderBy('createdAt', 'asc')
+          .limit(1)
+          .get()
+      if (fenceSnap.data && fenceSnap.data.length) {
+        fenceName = fenceSnap.data[0].name || ''
+      }
+    } catch (e) {
+      console.warn('[locationGetCurrent] 查询围栏名称失败:', e)
+    }
 
     // 在服务端计算超时状态，避免前端日期解析问题
     let minutesAgo = -1
@@ -68,8 +82,8 @@ exports.main = async (event, context) => {
     let updatedAtISO = ''
     if (loc.updatedAt) {
       const updatedTime = loc.updatedAt instanceof Date
-        ? loc.updatedAt.getTime()
-        : new Date(loc.updatedAt).getTime()
+          ? loc.updatedAt.getTime()
+          : new Date(loc.updatedAt).getTime()
       if (!isNaN(updatedTime)) {
         minutesAgo = Math.round((Date.now() - updatedTime) / 60000)
         isStale = minutesAgo > 10
@@ -78,7 +92,7 @@ exports.main = async (event, context) => {
     }
 
     console.log('[locationGetCurrent] updatedAt原始值:', loc.updatedAt,
-      '类型:', typeof loc.updatedAt, 'minutesAgo:', minutesAgo)
+        '类型:', typeof loc.updatedAt, 'minutesAgo:', minutesAgo, 'fenceName:', fenceName)
 
     return {
       code: 0,
@@ -90,7 +104,8 @@ exports.main = async (event, context) => {
         distance:  loc.distance || 0,
         updatedAt: updatedAtISO || '',
         minutesAgo,
-        isStale
+        isStale,
+        fenceName
       }
     }
   } catch (e) {
