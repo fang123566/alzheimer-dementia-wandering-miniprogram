@@ -325,13 +325,6 @@
   white-space: nowrap;
 }
 
-/* 紧急呼叫 · 红色 */
-.quick-emergency {
-  background: linear-gradient(145deg, #ffffff 0%, #fff0f0 60%, #ffe4e4 100%);
-  border-color: rgba(239,68,68,0.2);
-}
-.emergency-title { color: #dc2626; }
-
 /* 预警中心 · 橙色 */
 .quick-alert {
   background: linear-gradient(145deg, #ffffff 0%, #fffaf0 60%, #fff3e0 100%);
@@ -342,12 +335,6 @@
 .quick-memory {
   background: linear-gradient(145deg, #ffffff 0%, #f0f7ff 60%, #e3f0ff 100%);
   border-color: rgba(59,130,246,0.15);
-}
-
-/* 设置 · 灰色 */
-.quick-settings {
-  background: linear-gradient(145deg, #ffffff 0%, #f5f7f6 60%, #eef1f0 100%);
-  border-color: rgba(100,116,108,0.12);
 }
 
 /* SOS */

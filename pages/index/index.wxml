@@ -146,14 +146,6 @@
     <view class="card" wx:if="{{role === 'family'}}">
       <text class="card-title">🚀 快捷操作</text>
       <view class="quick-grid">
-        <!-- 紧急呼叫（最高优先级，红色主色，视觉最突出） -->
-        <view class="quick-cell quick-emergency" bindtap="callEmergency">
-          <text class="quick-cell-icon quick-icon-lg">📞</text>
-          <view class="quick-cell-body">
-            <text class="quick-cell-title emergency-title">紧急呼叫</text>
-            <text class="quick-cell-desc">一键拨号 · 紧急消息</text>
-          </view>
-        </view>
         <!-- 预警中心（中高优先级，橙色主色） -->
         <view class="quick-cell quick-alert" bindtap="goAlert">
           <text class="quick-cell-icon">🔔</text>
@@ -168,14 +160,6 @@
           <view class="quick-cell-body">
             <text class="quick-cell-title">记忆相册</text>
             <text class="quick-cell-desc">照片 · 语音 · 回忆</text>
-          </view>
-        </view>
-        <!-- 设置（中低优先级，灰色主色） -->
-        <view class="quick-cell quick-settings" bindtap="goSettings">
-          <text class="quick-cell-icon">⚙️</text>
-          <view class="quick-cell-body">
-            <text class="quick-cell-title">设置</text>
-            <text class="quick-cell-desc">围栏 · 联系人 · 账号</text>
           </view>
         </view>
       </view>
