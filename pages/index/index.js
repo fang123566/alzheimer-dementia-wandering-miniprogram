@@ -2,6 +2,7 @@
 const app = getApp()
 const { locationAPI, alertsAPI, sosAPI, settingsAPI } = require('../../utils/api')
 const amap = require('../../utils/amap')
+
 Page({
   data: {
     role: 'family',
@@ -31,6 +32,7 @@ Page({
     recentAlerts: [],
     locating: false
   },
+
   onLoad() {
     if (!app.checkLogin()) return
     this.setData({
@@ -41,7 +43,13 @@ Page({
       currentDate: this._getDate()
     })
     this._fetchData()
+
+    // 老人端启动自动定位上报
+    if (this.data.role === 'elderly') {
+      this._startAutoLocationTracking()
+    }
   },
+
   onShow() {
     if (!app.checkLogin()) return
     this.setData({
@@ -51,18 +59,39 @@ Page({
     })
     this._fetchData()
     this._startFreshnessTimer()
+
+    // 老人端重新启动自动定位
+    if (this.data.role === 'elderly') {
+      this._startAutoLocationTracking()
+    }
+
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
   },
+
+  onHide() {
+    this._stopFreshnessTimer()
+    if (this.data.role === 'elderly') {
+      this._stopAutoLocationTracking()
+    }
+  },
+
+  onUnload() {
+    this._stopFreshnessTimer()
+    if (this.data.role === 'elderly') {
+      this._stopAutoLocationTracking()
+    }
+  },
+
   async _fetchData() {
     try {
-      // 全部使用云函数，避免真机访问 localhost 后端失败
       const [locRes, unreadRes, alertsRes] = await Promise.all([
         locationAPI.getLocation().catch(e => ({ code: -1, msg: e.message })),
         alertsAPI.getUnreadCount().catch(e => ({ code: -1, msg: e.message })),
         alertsAPI.getAlerts().catch(e => ({ code: -1, msg: e.message }))
       ])
+
       if (locRes.code === 0 && locRes.data) {
         const loc = locRes.data
         app.globalData.currentLocation = loc
@@ -74,14 +103,22 @@ Page({
         this._updateStatusTag(loc.status)
         this._updateFreshness()
       }
+
       let unreadCount = 0
-      if (unreadRes.code === 0) unreadCount = unreadRes.data?.count || 0
+      if (unreadRes.code === 0) {
+        unreadCount = unreadRes.data?.count || 0
+      }
       app.globalData.unreadAlerts = unreadCount
-      this.setData({ 'stats.alerts': unreadCount })
+      this.setData({
+        'stats.alerts': unreadCount,
+        alertsHot: unreadCount > 0
+      })
       this._formatAlerts(unreadCount)
-      // aiChats 统计若需要，可后续做云函数补齐；这里先保持 0
+
       this.setData({ 'stats.aiChats': 0 })
-      if (alertsRes.code === 0) {
+
+      if (alertsRes.code === 0 && alertsRes.data) {
+        console.log('[首页] 获取到预警数据:', alertsRes.data.length, '条')
         const recent = (alertsRes.data || []).slice(0, 3).map(a => ({
           id: a.id,
           level: a.level,
@@ -89,13 +126,17 @@ Page({
           time: a.time || ''
         }))
         this.setData({ recentAlerts: recent })
+        console.log('[首页] 最近预警:', recent)
+      } else {
+        console.warn('[首页] 预警数据加载失败:', alertsRes)
       }
     } catch (e) {
-      // 网络失败时使用 globalData 缓存数据
+      console.error('[首页] 数据加载异常:', e)
       this.setData({ currentLocation: app.globalData.currentLocation })
       this._updateStatusTag(app.globalData.currentLocation.status)
     }
   },
+
   _getGreeting() {
     const h = new Date().getHours()
     if (h < 6)  return '凌晨好'
@@ -103,12 +144,13 @@ Page({
     if (h < 18) return '下午好'
     return '晚上好'
   },
+
   _getDate() {
     const d = new Date()
     const weeks = ['日', '一', '二', '三', '四', '五', '六']
     return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日  星期${weeks[d.getDay()]}`
   },
-  // ── 智能距离显示 ──────────────────────────────────
+
   _formatDistance(meters) {
     const m = Number(meters) || 0
     if (m === 0) {
@@ -120,7 +162,7 @@ Page({
       this.setData({ distanceIcon: '🚗', distanceText: '距离家 ' + km + ' km' })
     }
   },
-  // ── 预警状态显示 ──────────────────────────────────
+
   _formatAlerts(count) {
     const n = Number(count) || 0
     if (n === 0) {
@@ -129,6 +171,7 @@ Page({
       this.setData({ alertsIcon: '🔔', alertsText: n + ' 次预警', alertsHot: true })
     }
   },
+
   _updateStatusTag(status = 'safe') {
     const map = {
       safe:      { tag: 'tag-safe',    text: '安全范围内',    icon: '✅', level: 'safe' },
@@ -138,15 +181,20 @@ Page({
     const s = map[status] || map['safe']
     this.setData({ statusTag: s.tag, statusText: s.text, statusIcon: s.icon, statusLevel: s.level })
   },
-  // ── 时效性计算 ──────────────────────────────────
+
   _startFreshnessTimer() {
     this._stopFreshnessTimer()
     this._updateFreshness()
     this._freshnessTimer = setInterval(() => this._updateFreshness(), 15000)
   },
+
   _stopFreshnessTimer() {
-    if (this._freshnessTimer) { clearInterval(this._freshnessTimer); this._freshnessTimer = null }
+    if (this._freshnessTimer) {
+      clearInterval(this._freshnessTimer)
+      this._freshnessTimer = null
+    }
   },
+
   _updateFreshness() {
     const loc = this.data.currentLocation
     if (!loc || !loc.updatedAt) {
@@ -174,33 +222,34 @@ Page({
       stale = true
     }
     this.setData({ freshnessText: text, freshnessStale: stale })
-    // 超过 10 分钟自动标为定位异常
     if (stale && this.data.statusLevel === 'safe') {
       this._updateStatusTag('emergency')
     }
   },
-  // ── 地址展开/收起 ──────────────────────────────────
+
   toggleAddressExpand() {
     this.setData({ addressExpanded: !this.data.addressExpanded })
   },
-  // ── 围栏快捷开关 ──────────────────────────────────
+
   async toggleFence() {
     const next = !this.data.fenceEnabled
     this.setData({ fenceEnabled: next })
     wx.showToast({ title: next ? '围栏预警已开启' : '围栏预警已关闭', icon: 'none' })
-    // 持久化到设置（如有可用接口）
-    try { await settingsAPI.updateSettings({ fenceEnabled: next }) } catch (e) {}
+    try {
+      await settingsAPI.updateSettings({ fenceEnabled: next })
+    } catch (e) {}
   },
+
   goLocation()  { wx.switchTab({ url: '/pages/location/location' }) },
   goAlert()     { wx.switchTab({ url: '/pages/alert/alert' }) },
   goMemory()    { wx.navigateTo({ url: '/pages/memory/memory' }) },
-  goSettings()  { wx.navigateTo({ url: '/pages/settings/settings' }) },
   goChat()      { wx.switchTab({ url: '/pages/aichat/aichat' }) },
   goDialect()   { wx.switchTab({ url: '/pages/dialect/dialect' }) },
-  // 老人端单次点击 SOS 提示（长按才真正触发）
+
   triggerSOSTap() {
     wx.showToast({ title: '长按 3 秒发送位置', icon: 'none', duration: 2000 })
   },
+
   callEmergency() {
     const contact = app.globalData.contacts?.[0]
     const name  = contact?.name  || '紧急联系人'
@@ -244,6 +293,7 @@ Page({
       }
     })
   },
+
   async triggerSOS() {
     wx.showLoading({ title: 'SOS 发送中…', mask: true })
     try {
@@ -270,7 +320,7 @@ Page({
       wx.showToast({ title: 'SOS 发送失败，请重试', icon: 'none' })
     }
   },
-  // 老人端重新定位 - 使用高德API解析地址并上报
+
   async refreshLocation() {
     if (this.data.locating) return
     this.setData({ locating: true })
@@ -320,11 +370,13 @@ Page({
       this.setData({ locating: false })
     }
   },
+
   _getWxLocation(type = 'gcj02') {
     return new Promise((resolve, reject) => {
       wx.getLocation({ type, success: resolve, fail: reject })
     })
   },
+
   async _ensureLocationPermission() {
     try {
       const settingRes = await new Promise((resolve, reject) => {
@@ -369,6 +421,105 @@ Page({
     } catch (e) {
       wx.showToast({ title: '无法检查定位权限', icon: 'none' })
       return false
+    }
+  },
+
+  // 老人端自动定位追踪
+  _startAutoLocationTracking() {
+    this._stopAutoLocationTracking()
+
+    const self = this
+    let lastReportTime = 0
+
+    // 尝试开启实时位置监听
+    wx.startLocationUpdate({
+      success() {
+        console.log('[自动定位] 实时位置监听已开启')
+        self._autoTrackingEnabled = true
+
+        wx.onLocationChange(function(res) {
+          const now = Date.now()
+          // 每30秒上报一次
+          if (now - lastReportTime < 30000) return
+          lastReportTime = now
+
+          self._reportLocation(res.latitude, res.longitude)
+        })
+      },
+      fail(err) {
+        console.warn('[自动定位] 开启实时监听失败，降级为定时上报:', err)
+        // 降级方案：每30秒获取一次位置
+        self._autoLocationTimer = setInterval(() => {
+          self._getLocationAndReport()
+        }, 30000)
+        // 立即执行一次
+        self._getLocationAndReport()
+      }
+    })
+  },
+
+  _stopAutoLocationTracking() {
+    if (this._autoLocationTimer) {
+      clearInterval(this._autoLocationTimer)
+      this._autoLocationTimer = null
+    }
+    if (this._autoTrackingEnabled) {
+      wx.stopLocationUpdate({
+        success: () => console.log('[自动定位] 已停止位置监听'),
+        fail: () => {}
+      })
+      wx.offLocationChange()
+      this._autoTrackingEnabled = false
+    }
+  },
+
+  async _getLocationAndReport() {
+    try {
+      const res = await this._getWxLocation('gcj02')
+      await this._reportLocation(res.latitude, res.longitude)
+    } catch (e) {
+      console.warn('[自动定位] 获取位置失败:', e)
+    }
+  },
+
+  async _reportLocation(latitude, longitude) {
+    try {
+      let address = '当前位置'
+      try {
+        const addrDetail = await amap.regeoDetail(latitude, longitude)
+        if (addrDetail.formatted) address = addrDetail.formatted
+      } catch (e) {
+        console.warn('[自动定位] 地址解析失败:', e)
+      }
+
+      const updateRes = await locationAPI.updateLocation({
+        latitude,
+        longitude,
+        address,
+        distance: this.data.stats.distance
+      })
+
+      if (updateRes.code === 0) {
+        const loc = updateRes.data
+        app.globalData.currentLocation = loc
+        this.setData({
+          currentLocation: loc,
+          'stats.distance': loc.distance || 0
+        })
+        this._updateStatusTag(loc.status)
+        console.log('[自动定位] 位置上报成功:', loc.status)
+
+        // 如果超出围栏，显示提示
+        if (loc.status === 'warning' || loc.status === 'emergency') {
+          wx.showToast({
+            title: loc.status === 'warning' ? '已离开安全区域' : '紧急：远离安全区域',
+            icon: 'none',
+            duration: 3000
+          })
+        }
+      }
+    } catch (e) {
+      console.error('[自动定位] 上报失败:', e)
     }
   }
 })
