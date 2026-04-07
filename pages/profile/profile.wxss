@@ -1,6 +1,6 @@
 /* pages/profile/profile.wxss */
 
-.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 140rpx; }
+.container { background: #f2f9f4; min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
 
 /* ── 用户信息卡 ─────────────────────────────── */
 .user-card {

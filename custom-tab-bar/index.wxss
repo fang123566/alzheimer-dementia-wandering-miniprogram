@@ -2,11 +2,12 @@
 
 .tab-bar {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
-  height: 120rpx;
-  padding-bottom: env(safe-area-inset-bottom);
+  bottom: 0;
+  height: var(--tab-bar-height);
+  padding-bottom: var(--tab-bar-safe);
+  box-sizing: content-box;
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(24rpx);
   border-top: 1rpx solid rgba(47,133,90,0.06);

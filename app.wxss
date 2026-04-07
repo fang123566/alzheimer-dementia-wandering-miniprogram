@@ -2,6 +2,9 @@
 
 /* ── 设计变量 ─────────────────────────────── */
 page {
+  --tab-bar-height: 120rpx;
+  --tab-bar-safe: env(safe-area-inset-bottom);
+  --tab-bar-total-height: calc(var(--tab-bar-height) + var(--tab-bar-safe));
   /* 常青树 · 松绿色系（新中式首页主色，全站可复用） */
   --pine:           #3d6b57;
   --pine-light:     #5a8f78;
@@ -213,6 +216,6 @@ page.elderly-mode {
 
 /* ── 底部导航栏占位块（所有 tabBar 页面底部必须加） ── */
 .tab-bar-spacer {
-  height: calc(120rpx + env(safe-area-inset-bottom));
+  height: var(--tab-bar-total-height);
   flex-shrink: 0;
 }

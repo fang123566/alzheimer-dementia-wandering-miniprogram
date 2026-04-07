@@ -19,7 +19,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 140rpx;
+  padding-bottom: calc(var(--tab-bar-total-height) + 20rpx);
 }
 
 .bot-info { display: flex; align-items: center; gap: 20rpx; }
@@ -78,7 +78,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 120rpx;
+  bottom: var(--tab-bar-total-height);
   background: rgba(255,255,255,0.96);
   backdrop-filter: blur(20rpx);
   border-top: 1rpx solid rgba(47,133,90,0.06);
