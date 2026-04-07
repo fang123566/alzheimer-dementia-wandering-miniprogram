@@ -1,7 +1,7 @@
 {
   "navigationBarTitleText": "智能语音设备",
-  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarBackgroundColor": "#f5fbf7",
   "navigationBarTextStyle": "black",
-  "backgroundColor": "#f2f4f7",
+  "backgroundColor": "#f5fbf7",
   "enablePullDownRefresh": false
 }

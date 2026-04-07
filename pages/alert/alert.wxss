@@ -1,6 +1,6 @@
 /* pages/alert/alert.wxss */
 
-.container   { background: #f2f9f4; min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
+.container   { background: transparent; min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
 .filter-bar  { white-space: nowrap; padding: 0 36rpx 28rpx; }
 .filter-tag  { display: inline-block; padding: 14rpx 32rpx; border-radius: 999rpx; font-size: 26rpx; color: #4a6355; background: #ffffff; border: 1rpx solid rgba(47,133,90,0.10); margin-right: 16rpx; box-shadow: var(--shadow-card); font-weight: 500; }
 .filter-tag.active { background: linear-gradient(135deg, #22764d, #38a169); color: #ffffff; border-color: transparent; font-weight: 700; box-shadow: 0 6rpx 20rpx rgba(34,118,77,0.20); }

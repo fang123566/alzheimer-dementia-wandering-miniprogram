@@ -3,7 +3,7 @@
 .home-page {
   min-height: 100vh;
   padding-bottom: var(--tab-bar-total-height);
-  background: linear-gradient(180deg, var(--cream) 0%, var(--cream-mist) 45%, var(--gray-mist) 100%);
+  background: var(--app-bg);
   font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', 'Hiragino Sans GB', sans-serif;
   color: var(--pine-ink);
   box-sizing: border-box;

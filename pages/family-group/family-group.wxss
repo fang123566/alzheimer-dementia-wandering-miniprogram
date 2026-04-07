@@ -1,6 +1,6 @@
 /* pages/family-group/family-group.wxss */
 
-.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 60rpx; }
+.container { background: transparent; min-height: 100vh; padding-bottom: 60rpx; }
 
 /* 页面标题 */
 .page-header {
@@ -98,7 +98,7 @@
 .member-action {
   width: 56rpx; height: 56rpx; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; background: #f2f9f4;
+  flex-shrink: 0; background: rgba(255, 255, 255, 0.78);
 }
 .member-action:active { background: #e0efe4; }
 .member-action-icon { font-size: 36rpx; color: #6b8577; font-weight: 700; }

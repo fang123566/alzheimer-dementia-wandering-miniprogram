@@ -1,6 +1,6 @@
 /* pages/binding/binding.wxss */
 
-.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 80rpx; }
+.container { background: transparent; min-height: 100vh; padding-bottom: 80rpx; }
 
 .loading-card,
 .self-card,

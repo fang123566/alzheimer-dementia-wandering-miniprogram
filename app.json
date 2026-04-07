@@ -18,10 +18,10 @@
   ],
   "window": {
     "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#f7f9fc",
+    "navigationBarBackgroundColor": "#f5fbf7",
     "navigationBarTitleText": "守护·陪伴",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f7f9fc"
+    "backgroundColor": "#f5fbf7"
   },
   "tabBar": {
     "custom": true,

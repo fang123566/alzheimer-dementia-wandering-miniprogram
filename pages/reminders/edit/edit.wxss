@@ -1,4 +1,4 @@
-.container { background: #f2f9f4; min-height: 100vh; padding-bottom: 100rpx; }
+.container { background: transparent; min-height: 100vh; padding-bottom: 100rpx; }
 
 .page-header { padding: 48rpx 36rpx 28rpx; }
 .page-title { display: block; font-size: 40rpx; font-weight: 800; color: #0d2b1f; }

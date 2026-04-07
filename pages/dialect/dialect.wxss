@@ -16,7 +16,7 @@
   --tab-bar-total-height: 100rpx;
 }
 
-.container { background: #f2f9f4; min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
+.container { background: transparent; min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
 
 /* ── 翻译方向控制栏 ─────────────────────────── */
 .control-bar {

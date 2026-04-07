@@ -5,6 +5,8 @@ page {
   --tab-bar-height: 120rpx;
   --tab-bar-safe: env(safe-area-inset-bottom);
   --tab-bar-total-height: calc(var(--tab-bar-height) + var(--tab-bar-safe));
+  /* 全站统一背景（与注册/登录页一致的淡绿色） */
+  --app-bg: linear-gradient(180deg, #f5fbf7 0%, #eef7f1 38%, #e7f2eb 100%);
   /* 常青树 · 松绿色系（新中式首页主色，全站可复用） */
   --pine:           #3d6b57;
   --pine-light:     #5a8f78;
@@ -80,7 +82,7 @@ page {
   --home-e-loc-addr:     30rpx;
   --home-e-device:       28rpx;
 
-  background-color: var(--cream-mist);
+  background: var(--app-bg);
   color: var(--text);
   font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
   font-size: var(--font-base);
@@ -218,4 +220,10 @@ page.elderly-mode {
 .tab-bar-spacer {
   height: var(--tab-bar-total-height);
   flex-shrink: 0;
+}
+
+/* 统一页面容器背景，避免各页写死底色覆盖全局背景 */
+.container,
+.page-container {
+  background: transparent;
 }
