@@ -210,3 +210,9 @@ page.elderly-mode {
   font-weight: 700;
   box-shadow: 0 6rpx 20rpx var(--pine-pale-18);
 }
+
+/* ── 底部导航栏占位块（所有 tabBar 页面底部必须加） ── */
+.tab-bar-spacer {
+  height: calc(120rpx + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}

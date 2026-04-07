@@ -134,41 +134,41 @@ const bindingAPI = {
 }
 // ── 今日提醒（已迁移至 reminders 云函数）─────────────────
 const remindersAPI = {
-  getTemplates: () => {
+  getTemplates: (elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'getTemplates', role })
+    return callCloud('reminders', { action: 'getTemplates', role, elderlyOpenid: elderlyOpenid || '' })
   },
-  addTemplate: (data) => {
+  addTemplate: (data, elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'addTemplate', role, ...data })
+    return callCloud('reminders', { action: 'addTemplate', role, elderlyOpenid: elderlyOpenid || '', ...data })
   },
-  updateTemplate: (id, d) => {
+  updateTemplate: (id, d, elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'updateTemplate', role, templateId: id, ...d })
+    return callCloud('reminders', { action: 'updateTemplate', role, elderlyOpenid: elderlyOpenid || '', templateId: id, ...d })
   },
-  deleteTemplate: (id) => {
+  deleteTemplate: (id, elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'deleteTemplate', role, templateId: id })
+    return callCloud('reminders', { action: 'deleteTemplate', role, elderlyOpenid: elderlyOpenid || '', templateId: id })
   },
-  batchDelete: (ids) => {
+  batchDelete: (ids, elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'batchDelete', role, templateIds: ids })
+    return callCloud('reminders', { action: 'batchDelete', role, elderlyOpenid: elderlyOpenid || '', templateIds: ids })
   },
-  getToday: () => {
+  getToday: (elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'getToday', role })
+    return callCloud('reminders', { action: 'getToday', role, elderlyOpenid: elderlyOpenid || '' })
   },
-  toggleDone: (templateId, done) => {
+  toggleDone: (templateId, done, elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'toggleDone', role, templateId, done })
+    return callCloud('reminders', { action: 'toggleDone', role, elderlyOpenid: elderlyOpenid || '', templateId, done })
   },
-  getAutoRemindSetting: () => {
+  getAutoRemindSetting: (elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'getAutoRemindSetting', role })
+    return callCloud('reminders', { action: 'getAutoRemindSetting', role, elderlyOpenid: elderlyOpenid || '' })
   },
-  toggleAutoRemind: (enabled) => {
+  toggleAutoRemind: (enabled, elderlyOpenid) => {
     const role = wx.getStorageSync('role') || 'family'
-    return callCloud('reminders', { action: 'toggleAutoRemind', role, enabled })
+    return callCloud('reminders', { action: 'toggleAutoRemind', role, elderlyOpenid: elderlyOpenid || '', enabled })
   }
 }
 // ── SOS ───────────────────────────────────────────────

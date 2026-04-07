@@ -37,25 +37,34 @@ function getCurrentMinutes() {
   return now.getHours() * 60 + now.getMinutes()
 }
 
-/** 根据调用者角色找到目标老人的 openid */
-async function findElderlyOpenid(callerOpenid, role) {
+/**
+ * 根据调用者角色找到目标老人的 openid
+ * @param {string} callerOpenid
+ * @param {string} role
+ * @param {string} [explicitEid] - 前端直接传入的老人 openid，有值时跳过 DB 查找
+ */
+async function findElderlyOpenid(callerOpenid, role, explicitEid) {
+  // 前端已获取到老人 openid（通过 bindingAPI），直接使用
+  if (explicitEid) return explicitEid
   if (role === 'elderly') return callerOpenid
+
   const { data } = await db.collection('bindings')
     .where({ fromOpenid: callerOpenid }).limit(1).get()
   if (!data.length) return null
 
   const binding = data[0]
-  // toOpenid 已有值，直接返回
   if (binding.toOpenid) return binding.toOpenid
 
-  // toOpenid 为空但 toPhone 存在，用手机号在 elderly 集合中查找并回填
   if (binding.toPhone) {
     const { data: elders } = await db.collection('elderly')
       .where({ phone: binding.toPhone }).limit(1).get()
-    if (elders.length > 0 && elders[0]._openid) {
-      await db.collection('bindings').doc(binding._id)
-        .update({ data: { toOpenid: elders[0]._openid } }).catch(() => {})
-      return elders[0]._openid
+    if (elders.length > 0) {
+      const eid = elders[0]._openid || elders[0].openid || ''
+      if (eid) {
+        await db.collection('bindings').doc(binding._id)
+          .update({ data: { toOpenid: eid } }).catch(() => {})
+        return eid
+      }
     }
   }
   return null
@@ -63,8 +72,8 @@ async function findElderlyOpenid(callerOpenid, role) {
 
 // ── getTemplates ─────────────────────────────────────
 
-async function getTemplates(callerOpenid, role) {
-  const eid = await findElderlyOpenid(callerOpenid, role)
+async function getTemplates(callerOpenid, role, elderlyOpenid) {
+  const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
   if (!eid) return { code: 0, data: [], msg: '未绑定老人账号' }
 
   // 读取自动提醒设置
@@ -83,11 +92,11 @@ async function getTemplates(callerOpenid, role) {
 
 // ── addTemplate ──────────────────────────────────────
 
-async function addTemplate(callerOpenid, role, { title, time, icon, type, note }) {
+async function addTemplate(callerOpenid, role, { title, time, icon, type, note, elderlyOpenid }) {
   const nt = normalizeTime(time)
   if (!title || !nt) return { code: 1, msg: '缺少标题或时间（HH:mm）' }
 
-  const eid = await findElderlyOpenid(callerOpenid, role)
+  const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
   if (!eid) return { code: 1, msg: '未绑定老人账号，请先关联' }
 
   // 时间冲突检查
@@ -117,10 +126,10 @@ async function addTemplate(callerOpenid, role, { title, time, icon, type, note }
 
 // ── updateTemplate ───────────────────────────────────
 
-async function updateTemplate(callerOpenid, role, { templateId, title, time, icon, type, note }) {
+async function updateTemplate(callerOpenid, role, { templateId, title, time, icon, type, note, elderlyOpenid }) {
   if (!templateId) return { code: 1, msg: '缺少 templateId' }
 
-  const eid = await findElderlyOpenid(callerOpenid, role)
+  const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
   const update = { updatedAt: new Date() }
 
   if (icon !== undefined)  update.icon  = icon || '⏰'
@@ -165,8 +174,8 @@ async function batchDelete(callerOpenid, role, { templateIds }) {
 
 // ── getToday ─────────────────────────────────────────
 
-async function getToday(callerOpenid, role) {
-  const eid = await findElderlyOpenid(callerOpenid, role)
+async function getToday(callerOpenid, role, elderlyOpenid) {
+  const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
   if (!eid) return { code: 0, data: [] }
 
   // 自动提醒过滤
@@ -212,8 +221,8 @@ async function getToday(callerOpenid, role) {
 
 // ── toggleDone（手动标记已提醒/未提醒）───────────────
 
-async function toggleDone(callerOpenid, role, { templateId, done }) {
-  const eid = await findElderlyOpenid(callerOpenid, role)
+async function toggleDone(callerOpenid, role, { templateId, done, elderlyOpenid }) {
+  const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
   if (!eid) return { code: 1, msg: '未找到关联老人' }
 
   const date = todayKey()
@@ -234,8 +243,8 @@ async function toggleDone(callerOpenid, role, { templateId, done }) {
 
 // ── getAutoRemindSetting ─────────────────────────────
 
-async function getAutoRemindSetting(callerOpenid, role) {
-  const eid = await findElderlyOpenid(callerOpenid, role)
+async function getAutoRemindSetting(callerOpenid, role, elderlyOpenid) {
+  const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
   if (!eid) return { code: 0, data: { autoRemind: false } }
   const { data } = await db.collection(COL_SETTINGS)
     .where({ elderlyOpenid: eid }).limit(1).get()
@@ -244,8 +253,8 @@ async function getAutoRemindSetting(callerOpenid, role) {
 
 // ── toggleAutoRemind ─────────────────────────────────
 
-async function toggleAutoRemind(callerOpenid, role, { enabled }) {
-  const eid = await findElderlyOpenid(callerOpenid, role)
+async function toggleAutoRemind(callerOpenid, role, { enabled, elderlyOpenid }) {
+  const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
   if (!eid) return { code: 1, msg: '未绑定老人账号' }
 
   // 更新/创建设置
@@ -289,15 +298,16 @@ exports.main = async (event) => {
     const { action, role = 'family', ...params } = event
     console.log('[reminders] action:', action, 'role:', role, 'openid:', OPENID)
 
+    const eid = params.elderlyOpenid || ''
     switch (action) {
-      case 'getTemplates':        return await getTemplates(OPENID, role)
+      case 'getTemplates':        return await getTemplates(OPENID, role, eid)
       case 'addTemplate':         return await addTemplate(OPENID, role, params)
       case 'updateTemplate':      return await updateTemplate(OPENID, role, params)
       case 'deleteTemplate':      return await deleteTemplate(OPENID, role, params)
       case 'batchDelete':         return await batchDelete(OPENID, role, params)
-      case 'getToday':            return await getToday(OPENID, role)
+      case 'getToday':            return await getToday(OPENID, role, eid)
       case 'toggleDone':          return await toggleDone(OPENID, role, params)
-      case 'getAutoRemindSetting': return await getAutoRemindSetting(OPENID, role)
+      case 'getAutoRemindSetting': return await getAutoRemindSetting(OPENID, role, eid)
       case 'toggleAutoRemind':    return await toggleAutoRemind(OPENID, role, params)
       default:                    return { code: -1, msg: '未知 action' }
     }

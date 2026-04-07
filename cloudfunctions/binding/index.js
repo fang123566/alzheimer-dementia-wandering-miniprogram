@@ -46,7 +46,12 @@ async function getBindings({ openid, role }) {
 
   // 老人视角补救：toOpenid 可能为空，用手机号匹配并回填
   if (role === 'elderly' && rawList.length === 0) {
-    const { data: selfList } = await elderlyCol.where({ _openid: openid }).limit(1).get()
+    // query by both _openid and plain openid field
+    const [snap1, snap2] = await Promise.all([
+      elderlyCol.where({ _openid: openid }).limit(1).get(),
+      elderlyCol.where({ openid }).limit(1).get()
+    ])
+    const selfList = snap1.data.length ? snap1.data : snap2.data
     const selfPhone = selfList[0] ? selfList[0].phone : ''
     if (selfPhone) {
       const { data: phoneBindings } = await bindingsCol.where({ toPhone: selfPhone }).get()
@@ -70,10 +75,13 @@ async function getBindings({ openid, role }) {
       let peerOpenid = role === 'elderly' ? item.fromOpenid : item.toOpenid
       let linkedUser = {}
 
-      // 先用 openid 查找对端用户
+      // 先用 openid 查找对端用户（兼容 _openid 和 openid 两个字段）
       if (peerOpenid) {
-        const { data: users } = await peerCol.where({ _openid: peerOpenid }).limit(1).get()
-        linkedUser = users[0] || {}
+        const [snap1, snap2] = await Promise.all([
+          peerCol.where({ _openid: peerOpenid }).limit(1).get(),
+          peerCol.where({ openid: peerOpenid }).limit(1).get()
+        ])
+        linkedUser = snap1.data[0] || snap2.data[0] || {}
       }
 
       // 家属视角：如果 toOpenid 为空但 toPhone 存在，尝试用手机号查找并回填
@@ -81,7 +89,7 @@ async function getBindings({ openid, role }) {
         const { data: phoneUsers } = await peerCol.where({ phone: item.toPhone }).limit(1).get()
         if (phoneUsers.length > 0) {
           linkedUser = phoneUsers[0]
-          peerOpenid = linkedUser._openid || ''
+          peerOpenid = linkedUser.openid || linkedUser._openid || ''
           // 回填 toOpenid，下次查询不再需要手机号查找
           if (peerOpenid) {
             await bindingsCol.doc(item._id).update({ data: { toOpenid: peerOpenid } }).catch(() => {})
@@ -146,7 +154,7 @@ async function createBinding({ openid, role }, { linkedPhone, note }) {
   const record = {
     fromOpenid: openid,
     toPhone: linkedPhone,
-    toOpenid: peer ? peer._openid : '',
+    toOpenid: peer ? (peer.openid || peer._openid || '') : '',
     note: note || '',
     createdAt: now
   }
@@ -174,7 +182,7 @@ async function updateBinding({ openid }, { bindingId, linkedPhone, note }) {
     const { data: peerList } = await elderlyCol.where({ phone: linkedPhone }).limit(1).get()
     const peer = peerList[0] || null
     update.toPhone = linkedPhone
-    update.toOpenid = peer ? peer._openid : ''
+    update.toOpenid = peer ? (peer.openid || peer._openid || '') : ''
   }
   if (note !== undefined) update.note = note
 

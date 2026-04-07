@@ -103,7 +103,7 @@
 .member-action:active { background: #e0efe4; }
 .member-action-icon { font-size: 36rpx; color: #6b8577; font-weight: 700; }
 
-/* ── 邀请二维码弹窗 ─────────────────── */
+/* ── 邀请弹窗 ─────────────────── */
 .qr-mask {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.5); z-index: 999;
@@ -120,34 +120,36 @@
 }
 .qr-sub {
   display: block; text-align: center;
-  font-size: 26rpx; color: #6b8577; margin-top: 10rpx;
+  font-size: 26rpx; color: #6b8577; margin-top: 10rpx; line-height: 1.6;
 }
 
-/* 二维码区域 */
-.qr-code-wrap {
-  margin: 32rpx auto; width: 360rpx; height: 360rpx;
-  background: #f8faf9; border-radius: 20rpx;
-  display: flex; align-items: center; justify-content: center;
-  border: 2rpx solid rgba(47,133,90,0.08);
+/* 老人手机号展示 */
+.invite-phone-wrap {
+  margin: 28rpx 0 0;
+  padding: 24rpx 28rpx;
+  background: #f0faf4; border-radius: 16rpx;
+  border: 1rpx solid rgba(56,161,105,0.15);
+  text-align: center;
 }
-.qr-code-img { width: 320rpx; height: 320rpx; }
-.qr-placeholder {
-  display: flex; flex-direction: column; align-items: center; gap: 12rpx;
+.invite-phone-label {
+  display: block; font-size: 24rpx; color: #6b8577; margin-bottom: 10rpx;
 }
-.qr-placeholder-icon { font-size: 56rpx; opacity: 0.4; }
-.qr-placeholder-text { font-size: 24rpx; color: #8a9e92; }
+.invite-phone-value {
+  display: block; font-size: 40rpx; font-weight: 800; color: #38a169;
+  letter-spacing: 6rpx;
+}
+.invite-phone-empty .invite-phone-label { color: #8a9e92; font-size: 26rpx; }
 
-/* 邀请码 */
-.qr-invite-code {
+/* 步骤列表 */
+.invite-steps { margin: 24rpx 0; display: flex; flex-direction: column; gap: 16rpx; }
+.invite-step { display: flex; align-items: center; gap: 16rpx; }
+.invite-step-num {
+  width: 44rpx; height: 44rpx; border-radius: 50%; flex-shrink: 0;
+  background: #38a169; color: #fff;
+  font-size: 24rpx; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
-  gap: 8rpx; margin: 24rpx 0;
-  padding: 20rpx; background: #f0faf4; border-radius: 12rpx;
 }
-.qr-invite-label { font-size: 26rpx; color: #6b8577; }
-.qr-invite-value {
-  font-size: 32rpx; font-weight: 800; color: #38a169;
-  letter-spacing: 4rpx;
-}
+.invite-step-text { font-size: 26rpx; color: #3d5a4c; flex: 1; }
 
 /* 操作按钮 */
 .qr-actions { display: flex; gap: 20rpx; margin-top: 24rpx; }

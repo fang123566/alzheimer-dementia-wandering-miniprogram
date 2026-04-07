@@ -57,31 +57,44 @@
     </view>
   </view>
 
-  <!-- 邀请二维码弹窗 -->
-  <view class="qr-mask" wx:if="{{showQrModal}}" bindtap="closeQrModal">
+  <!-- 邀请家人弹窗 -->
+  <view class="qr-mask" wx:if="{{showInviteModal}}" bindtap="closeInviteModal">
     <view class="qr-modal" catchtap="">
       <text class="qr-title">邀请家人加入</text>
-      <text class="qr-sub">扫描下方二维码或分享邀请链接</text>
-      <view class="qr-code-wrap">
-        <image wx:if="{{qrCodeUrl}}" class="qr-code-img" src="{{qrCodeUrl}}" mode="aspectFit"/>
-        <view wx:else class="qr-placeholder">
-          <text class="qr-placeholder-icon">📱</text>
-          <text class="qr-placeholder-text">二维码生成中…</text>
+      <text class="qr-sub">让家人注册后，在「账号绑定」页输入老人手机号即可加入</text>
+
+      <view class="invite-phone-wrap" wx:if="{{elderlyPhone}}">
+        <text class="invite-phone-label">老人手机号</text>
+        <text class="invite-phone-value">{{elderlyPhone}}</text>
+      </view>
+      <view class="invite-phone-wrap invite-phone-empty" wx:else>
+        <text class="invite-phone-label">绑定老人后可查看手机号</text>
+      </view>
+
+      <view class="invite-steps">
+        <view class="invite-step">
+          <text class="invite-step-num">1</text>
+          <text class="invite-step-text">让家人下载并注册「守护·陪伴」</text>
+        </view>
+        <view class="invite-step">
+          <text class="invite-step-num">2</text>
+          <text class="invite-step-text">注册时选择「家属」角色</text>
+        </view>
+        <view class="invite-step">
+          <text class="invite-step-num">3</text>
+          <text class="invite-step-text">在「账号绑定」页输入老人手机号</text>
         </view>
       </view>
-      <view class="qr-invite-code">
-        <text class="qr-invite-label">邀请码：</text>
-        <text class="qr-invite-value">{{inviteCode}}</text>
-      </view>
+
       <view class="qr-actions">
-        <view class="qr-btn qr-btn-copy" bindtap="copyInviteCode">
-          <text class="qr-btn-text">复制邀请码</text>
+        <view class="qr-btn qr-btn-copy" bindtap="copyElderlyPhone" wx:if="{{elderlyPhone}}">
+          <text class="qr-btn-text">复制手机号</text>
         </view>
         <view class="qr-btn qr-btn-share" bindtap="shareInvite">
-          <text class="qr-btn-text">分享给好友</text>
+          <text class="qr-btn-text">分享小程序</text>
         </view>
       </view>
-      <view class="qr-close" bindtap="closeQrModal">
+      <view class="qr-close" bindtap="closeInviteModal">
         <text class="qr-close-icon">✕</text>
       </view>
     </view>

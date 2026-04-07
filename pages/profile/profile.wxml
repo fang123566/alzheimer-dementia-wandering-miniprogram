@@ -229,4 +229,5 @@
 
   </block>
 
+  <view class="tab-bar-spacer"></view>
 </view>

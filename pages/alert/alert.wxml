@@ -43,4 +43,5 @@
       </view>
     </view>
   </view>
+  <view class="tab-bar-spacer"></view>
 </view>

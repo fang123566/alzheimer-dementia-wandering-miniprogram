@@ -175,5 +175,5 @@
     </view>
   </view>
 
-  <view class="home-bottom-spacer"></view>
+  <view class="tab-bar-spacer"></view>
 </view>

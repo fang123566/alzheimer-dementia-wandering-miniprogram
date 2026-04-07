@@ -11,23 +11,12 @@ function toAbsoluteUrl(url) {
 
 Page({
   data: {
-    activeMember: 'all',
-    members: [{ id: 'all', name: '全部', avatar: '' }],
     photos: [],
-    memoryHints: [],
+    videoCount: 0,
     loading: false,
-    // 成员弹窗
-    showMemberModal: false,
-    editingMember: null,
-    memberForm: { name: '', relation: '' },
-    // 照片详情弹窗
-    showDetailModal: false,
-    detailPhoto: { memberNames: [] },
-    // 照片编辑弹窗
     showPhotoEditModal: false,
     editingPhoto: null,
-    photoForm: { caption: '', members: [], type: 'image' },
-    selectableMembers: []
+    photoForm: { caption: '', type: 'image' }
   },
 
   onLoad() {
@@ -43,15 +32,7 @@ Page({
   async _fetchAll() {
     this.setData({ loading: true })
     try {
-      const [membersRes, photosRes, hintsRes] = await Promise.all([
-        memoryAPI.getMembers(),
-        memoryAPI.getPhotos(this.data.activeMember === 'all' ? undefined : this.data.activeMember),
-        memoryAPI.getHints()
-      ])
-      if (membersRes.code === 0) {
-        const members = [{ id: 'all', name: '全部', avatar: '' }, ...membersRes.data]
-        this.setData({ members })
-      }
+      const photosRes = await memoryAPI.getPhotos()
       if (photosRes.code === 0) {
         const photos = (photosRes.data || []).map(item => ({
           ...item,
@@ -59,27 +40,15 @@ Page({
           url: toAbsoluteUrl(item.url || item.thumb),
           cover: toAbsoluteUrl(item.cover || item.thumb || item.url)
         }))
-        this.setData({ photos })
-      }
-      if (hintsRes.code === 0) {
-        this.setData({ memoryHints: hintsRes.data })
+        this.setData({
+          photos,
+          videoCount: photos.filter(p => p.type === 'video').length
+        })
       }
     } catch (e) {
       wx.showToast({ title: '加载失败', icon: 'none' })
     } finally {
       this.setData({ loading: false })
-    }
-  },
-
-  // ══════ 成员筛选 ══════
-  async filterByMember(e) {
-    const id = e.currentTarget.dataset.id
-    this.setData({ activeMember: id })
-    try {
-      const res = await memoryAPI.getPhotos(id === 'all' ? undefined : id)
-      if (res.code === 0) this.setData({ photos: res.data })
-    } catch (e) {
-      wx.showToast({ title: '筛选失败', icon: 'none' })
     }
   },
 
@@ -97,11 +66,10 @@ Page({
               const file = res.tempFiles[0]
               this._tempAddFile = file.tempFilePath
               this._tempAddThumb = file.thumbTempFilePath || file.tempFilePath
-              this._buildSelectableMembers([])
               this.setData({
                 showPhotoEditModal: true,
                 editingPhoto: null,
-                photoForm: { caption: '', members: [], type: mediaType }
+                photoForm: { caption: '', type: mediaType }
               })
             } else {
               this._batchAddPhotos(res.tempFiles)
@@ -154,13 +122,11 @@ Page({
         if (res.tapIndex === 0) {
           this.showPhotoDetail(e)
         } else if (res.tapIndex === 1) {
-          this._buildSelectableMembers(photo.members || [])
           this.setData({
             showPhotoEditModal: true,
             editingPhoto: photo,
             photoForm: {
               caption: photo.caption || '',
-              members: [...(photo.members || [])],
               type: photo.type || 'image'
             }
           })
@@ -192,16 +158,6 @@ Page({
   },
 
   // ══════ 照片编辑弹窗 ══════
-  _buildSelectableMembers(selectedIds) {
-    const realMembers = this.data.members.filter(m => m.id !== 'all')
-    const selectable = realMembers.map(m => ({
-      id: m.id,
-      name: m.name,
-      selected: selectedIds.includes(m.id)
-    }))
-    this.setData({ selectableMembers: selectable })
-  },
-
   hidePhotoEditModal() {
     this.setData({ showPhotoEditModal: false })
     this._tempAddFile = null
@@ -212,16 +168,6 @@ Page({
     this.setData({ 'photoForm.caption': e.detail.value })
   },
 
-  togglePhotoMember(e) {
-    const id = e.currentTarget.dataset.id
-    const list = this.data.selectableMembers.map(m => {
-      if (m.id === id) return { ...m, selected: !m.selected }
-      return m
-    })
-    const selectedIds = list.filter(m => m.selected).map(m => m.id)
-    this.setData({ selectableMembers: list, 'photoForm.members': selectedIds })
-  },
-
   async savePhotoEdit() {
     const { photoForm, editingPhoto } = this.data
     wx.showLoading({ title: '保存中…' })
@@ -229,7 +175,6 @@ Page({
       if (editingPhoto) {
         await memoryAPI.updatePhoto(editingPhoto.id, {
           caption: photoForm.caption,
-          members: photoForm.members,
           type: photoForm.type
         })
         wx.showToast({ title: '已更新', icon: 'success' })
@@ -245,8 +190,7 @@ Page({
           cover: photoForm.type === 'video' ? (this._tempAddThumb || uploadRes.data.url) : uploadRes.data.url,
           caption: photoForm.caption,
           story: '',
-          voiceNote: { url: '', duration: 0, text: '' },
-          members: photoForm.members
+          voiceNote: { url: '', duration: 0, text: '' }
         })
         wx.showToast({ title: '已添加', icon: 'success' })
       }
@@ -259,87 +203,5 @@ Page({
     }
   },
 
-  // ══════ 成员管理 ══════
-  showAddMember() {
-    this.setData({
-      showMemberModal: true,
-      editingMember: null,
-      memberForm: { name: '', relation: '' }
-    })
-  },
-
-  manageMember(e) {
-    const member = e.currentTarget.dataset.member
-    if (member.id === 'all') return
-    this.setData({
-      showMemberModal: true,
-      editingMember: member,
-      memberForm: { name: member.name, relation: member.relation }
-    })
-  },
-
-  hideMemberModal() {
-    this.setData({ showMemberModal: false })
-  },
-
-  stopPropagation() {},
-
-  onMemberNameInput(e) {
-    this.setData({ 'memberForm.name': e.detail.value })
-  },
-
-  onMemberRelationInput(e) {
-    this.setData({ 'memberForm.relation': e.detail.value })
-  },
-
-  async saveMember() {
-    const { memberForm, editingMember } = this.data
-    if (!memberForm.name.trim()) {
-      wx.showToast({ title: '请输入姓名', icon: 'none' })
-      return
-    }
-    if (!memberForm.relation.trim()) {
-      wx.showToast({ title: '请输入关系', icon: 'none' })
-      return
-    }
-    wx.showLoading({ title: '保存中…' })
-    try {
-      if (editingMember) {
-        await memoryAPI.updateMember(editingMember.id, memberForm)
-        wx.showToast({ title: '已更新', icon: 'success' })
-      } else {
-        await memoryAPI.addMember(memberForm)
-        wx.showToast({ title: '已添加', icon: 'success' })
-      }
-      this.hideMemberModal()
-      this._fetchAll()
-    } catch (e) {
-      wx.showToast({ title: '保存失败', icon: 'none' })
-    } finally {
-      wx.hideLoading()
-    }
-  },
-
-  async deleteMember() {
-    const { editingMember } = this.data
-    if (!editingMember) return
-    const res = await wx.showModal({
-      title: '确认删除',
-      content: `确定要删除「${editingMember.name}（${editingMember.relation}）」吗？`,
-      confirmText: '删除',
-      confirmColor: '#ff5c5c'
-    })
-    if (!res.confirm) return
-    wx.showLoading({ title: '删除中…' })
-    try {
-      await memoryAPI.deleteMember(editingMember.id)
-      wx.showToast({ title: '已删除', icon: 'success' })
-      this.hideMemberModal()
-      this._fetchAll()
-    } catch (e) {
-      wx.showToast({ title: '删除失败', icon: 'none' })
-    } finally {
-      wx.hideLoading()
-    }
-  }
+  stopPropagation() {}
 })

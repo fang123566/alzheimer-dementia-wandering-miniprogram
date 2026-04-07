@@ -14,6 +14,12 @@ async function findUser(openid) {
   ])
   if (eSnap.data.length) return { ...eSnap.data[0], role: 'elderly' }
   if (fSnap.data.length) return { ...fSnap.data[0], role: 'family' }
+  const [eSnap2, fSnap2] = await Promise.all([
+    db.collection('elderly').where({ openid }).limit(1).get(),
+    db.collection('family').where({ openid }).limit(1).get()
+  ])
+  if (eSnap2.data.length) return { ...eSnap2.data[0], role: 'elderly' }
+  if (fSnap2.data.length) return { ...fSnap2.data[0], role: 'family' }
   return null
 }
 
@@ -29,10 +35,13 @@ async function findElderlyOpenid(familyOpenid) {
   if (binding.toPhone) {
     const { data: elders } = await db.collection('elderly')
       .where({ phone: binding.toPhone }).limit(1).get()
-    if (elders.length && elders[0]._openid) {
-      await db.collection('bindings').doc(binding._id)
-        .update({ data: { toOpenid: elders[0]._openid } }).catch(() => {})
-      return elders[0]._openid
+    if (elders.length) {
+      const eid = elders[0].openid || elders[0]._openid || ''
+      if (eid) {
+        await db.collection('bindings').doc(binding._id)
+          .update({ data: { toOpenid: eid } }).catch(() => {})
+        return eid
+      }
     }
   }
   return null

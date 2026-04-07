@@ -1,6 +1,8 @@
 // pages/reminders/edit/edit.js
 const { remindersAPI } = require('../../../utils/api')
 
+let _eid = ''   // 本页面内部缓存的老人 openid
+
 const TYPES = [
   { value: 'medication', label: '用药', icon: '💊' },
   { value: 'walk',       label: '散步', icon: '🚶' },
@@ -21,6 +23,7 @@ Page({
   },
 
   onLoad(options) {
+    _eid = decodeURIComponent(options.eid || '')
     if (options.id) {
       this.setData({ isEdit: true, templateId: options.id })
       this._loadTemplate(options.id)
@@ -39,7 +42,7 @@ Page({
 
   async _loadTemplate(id) {
     try {
-      const res = await remindersAPI.getTemplates()
+      const res = await remindersAPI.getTemplates(_eid)
       if (res.code === 0) {
         const list = res.data || []
         this.setData({ allTemplates: list })
@@ -60,7 +63,7 @@ Page({
 
   async _loadAllTemplates() {
     try {
-      const res = await remindersAPI.getTemplates()
+      const res = await remindersAPI.getTemplates(_eid)
       if (res.code === 0) this.setData({ allTemplates: res.data || [] })
     } catch (e) {}
   },
@@ -110,11 +113,11 @@ Page({
       if (isEdit) {
         res = await remindersAPI.updateTemplate(templateId, {
           title: title.trim(), time, icon, type, note: note.trim()
-        })
+        }, _eid)
       } else {
         res = await remindersAPI.addTemplate({
           title: title.trim(), time, icon, type, note: note.trim()
-        })
+        }, _eid)
       }
       wx.hideLoading()
 

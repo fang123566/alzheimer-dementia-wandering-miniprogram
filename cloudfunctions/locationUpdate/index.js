@@ -56,10 +56,13 @@ async function findElderlyOpenid(familyOpenid) {
   if (binding.toPhone) {
     const { data: elders } = await db.collection('elderly')
         .where({ phone: binding.toPhone }).limit(1).get()
-    if (elders.length && elders[0]._openid) {
-      await db.collection('bindings').doc(binding._id)
-          .update({ data: { toOpenid: elders[0]._openid } }).catch(() => {})
-      return elders[0]._openid
+    if (elders.length) {
+      const eid = elders[0].openid || elders[0]._openid || ''
+      if (eid) {
+        await db.collection('bindings').doc(binding._id)
+            .update({ data: { toOpenid: eid } }).catch(() => {})
+        return eid
+      }
     }
   }
   return null
@@ -81,14 +84,22 @@ exports.main = async (event, context) => {
   try {
     // 先判断调用者是老人还是家属
     let targetOpenid = openid
-    const elderlySnap = await db.collection('elderly').where({ _openid: openid }).get()
-    if (elderlySnap.data.length && elderlySnap.data[0].role === 'elderly') {
+    const [elderlySnap, elderlySnap2] = await Promise.all([
+      db.collection('elderly').where({ _openid: openid }).get(),
+      db.collection('elderly').where({ openid }).get()
+    ])
+    const elderlyDoc = elderlySnap.data[0] || elderlySnap2.data[0]
+    if (elderlyDoc) {
       // 老人端直接上报
       targetOpenid = openid
     } else {
       // 尝试作为家属端：查找绑定的老人
-      const familySnap = await db.collection('family').where({ _openid: openid }).get()
-      if (familySnap.data.length) {
+      const [familySnap, familySnap2] = await Promise.all([
+        db.collection('family').where({ _openid: openid }).get(),
+        db.collection('family').where({ openid }).get()
+      ])
+      const familyDoc = familySnap.data[0] || familySnap2.data[0]
+      if (familyDoc) {
         const eid = await findElderlyOpenid(openid)
         if (!eid) {
           return { code: 1, msg: '未绑定老人账号，无法刷新位置' }

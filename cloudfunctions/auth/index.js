@@ -27,13 +27,19 @@ function safeUser(user) {
   return safe
 }
 
-/** 根据 openid 在 elderly 和 family 集合中查找用户 */
+/** 根据 openid 在 elderly 和 family 集合中查找用户（兼容 _openid 和 openid 两个字段） */
 async function findUserByOpenid(openid) {
   const [resE, resF] = await Promise.all([
     db.collection('elderly').where({ _openid: openid }).limit(1).get(),
     db.collection('family').where({ _openid: openid }).limit(1).get()
   ])
-  return resE.data[0] || resF.data[0] || null
+  if (resE.data[0]) return resE.data[0]
+  if (resF.data[0]) return resF.data[0]
+  const [resE2, resF2] = await Promise.all([
+    db.collection('elderly').where({ openid }).limit(1).get(),
+    db.collection('family').where({ openid }).limit(1).get()
+  ])
+  return resE2.data[0] || resF2.data[0] || null
 }
 
 // ── 注册 ──────────────────────────────────────────────
@@ -48,6 +54,7 @@ async function register(openid, { name, phone, password, role }) {
     const now = new Date()
     const baseUser = {
       _openid: openid,
+      openid,          // plain field, no underscore — reliably queryable from cloud functions
       name,
       phone,
       password: hashPassword(password),
@@ -97,9 +104,10 @@ async function login(openid, { phone, password }) {
 
     // 关联 openid（首次登录或换设备登录时更新）
     const col = user.role === 'elderly' ? 'elderly' : 'family'
-    if (user._openid !== openid) {
+    // Always sync both openid fields so phone-based binding lookups stay accurate
+    if (user._openid !== openid || user.openid !== openid) {
       await db.collection(col).doc(user._id).update({
-        data: { _openid: openid, updatedAt: new Date() }
+        data: { _openid: openid, openid, updatedAt: new Date() }
       })
     }
 

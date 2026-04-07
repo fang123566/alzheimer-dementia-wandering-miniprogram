@@ -1,5 +1,5 @@
 // pages/reminders/reminders.js
-const { remindersAPI } = require('../../utils/api')
+const { remindersAPI, bindingAPI } = require('../../utils/api')
 
 function todayNoticeKey() {
   const now = new Date()
@@ -17,18 +17,38 @@ Page({
     autoRemind: false,
     selectedMap: {},       // { [id]: true } 删除模式勾选
     selectAll: false,
-    selectedCount: 0
+    selectedCount: 0,
+    elderlyOpenid: '',
+    elderlyName: ''
   },
+
+  _elderlyOpenid: '',   // 内部缓存，避免 setData 异步延迟
 
   onLoad() {
     if (!getApp().checkLogin()) return
-    this.refreshAll()
+    this._loadBindingThenRefresh()
   },
 
   onShow() {
     if (!getApp().checkLogin()) return
-    this.refreshAll()
+    this._loadBindingThenRefresh()
     this.startReminderWatcher()
+  },
+
+  async _loadBindingThenRefresh() {
+    const role = wx.getStorageSync('role') || 'family'
+    if (role === 'family') {
+      try {
+        const br = await bindingAPI.getBindings()
+        if (br && br.code === 0 && br.data && br.data.length > 0) {
+          const eid = br.data[0].linkedUser.openid || ''
+          const ename = br.data[0].linkedUser.name || '老人'
+          this._elderlyOpenid = eid
+          this.setData({ elderlyOpenid: eid, elderlyName: ename })
+        }
+      } catch (e) {}
+    }
+    this.refreshAll()
   },
 
   onHide() { this.stopReminderWatcher() },
@@ -36,11 +56,12 @@ Page({
 
   // ── 数据加载 ──────────────────────────────────────
   async refreshAll() {
+    const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
     try {
       const [tRes, todayRes, settingRes] = await Promise.all([
-        remindersAPI.getTemplates(),
-        remindersAPI.getToday(),
-        remindersAPI.getAutoRemindSetting()
+        remindersAPI.getTemplates(eid),
+        remindersAPI.getToday(eid),
+        remindersAPI.getAutoRemindSetting(eid)
       ])
       if (tRes.code === 0) this.setData({ templates: tRes.data || [] })
       if (todayRes.code === 0) {
@@ -93,7 +114,8 @@ Page({
 
   // ── 新增提醒 ──────────────────────────────────────
   addTemplate() {
-    wx.navigateTo({ url: '/pages/reminders/edit/edit' })
+    const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
+    wx.navigateTo({ url: '/pages/reminders/edit/edit?eid=' + encodeURIComponent(eid) })
   },
 
   // ── 列表项点击 ────────────────────────────────────
@@ -103,7 +125,8 @@ Page({
       this._toggleSelect(id)
     } else {
       // normal / edit 模式均跳转编辑页
-      wx.navigateTo({ url: '/pages/reminders/edit/edit?id=' + id })
+      const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
+      wx.navigateTo({ url: '/pages/reminders/edit/edit?id=' + id + '&eid=' + encodeURIComponent(eid) })
     }
   },
 
@@ -143,7 +166,8 @@ Page({
         if (!res.confirm) return
         try {
           wx.showLoading({ title: '删除中…', mask: true })
-          const r = await remindersAPI.batchDelete(ids)
+          const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
+          const r = await remindersAPI.batchDelete(ids, eid)
           wx.hideLoading()
           if (r.code === 0) {
             this.setData({ mode: 'normal', selectedMap: {}, selectAll: false, selectedCount: 0 })
@@ -165,7 +189,8 @@ Page({
     const next = !this.data.autoRemind
     try {
       wx.showLoading({ title: next ? '开启中…' : '关闭中…', mask: true })
-      const r = await remindersAPI.toggleAutoRemind(next)
+      const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
+      const r = await remindersAPI.toggleAutoRemind(next, eid)
       wx.hideLoading()
       if (r.code === 0) {
         this.setData({ autoRemind: next })
@@ -185,7 +210,8 @@ Page({
     const templateId = e.currentTarget.dataset.tid
     const current = e.currentTarget.dataset.done
     try {
-      const r = await remindersAPI.toggleDone(templateId, !current)
+      const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
+      const r = await remindersAPI.toggleDone(templateId, !current, eid)
       if (r.code === 0) await this.refreshAll()
       else wx.showToast({ title: r.msg || '操作失败', icon: 'none' })
     } catch (e) {

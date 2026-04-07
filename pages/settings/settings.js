@@ -1,5 +1,5 @@
 // pages/settings/settings.js
-const { settingsAPI } = require('../../utils/api')
+const { settingsAPI, bindingAPI } = require('../../utils/api')
 
 Page({
   data: {
@@ -37,12 +37,18 @@ Page({
       if (settingsRes.code === 0) {
         const d = settingsRes.data
         this.setData({
-          elderly: d.elderly,
-          settings: d.settings,
-          family: d.family,
-          deviceBound: !!(d.family && d.family.deviceBound)
+          elderly: d.elderly || {},
+          settings: { ...this.data.settings, ...(d.settings || {}) },
+          family: d.family || {}
         })
       }
+      // 独立用绑定API判断实际绑定状态，避免 settings 云函数因 findElderlyOpenid 失败返回 code:1
+      try {
+        const bindRes = await bindingAPI.getBindings()
+        if (bindRes && bindRes.code === 0) {
+          this.setData({ deviceBound: Array.isArray(bindRes.data) && bindRes.data.length > 0 })
+        }
+      } catch (e) {}
       if (contactsRes.code === 0) {
         this.setData({ contacts: this._sortContacts(contactsRes.data) })
       }

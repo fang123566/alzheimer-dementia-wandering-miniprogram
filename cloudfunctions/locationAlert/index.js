@@ -83,17 +83,42 @@ exports.main = async (event, context) => {
     return { code: 0, alerted: false, msg: '冷却期内，跳过推送' }
   }
 
-  // 6. 获取家属手机号（通过 bindings 表找 family）
-  const { data: bindList } = await db.collection('bindings')
-    .where({ toOpenid: _.eq(openid) })
-    .get()
+  // 6. 获取家属列表（通过 bindings 表找 family，同时支持 toPhone 兜底）
+  let bindList = []
+  const byOid = await db.collection('bindings').where({ toOpenid: _.eq(openid) }).get().catch(() => ({ data: [] }))
+  if (byOid.data.length) {
+    bindList = byOid.data
+  } else {
+    // toOpenid 可能未回填，通过老人手机号反查绑定记录
+    const [snap1, snap2] = await Promise.all([
+      db.collection('elderly').where({ _openid: openid }).limit(1).get().catch(() => ({ data: [] })),
+      db.collection('elderly').where({ openid }).limit(1).get().catch(() => ({ data: [] }))
+    ])
+    const elderDoc = snap1.data[0] || snap2.data[0]
+    if (elderDoc && elderDoc.phone) {
+      const byPhone = await db.collection('bindings').where({ toPhone: elderDoc.phone }).get().catch(() => ({ data: [] }))
+      bindList = byPhone.data
+      // 顺便回填 toOpenid
+      for (const b of bindList) {
+        if (!b.toOpenid) {
+          await db.collection('bindings').doc(b._id).update({ data: { toOpenid: openid } }).catch(() => {})
+        }
+      }
+    }
+  }
   const familyOpenids = bindList.map(b => b.fromOpenid).filter(Boolean)
   let familyList = []
   if (familyOpenids.length) {
-    const { data: fam } = await db.collection('family')
-      .where({ _openid: _.in(familyOpenids) })
-      .get()
-    familyList = fam
+    const [fam1, fam2] = await Promise.all([
+      db.collection('family').where({ _openid: _.in(familyOpenids) }).get().catch(() => ({ data: [] })),
+      db.collection('family').where({ openid: _.in(familyOpenids) }).get().catch(() => ({ data: [] }))
+    ])
+    // Merge, deduplicate by _id
+    const seen = new Set()
+    familyList = [...fam1.data, ...fam2.data].filter(u => {
+      if (seen.has(u._id)) return false
+      seen.add(u._id); return true
+    })
   }
 
   // 7. 发送短信
