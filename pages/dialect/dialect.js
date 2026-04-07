@@ -2,7 +2,7 @@
 const app = getApp()
 const { speechAPI } = require('../../utils/api')
 
-// ── 翻译规则库（普通话 → 各方言） ────────────────────────
+// 翻译规则库（包含新增的上海话、闽南语、湖南话、湖北话、河南话）
 const TO_DIALECT = {
   '四川话': {
     map: [
@@ -36,7 +36,7 @@ const TO_DIALECT = {
       ['不知道', '不知道整啥'], ['什么', '啥玩意'], ['去哪里', '上哪旮旯去'],
       ['吃饭', '整点吃的'], ['这里', '这旮旯'], ['那里', '那旮旯'],
       ['怎么了', '咋整啦'], ['没有', '没整'], ['很好', '老得劲了'],
-      ['是吗', '是咋地'], ['好的', '行行行'], ['厉害', '老铁'],
+      ['是吗', '是咋地'], ['好的', '行行行'], ['厉害', '老厉害了'],
       ['我不舒服', '俺难受'], ['需要帮助', '得有人搭把手'],
       ['我想回家', '俺想回家'], ['帮我打电话', '帮俺打个电话'],
       ['我饿了', '俺饿了'], ['我需要吃药', '俺得吃药'],
@@ -44,16 +44,87 @@ const TO_DIALECT = {
       ['我很好', '俺可好了'], ['我', '俺']
     ],
     phonetic: '（儿化音丰富，声调平缓，语速偏快）'
+  },
+  '上海话': {
+    map: [
+      ['不知道', '勿晓得'], ['什么', '啥物事'], ['去哪里', '到啥地方去'],
+      ['吃饭', '吃饭'], ['这里', '搿搭'], ['那里', '埃搭'],
+      ['怎么了', '哪能了'], ['没有', '呒没'], ['很好', '交关好'],
+      ['是吗', '是哦'], ['好的', '好个'], ['厉害', '结棍'],
+      ['我不舒服', '我勿适意'], ['需要帮助', '需要人帮忙'],
+      ['我想回家', '我想转去'], ['帮我打电话', '帮我打只电话'],
+      ['我饿了', '我饿了'], ['我需要吃药', '我要吃藥'],
+      ['我要去厕所', '我要上厕所'], ['我想休息', '我想休息歇'],
+      ['我很好', '我交关好']
+    ],
+    phonetic: '（吴语太湖片，声调8个，轻声音节多）'
+  },
+  '闽南语': {
+    map: [
+      ['不知道', '毋捌'], ['什么', '啥物'], ['去哪里', '去叨位'],
+      ['吃饭', '食饭'], ['这里', '遮'], ['那里', '遐'],
+      ['怎么了', '按怎'], ['没有', '无'], ['很好', '真佳'],
+      ['是吗', '是无'], ['好的', '好个'], ['厉害', '有够厉害'],
+      ['我不舒服', '我袂爽'], ['需要帮助', '需要人帮忙'],
+      ['我想回家', '我想倒转去'], ['帮我打电话', '帮我打支电话'],
+      ['我饿了', '我腹肚饿'], ['我需要吃药', '我欲食药'],
+      ['我要去厕所', '我欲去厕所'], ['我想休息', '我想歇睏'],
+      ['我很好', '我真舒适']
+    ],
+    phonetic: '（泉漳片，声调7个，鼻化韵丰富）'
+  },
+  '湖南话': {
+    map: [
+      ['不知道', '不晓得'], ['什么', '么子'], ['去哪里', '克哪里'],
+      ['吃饭', '恰饭'], ['这里', '咯里'], ['那里', '那里'],
+      ['怎么了', '何什咯'], ['没有', '冇得'], ['很好', '蛮好'],
+      ['是吗', '哦是吧'], ['好的', '要得'], ['厉害', '要得'],
+      ['我不舒服', '我不舒糊'], ['需要帮助', '要人帮忙'],
+      ['我想回家', '我想回克'], ['帮我打电话', '帮我打个电话'],
+      ['我饿了', '我饿哒'], ['我需要吃药', '我要恰药'],
+      ['我要去厕所', '我要上厕所'], ['我想休息', '我想歇哈'],
+      ['我很好', '我蛮好']
+    ],
+    phonetic: '（长沙话，声调6个，入声归阳平）'
+  },
+  '湖北话': {
+    map: [
+      ['不知道', '不晓得'], ['什么', '么事'], ['去哪里', '克哪哈'],
+      ['吃饭', '七饭'], ['这里', '这哈'], ['那里', '那哈'],
+      ['怎么了', '搞么斯'], ['没有', '冇得'], ['很好', '蛮好'],
+      ['是吗', '是撒'], ['好的', '要得'], ['厉害', '扎实'],
+      ['我不舒服', '我不舒坦'], ['需要帮助', '要人帮忙'],
+      ['我想回家', '我想回克'], ['帮我打电话', '帮我打个电话'],
+      ['我饿了', '我饿哒'], ['我需要吃药', '我要七药'],
+      ['我要去厕所', '我要上厕所'], ['我想休息', '我想歇哈'],
+      ['我很好', '我蛮好']
+    ],
+    phonetic: '（武汉话，声调4个，儿化音少）'
+  },
+  '河南话': {
+    map: [
+      ['不知道', '不沾闲'], ['什么', '啥'], ['去哪里', '上哪去'],
+      ['吃饭', '吃饭'], ['这里', '这搭'], ['那里', '那搭'],
+      ['怎么了', '咋着了'], ['没有', '木有'], ['很好', '可得劲'],
+      ['是吗', '是哩'], ['好的', '中'], ['厉害', '中'],
+      ['我不舒服', '我不得劲'], ['需要帮助', '需要人帮忙'],
+      ['我想回家', '我想回家'], ['帮我打电话', '帮我打个电话'],
+      ['我饿了', '我饿了'], ['我需要吃药', '我得吃药'],
+      ['我要去厕所', '我要上厕所'], ['我想休息', '我想歇会儿'],
+      ['我很好', '我可得劲']
+    ],
+    phonetic: '（郑州话，声调4个，儿化音丰富）'
   }
 }
 
-// ── 方言 → 普通话（反向规则） ────────────────────────────
+// 方言→普通话反向规则
 function buildReverse(dialectKey) {
   const rules = TO_DIALECT[dialectKey]
   if (!rules) return []
   return rules.map.map(([std, dia]) => [dia, std])
 }
 
+// 常用短语
 const PHRASES = [
   { id: 1, emoji: '🏥', text: '我不舒服，需要帮助' },
   { id: 2, emoji: '🏠', text: '我想回家' },
@@ -65,21 +136,8 @@ const PHRASES = [
   { id: 8, emoji: '😊', text: '我很好，不用担心' }
 ]
 
-const DIALECTS = ['四川话', '粤语', '东北话']
-
-// ── 方言 → 讯飞 accent 参数映射 ──────────────────────────
-const DIALECT_ACCENT_MAP = {
-  '四川话': 'x3_yezi_sc',
-  '粤语':   'x3_xiaoyue',
-  '东北话': 'x4_ziyang_oral',
-}
-
-// ── 方言 → 讯飞 TTS 发音人映射 ───────────────────────────
-const DIALECT_VOICE_MAP = {
-  '四川话': 'x3_yezi_sc',
-  '粤语':   'x3_xiaoyue',
-  '东北话': 'x4_ziyang_oral',
-}
+// 完整方言列表（和翻译规则对应）
+const DIALECTS = ['普通话', '四川话', '粤语', '东北话', '上海话', '闽南语', '湖南话', '湖北话', '河南话']
 
 Page({
   data: {
@@ -95,7 +153,12 @@ Page({
     isPlayingRecord: false,
     recordTempPath: '',
     phrases: PHRASES,
-    history: []
+    history: [],
+    // ========== 新增：弹窗相关变量（核心缺失项） ==========
+    showDialectModal: false,   // 弹窗显隐（默认隐藏）
+    selectLangType: 'from',    // 标记修改from/to
+    currentSelectLang: '',     // 当前选中的方言
+    dialectList: DIALECTS.map((name, index) => ({ id: index + 1, name })) // 方言列表赋值
   },
 
   onLoad() {
@@ -122,9 +185,102 @@ Page({
     }
   },
 
-  // ==============================================
-  // 新增：选择本地音频文件（测试专用）
-  // ==============================================
+  // ========== 核心修复：打开方言选择弹窗（改用data-type传参） ==========
+  openDialectSelect(e) {
+    // 从data-type获取类型（替代原有的class判断，更稳定）
+    const type = e.currentTarget.dataset.type || 'from'
+    // 赋值弹窗变量，显示弹窗
+    this.setData({
+      showDialectModal: true,
+      selectLangType: type,
+      currentSelectLang: type === 'from' ? this.data.dirFrom : this.data.dirTo
+    })
+  },
+
+  // ========== 核心新增：关闭方言选择弹窗 ==========
+  closeDialectModal() {
+    this.setData({ showDialectModal: false })
+  },
+
+  // ========== 核心新增：阻止弹窗内容区点击冒泡（避免点选项关闭弹窗） ==========
+  stopPropagation() {},
+
+  // ========== 核心修复：选择方言并更新显示 ==========
+  selectDialect(e) {
+    const lang = e.currentTarget.dataset.lang
+    const type = e.currentTarget.dataset.type
+    if (!lang || !type) return; // 容错处理
+    
+    // 更新from/to方言
+    const updateData = {}
+    if (type === 'from') {
+      updateData.dirFrom = lang
+    } else {
+      updateData.dirTo = lang
+      updateData.dialect = lang // 同步更新dialect变量
+    }
+    // 关闭弹窗 + 更新数据
+    this.setData({
+      ...updateData,
+      showDialectModal: false
+    })
+  },
+
+  // 交换翻译方向
+  swapDirection() {
+    const { dirFrom, dirTo } = this.data
+    // 交换from/to
+    const newFrom = dirTo
+    const newTo = dirFrom
+    // 更新方向和输入/结果
+    this.setData({
+      dirFrom: newFrom,
+      dirTo: newTo,
+      direction: newFrom === '普通话' ? 'toDialect' : 'toPutonghua',
+      inputText: this.data.result || '',
+      result: '', 
+      phonetic: ''
+    })
+  },
+
+  // ========== 补充：录音开始（原代码缺失的实现） ==========
+  startRecord() {
+    if (this.data.recording) return;
+    // 创建录音实例
+    this._recordAudio = wx.createRecorderManager()
+    // 配置录音参数
+    this._recordAudio.start({
+      duration: 60000, // 最长60秒
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 96000,
+      format: 'mp3'
+    })
+    // 监听录音错误
+    this._recordAudio.onError((err) => {
+      console.error('录音错误:', err)
+      this.setData({ recording: false })
+      wx.showToast({ title: '录音失败', icon: 'none' })
+    })
+    // 标记录音中
+    this.setData({ recording: true })
+  },
+
+  // ========== 补充：录音结束（原代码缺失的实现） ==========
+  stopRecord() {
+    if (!this.data.recording || !this._recordAudio) return;
+    this.setData({ recording: false })
+    // 停止录音
+    this._recordAudio.stop()
+    // 监听录音完成
+    this._recordAudio.onStop((res) => {
+      this.setData({ recordTempPath: res.tempFilePath })
+      // 识别语音
+      this._recognizeSpeech(res.tempFilePath)
+    })
+  },
+
+  // 选择本地音频文件（测试用）
   chooseLocalAudio() {
     wx.chooseMessageFile({
       count: 1,
@@ -134,7 +290,6 @@ Page({
         const tempFilePath = res.tempFiles[0].path
         console.log('选中音频文件路径：', tempFilePath)
         this.setData({ recordTempPath: tempFilePath })
-        // 直接调用识别逻辑
         this._recognizeSpeech(tempFilePath)
       },
       fail: (err) => {
@@ -144,9 +299,7 @@ Page({
     })
   },
 
-  // ==============================================
-  // 语音识别【修复：方言大模型mulacc参数】
-  // ==============================================
+  // 语音识别
   _recognizeSpeech(tempFilePath) {
     wx.showLoading({ title: '识别中…', mask: true })
 
@@ -154,8 +307,6 @@ Page({
       filePath: tempFilePath,
       encoding: 'base64',
       success: async (fileRes) => {
-        console.log('📂 音频读取成功，Base64长度：', fileRes.data?.length)
-
         if (!fileRes.data || fileRes.data.length === 0) {
           wx.hideLoading()
           wx.showToast({ title: '音频数据为空', icon: 'none' })
@@ -163,7 +314,6 @@ Page({
         }
 
         try {
-          // ✅ 核心修复：讯飞方言大模型 强制使用 mulacc
           const accent = "mulacc"
           const res = await speechAPI.asr(fileRes.data, 'zh_cn', accent)
           wx.hideLoading()
@@ -176,53 +326,24 @@ Page({
           }
         } catch (err) {
           wx.hideLoading()
-          console.error('❌ ASR 错误：', err)
+          console.error('ASR 错误：', err)
           wx.showToast({ title: '识别失败，请重试', icon: 'none' })
         }
       },
       fail: (err) => {
         wx.hideLoading()
-        console.error('❌ 读取音频失败：', err)
+        console.error('读取音频失败：', err)
         wx.showToast({ title: '读取音频失败', icon: 'none' })
       }
     })
   },
 
-  // ── 方言 / 方向切换 ────────────────────────────────────
-  changeDialect() {
-    wx.showActionSheet({
-      itemList: DIALECTS,
-      success: (res) => {
-        const dialect = DIALECTS[res.tapIndex]
-        const { direction } = this.data
-        this.setData({
-          dialect,
-          dirFrom: direction === 'toDialect' ? '普通话' : dialect,
-          dirTo:   direction === 'toDialect' ? dialect  : '普通话',
-          result: '', phonetic: ''
-        })
-        wx.showToast({ title: `已选择${dialect}`, icon: 'none' })
-      }
-    })
-  },
-
-  swapDirection() {
-    const { direction, dialect } = this.data
-    const newDir = direction === 'toDialect' ? 'toPutonghua' : 'toDialect'
-    this.setData({
-      direction: newDir,
-      dirFrom:   newDir === 'toDialect' ? '普通话' : dialect,
-      dirTo:     newDir === 'toDialect' ? dialect  : '普通话',
-      inputText: this.data.result || '',
-      result: '', phonetic: ''
-    })
-  },
-
-  // ── 翻译 ───────────────────────────────────────────────
+  // 输入文本
   onInput(e) {
     this.setData({ inputText: e.detail.value })
   },
 
+  // 翻译逻辑
   translate() {
     const text = this.data.inputText.trim()
     if (!text) {
@@ -232,14 +353,18 @@ Page({
     this.setData({ loading: true })
 
     setTimeout(() => {
-      const { direction, dialect } = this.data
+      const { dirFrom, dirTo } = this.data
       let result, phonetic
+      const targetDialect = dirTo !== '普通话' ? dirTo : dirFrom
 
-      if (direction === 'toDialect') {
-        result   = this._applyRules(text, TO_DIALECT[dialect]?.map || [])
-        phonetic = TO_DIALECT[dialect]?.phonetic || ''
+      // 判断翻译方向：普通话→方言 或 方言→普通话
+      if (dirFrom === '普通话' && dirTo !== '普通话') {
+        // 普通话转方言
+        result   = this._applyRules(text, TO_DIALECT[targetDialect]?.map || [])
+        phonetic = TO_DIALECT[targetDialect]?.phonetic || ''
       } else {
-        result   = this._applyRules(text, buildReverse(dialect))
+        // 方言转普通话
+        result   = this._applyRules(text, buildReverse(targetDialect))
         phonetic = '（已还原为普通话表达）'
       }
 
@@ -247,8 +372,8 @@ Page({
         id: Date.now(),
         original: text,
         result,
-        fromLang: this.data.dirFrom,
-        toLang:   this.data.dirTo
+        fromLang: dirFrom,
+        toLang: dirTo
       }
       const history = [item, ...this.data.history].slice(0, 8)
 
@@ -257,35 +382,20 @@ Page({
     }, 500)
   },
 
-  // 修复BUG：for...in 改为 for...of
+  // 应用翻译规则
   _applyRules(text, rules) {
     if (!rules || rules.length === 0) return text
     let out = text
+    // 按匹配文本长度降序排序，避免短文本覆盖长文本
     const sorted = [...rules].sort((a, b) => b[0].length - a[0].length)
     for (const [from, to] of sorted) {
-      out = out.split(from).join(to)
+      // 全局替换
+      out = out.replace(new RegExp(from, 'g'), to)
     }
     return out
   },
 
-  getFileFormat(filePath) {
-    const ext = filePath.split('.').pop().toLowerCase()
-    return ext
-  },
-
-  detectAudioFormatByBuffer(buffer) {
-    const uint8 = new Uint8Array(buffer.slice(0, 16))
-    const hex = Array.from(uint8).map(b => b.toString(16).padStart(2, '0')).join('')
-    if (hex.startsWith('52494646')) return 'wav'
-    if (hex.startsWith('fff1') || hex.startsWith('fff9')) return 'aac'
-    if (hex.startsWith('020153494c4b')) return 'silk'
-    if (hex.startsWith('494433')) return 'mp3'
-    return 'pcm(原始音频)'
-  },
-
-  // ==============================================
   // 语音合成
-  // ==============================================
   async _speak(text) {
     if (!text) return
 
@@ -297,10 +407,20 @@ Page({
     wx.showLoading({ title: '合成中…', mask: true })
 
     try {
-      const { dialect, direction } = this.data
-      const voiceName = direction === 'toDialect'
-        ? (DIALECT_VOICE_MAP[dialect] || 'x4_ziyang_oral')
-        : 'xiaoyan'
+      const { dirTo } = this.data
+      // 方言语音合成映射（根据方言选择对应音色）
+      const voiceMap = {
+        '四川话': 'x3_yezi_sc',
+        '粤语': 'x3_xiaoyue',
+        '东北话': 'x4_ziyang_oral',
+        '上海话': 'x3_ziling',
+        '闽南语': 'x3_linlin',
+        '湖南话': 'x2_xiaoqiang',
+        '湖北话': 'x2_xiaowang',
+        '河南话': 'x2_xiaokun',
+        '普通话': 'xiaoyan'
+      }
+      const voiceName = voiceMap[dirTo] || 'xiaoyan'
 
       const res = await speechAPI.tts(text, 'zh_cn', voiceName)
       wx.hideLoading()
@@ -324,10 +444,12 @@ Page({
 
           audio.onError((err) => {
             console.error('播放失败:', err)
+            wx.showToast({ title: '音频播放失败', icon: 'none' })
           })
         },
         fail: (err) => {
           console.error('音频写入失败:', err)
+          wx.showToast({ title: '音频保存失败', icon: 'none' })
         }
       })
     } catch (err) {
@@ -337,25 +459,31 @@ Page({
     }
   },
 
+  // 重播语音
   replay() {
     if (this.data.result) this._speak(this.data.result)
   },
 
+  // 清空输入
   clearText() {
     this.setData({ inputText: '', result: '', phonetic: '' })
   },
 
+  // 使用常用短语
   usePhrase(e) {
     const text = e.currentTarget.dataset.text
     this.setData({ inputText: text })
     setTimeout(() => this.translate(), 100)
   },
 
+  // 使用历史记录
   useHistory(e) {
     this.setData({ inputText: e.currentTarget.dataset.text })
   },
 
+  // 清空历史记录
   clearHistory() {
     this.setData({ history: [] })
+    wx.showToast({ title: '历史记录已清空', icon: 'success' })
   }
 })

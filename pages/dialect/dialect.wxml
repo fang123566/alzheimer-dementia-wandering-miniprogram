@@ -1,8 +1,6 @@
 <!-- pages/dialect/dialect.wxml -->
 <!-- 老人端「方言翻译」 -->
-
 <view class="container">
-
   <view class="page-header">
     <text class="page-title">🗣️ 方言助手</text>
     <text class="page-subtitle">语音输入，方言互译</text>
@@ -10,22 +8,40 @@
 
   <!-- 方言选择 + 翻译方向 -->
   <view class="control-bar">
-    <view class="lang-box" bindtap="changeDialect">
+    <!-- 左侧方言选择 -->
+    <view class="lang-box" bindtap="openDialectSelect" data-type="from">
       <text class="lang-label">{{dirFrom}}</text>
       <text class="lang-change">切换 ›</text>
     </view>
+    <!-- 交换按钮 -->
     <view class="swap-btn" bindtap="swapDirection">
       <text class="swap-icon">⇄</text>
     </view>
-    <view class="lang-box lang-box-right">
+    <!-- 右侧方言选择（修复重复标签问题 + 增加data-type） -->
+    <view class="lang-box lang-box-right" bindtap="openDialectSelect" data-type="to">
       <text class="lang-label">{{dirTo}}</text>
+      <text class="lang-change" style="font-size: 18rpx;">切换</text>
+    </view>
+  </view>
+
+  <!-- 新增：方言选择弹窗（默认隐藏） -->
+  <view class="lang-select-modal" wx:if="{{showDialectModal}}" bindtap="closeDialectModal">
+    <view class="lang-select-content" catchtap="stopPropagation">
+      <view 
+        wx:for="{{dialectList}}" 
+        wx:key="id"
+        class="lang-option {{currentSelectLang === item.name ? 'active' : ''}}"
+        bindtap="selectDialect"
+        data-lang="{{item.name}}"
+        data-type="{{selectLangType}}"
+      >
+        {{item.name}}
+      </view>
     </view>
   </view>
 
   <!-- 输入区 -->
   <view class="card input-card">
-<!-- 测试用：上传本地音频文件 -->
-
     <!-- 语音输入按钮（大型） -->
     <view
       class="voice-btn {{recording ? 'voice-recording' : ''}}"
@@ -55,15 +71,18 @@
         class="btn btn-primary btn-half {{loading ? 'disabled' : ''}}"
         bindtap="translate"
       >
-        <text wx:if="{{!loading}}">� 翻 译</text>
+        <!-- 修复乱码字符 -->
+        <text wx:if="{{!loading}}">📤 翻 译</text>
         <text wx:else>翻译中…</text>
       </view>
     </view>
   </view>
-<!-- 测试用：上传本地音频文件 -->
-<button bindtap="chooseLocalAudio" type="primary" style="margin: 10rpx;">
-  上传音频文件测试
-</button>
+
+  <!-- 测试用：上传本地音频文件 -->
+  <button bindtap="chooseLocalAudio" type="primary" style="margin: 10rpx;">
+    上传音频文件测试
+  </button>
+
   <!-- 翻译结果 -->
   <view class="card result-card" wx:if="{{result}}">
     <view class="result-header">
@@ -105,5 +124,6 @@
       </view>
     </view>
   </view>
+  
   <view class="tab-bar-spacer"></view>
 </view>
