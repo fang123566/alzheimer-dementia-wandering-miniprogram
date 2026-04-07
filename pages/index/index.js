@@ -5,6 +5,24 @@ const amap = require('../../utils/amap')
 
 Page({
   data: {
+    statusBarHeight: 20,
+    shortLocation: '定位',
+    familyFuncs: [
+      { action: 'location', glyph: '位', name: '实时位置', tone: 'tone-pine' },
+      { action: 'alert', glyph: '警', name: '预警中心', tone: 'tone-coral' },
+      { action: 'memory', glyph: '忆', name: '记忆相册', tone: 'tone-mist' },
+      { action: 'chat', glyph: '聊', name: 'AI 关怀', tone: 'tone-gold' },
+      { action: 'family', glyph: '家', name: '家庭组', tone: 'tone-pine' },
+      { action: 'remind', glyph: '时', name: '今日提醒', tone: 'tone-gold' },
+      { action: 'settings', glyph: '设', name: '基础设置', tone: 'tone-ink' },
+      { action: 'dialect', glyph: '言', name: '方言助手', tone: 'tone-ink' }
+    ],
+    recommendList: [
+      { id: 'r1', title: '轨迹围栏', sub: '地图与电子围栏', url: '/pages/location/location', isTab: true, artClass: 'art-mountain' },
+      { id: 'r2', title: '温情记忆', sub: '相册与语音回忆', url: '/pages/memory/memory', isTab: false, artClass: 'art-blossom' },
+      { id: 'r3', title: '智能语音', sub: '伴聊与情绪安抚', url: '/pages/aichat/aichat', isTab: true, artClass: 'art-brush' },
+      { id: 'r4', title: '家庭共济', sub: '成员协同守护', url: '/pages/family-group/family-group', isTab: false, artClass: 'art-pine' }
+    ],
     role: 'family',
     userInfo: {},
     greeting: '',
@@ -32,18 +50,24 @@ Page({
     alertsText: '无预警',
     alertsHot: false,
     recentAlerts: [],
-    locating: false
+    locating: false,
+    elderlyComfort: false
   },
 
   onLoad() {
     if (!app.checkLogin()) return
+    const win = typeof wx.getWindowInfo === 'function' ? wx.getWindowInfo() : null
+    const sys = wx.getSystemInfoSync()
     this.setData({
+      statusBarHeight: (win && win.statusBarHeight) || sys.statusBarHeight || 20,
       role:        app.globalData.role,
       userInfo:    app.globalData.userInfo || {},
       elderlyInfo: app.globalData.elderlyInfo,
       greeting:    this._getGreeting(),
-      currentDate: this._getDate()
+      currentDate: this._getDate(),
+      elderlyComfort: !!app.globalData.elderlyMode
     })
+    this._updateShortLocation()
     this._fetchData()
 
     if (this.data.role === 'elderly') {
@@ -56,8 +80,10 @@ Page({
     this.setData({
       role:        app.globalData.role,
       userInfo:    app.globalData.userInfo || {},
-      currentDate: this._getDate()
+      currentDate: this._getDate(),
+      elderlyComfort: !!app.globalData.elderlyMode
     })
+    this._updateShortLocation()
     this._fetchData()
     this._startFreshnessTimer()
 
@@ -103,6 +129,7 @@ Page({
         this._formatDistance(loc.distance || 0, loc.fenceName || '')
         this._updateStatusTag(loc.status)
         this._updateFreshness()
+        this._updateShortLocation()
       }
 
       let unreadCount = 0
@@ -135,7 +162,70 @@ Page({
       console.error('[首页] 数据加载异常:', e)
       this.setData({ currentLocation: app.globalData.currentLocation })
       this._updateStatusTag(app.globalData.currentLocation.status)
+      this._updateShortLocation()
     }
+  },
+
+  _updateShortLocation() {
+    const addr = (this.data.currentLocation && this.data.currentLocation.address) || ''
+    let short = '定位'
+    if (addr) {
+      const m = addr.match(/([\u4e00-\u9fa5]{2,12}[市县州盟]|.+?区)/)
+      short = m ? String(m[1]).slice(0, 8) : addr.slice(0, 6)
+    }
+    this.setData({ shortLocation: short })
+  },
+
+  onLocationPickerTap() {
+    const addr = (this.data.currentLocation && this.data.currentLocation.address) || '暂无地址'
+    wx.showActionSheet({
+      itemList: ['重新获取位置', '查看当前地址'],
+      success: (res) => {
+        if (res.tapIndex === 0) this.refreshLocation()
+        else {
+          wx.showModal({ title: '当前位置', content: addr, showCancel: false })
+        }
+      }
+    })
+  },
+
+  onSearchTap() {
+    wx.showToast({ title: '搜索功能开发中', icon: 'none' })
+  },
+
+  onMoreMenuTap() {
+    wx.showActionSheet({
+      itemList: ['基础设置', '今日提醒', '刷新首页'],
+      success: (res) => {
+        if (res.tapIndex === 0) this.goSettings()
+        else if (res.tapIndex === 1) this.goReminders()
+        else this._fetchData()
+      }
+    })
+  },
+
+  onFuncTap(e) {
+    const action = e.currentTarget.dataset.action
+    const map = {
+      location: () => this.goLocation(),
+      alert: () => this.goAlert(),
+      memory: () => this.goMemory(),
+      chat: () => this.goChat(),
+      family: () => this.goFamilyGroup(),
+      remind: () => this.goReminders(),
+      settings: () => this.goSettings(),
+      dialect: () => this.goDialect()
+    }
+    const fn = map[action]
+    if (fn) fn()
+  },
+
+  onRecommendTap(e) {
+    const url = e.currentTarget.dataset.url
+    const isTab = Number(e.currentTarget.dataset.tab) === 1
+    if (!url) return
+    if (isTab) wx.switchTab({ url })
+    else wx.navigateTo({ url })
   },
 
   _getGreeting() {
@@ -260,6 +350,9 @@ Page({
   goMemory()    { wx.navigateTo({ url: '/pages/memory/memory' }) },
   goChat()      { wx.switchTab({ url: '/pages/aichat/aichat' }) },
   goDialect()   { wx.switchTab({ url: '/pages/dialect/dialect' }) },
+  goSettings()  { wx.navigateTo({ url: '/pages/settings/settings' }) },
+  goReminders() { wx.navigateTo({ url: '/pages/reminders/reminders' }) },
+  goFamilyGroup() { wx.navigateTo({ url: '/pages/family-group/family-group' }) },
 
   triggerSOSTap() {
     wx.showToast({ title: '长按 3 秒发送位置', icon: 'none', duration: 2000 })
@@ -375,6 +468,7 @@ Page({
         })
         this._formatDistance(loc.distance || 0, loc.fenceName || '')
         this._updateStatusTag(loc.status)
+        this._updateShortLocation()
         wx.showToast({ title: '位置已更新', icon: 'success' })
       } else {
         console.error('[定位] 后端返回错误:', updateRes)
@@ -520,6 +614,7 @@ Page({
         })
         this._formatDistance(loc.distance || 0, loc.fenceName || '')
         this._updateStatusTag(loc.status)
+        this._updateShortLocation()
         console.log('[自动定位] 位置上报成功:', loc.status)
 
         if (loc.status === 'warning' || loc.status === 'emergency') {

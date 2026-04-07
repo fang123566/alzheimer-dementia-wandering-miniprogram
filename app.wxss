@@ -2,28 +2,56 @@
 
 /* ── 设计变量 ─────────────────────────────── */
 page {
+  /* 常青树 · 松绿色系（新中式首页主色，全站可复用） */
+  --pine:           #3d6b57;
+  --pine-light:     #5a8f78;
+  --pine-soft:      #4a7c68;
+  --pine-dark:      #2a4a3c;
+  --pine-ink:       #2c3d35;
+  --pine-pale:      rgba(61, 107, 87, 0.10);
+  --pine-pale-12:   rgba(61, 107, 87, 0.12);
+  --pine-pale-18:   rgba(61, 107, 87, 0.18);
+  --pine-14:        rgba(61, 107, 87, 0.14);
+  --pine-20:        rgba(61, 107, 87, 0.20);
+  --pine-22:        rgba(61, 107, 87, 0.22);
+  --pine-25:        rgba(61, 107, 87, 0.25);
+  --pine-alpha-65:  rgba(61, 107, 87, 0.65);
+  --pine-border:    rgba(61, 107, 87, 0.10);
+  --pine-border-12: rgba(61, 107, 87, 0.12);
+  --pine-shadow:    rgba(44, 61, 53, 0.08);
+  --text-muted:     #6b7d74;
+  --cream:          #faf8f4;
+  --cream-mist:     #f0ebe3;
+  --gray-mist:      #ebe6de;
+  --gold:           #c9a962;
+  --gold-pale:      rgba(201, 169, 98, 0.22);
+  --gold-soft:      #e8d5a3;
+  --warm-amber:     #d4a574;
+  --warm-coral:     #e59866;
+
   --ink:        #f4fbf6;
   --ink-2:      #ffffff;
   --ink-3:      #e8f5ec;
-  --amber:      #2f855a;
+  /* 语义色与松绿对齐，避免各页色相不统一 */
+  --amber:      var(--warm-amber);
   --amber-light:#38a169;
-  --amber-pale: rgba(56,161,105,0.14);
+  --amber-pale: rgba(212, 165, 116, 0.20);
   --teal:       #2f9e84;
   --teal-pale:  rgba(47,158,132,0.12);
   --red:        #ef4444;
   --red-pale:   rgba(239,68,68,0.10);
-  --green:      #2f855a;
-  --green-pale: rgba(47,133,90,0.10);
+  --green:      var(--pine);
+  --green-pale: var(--pine-pale);
   --glass:      rgba(255,255,255,0.96);
-  --glass-border: rgba(47,133,90,0.16);
-  --text:       #14332a;
-  --text-dim:   rgba(20,51,42,0.78);
-  --text-faint: rgba(20,51,42,0.52);
+  --glass-border: var(--pine-border-12);
+  --text:       var(--pine-ink);
+  --text-dim:   rgba(44, 61, 53, 0.78);
+  --text-faint: rgba(44, 61, 53, 0.52);
   --radius:     28rpx;
   --radius-sm:  18rpx;
   --radius-lg:  36rpx;
-  --shadow-card: 0 8rpx 32rpx rgba(20,51,42,0.06), 0 2rpx 8rpx rgba(20,51,42,0.04);
-  --shadow-float: 0 16rpx 48rpx rgba(20,51,42,0.10), 0 4rpx 12rpx rgba(20,51,42,0.06);
+  --shadow-card: 0 8rpx 32rpx var(--pine-shadow), 0 2rpx 8rpx rgba(44, 61, 53, 0.04);
+  --shadow-float: 0 16rpx 48rpx rgba(44, 61, 53, 0.10), 0 4rpx 12rpx rgba(44, 61, 53, 0.06);
 
   /* 老人模式大字号变量 */
   --font-base:     28rpx;
@@ -31,8 +59,26 @@ page {
   --font-xl:       36rpx;
   --font-xxl:      44rpx;
 
-  background-color: #f4fbf6;
-  color: #14332a;
+  /* 首页等区域可用的标题阶梯（默认） */
+  --home-banner-title:   40rpx;
+  --home-banner-sub:     28rpx;
+  --home-nav-text:       28rpx;
+  --home-search-text:    30rpx;
+  --home-section-title:  34rpx;
+  --home-func-label:     26rpx;
+  --home-func-glyph:     44rpx;
+  --home-card-title:     30rpx;
+  --home-stat-label:     22rpx;
+  --home-stat-value:     28rpx;
+  --home-rec-title:      28rpx;
+  --home-rec-sub:        22rpx;
+  --home-sos-label:      48rpx;
+  --home-sos-hint:       26rpx;
+  --home-e-loc-addr:     30rpx;
+  --home-e-device:       28rpx;
+
+  background-color: var(--cream-mist);
+  color: var(--text);
   font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
   font-size: var(--font-base);
 }
@@ -43,12 +89,28 @@ page.elderly-mode {
   --font-lg:       44rpx;
   --font-xl:       52rpx;
   --font-xxl:      64rpx;
+  --home-banner-title:   52rpx;
+  --home-banner-sub:     34rpx;
+  --home-nav-text:       32rpx;
+  --home-search-text:    32rpx;
+  --home-section-title:  38rpx;
+  --home-func-label:     30rpx;
+  --home-func-glyph:     48rpx;
+  --home-card-title:     34rpx;
+  --home-stat-label:     26rpx;
+  --home-stat-value:     32rpx;
+  --home-rec-title:      32rpx;
+  --home-rec-sub:        26rpx;
+  --home-sos-label:      56rpx;
+  --home-sos-hint:       30rpx;
+  --home-e-loc-addr:     34rpx;
+  --home-e-device:       32rpx;
 }
 
 /* ── 通用卡片 ─────────────────────────────── */
 .card {
   background: #ffffff;
-  border: 1rpx solid rgba(47,133,90,0.08);
+  border: 1rpx solid var(--pine-border);
   border-radius: var(--radius);
   padding: 36rpx;
   margin-bottom: 28rpx;
@@ -82,9 +144,9 @@ page.elderly-mode {
   padding: 26rpx 0;
   letter-spacing: 1rpx;
 }
-.btn-primary  { background: linear-gradient(135deg, #22764d 0%, #38a169 100%);  color: #ffffff; box-shadow: 0 12rpx 28rpx rgba(34,118,77,0.22); }
+.btn-primary  { background: linear-gradient(135deg, var(--pine-dark) 0%, var(--pine-light) 100%);  color: #ffffff; box-shadow: 0 12rpx 28rpx var(--pine-pale-18); }
 .btn-danger   { background: linear-gradient(135deg, #ef4444, #f87171);  color: #fff; box-shadow: 0 10rpx 24rpx rgba(239,68,68,0.18); }
-.btn-ghost    { background: #ffffff;  color: #14332a; border: 1rpx solid rgba(47,133,90,0.12); box-shadow: var(--shadow-card); }
+.btn-ghost    { background: #ffffff;  color: var(--pine-ink); border: 1rpx solid var(--pine-border-12); box-shadow: var(--shadow-card); }
 
 /* ── 页面头部 ────────────────────────────── */
 .page-header {
@@ -93,13 +155,13 @@ page.elderly-mode {
 .page-title {
   font-size: 52rpx;
   font-weight: 800;
-  color: #0d2b1f;
+  color: var(--pine-dark);
   letter-spacing: 2rpx;
   display: block;
 }
 .page-subtitle {
   font-size: 28rpx;
-  color: #4a6355;
+  color: var(--text-muted);
   margin-top: 12rpx;
   letter-spacing: 1rpx;
   display: block;
@@ -126,7 +188,7 @@ page.elderly-mode {
 .role-bar {
   display: flex;
   background: #ffffff;
-  border: 1rpx solid rgba(47,133,90,0.10);
+  border: 1rpx solid var(--pine-border);
   border-radius: var(--radius);
   padding: 8rpx;
   margin: 24rpx 36rpx;
@@ -138,13 +200,13 @@ page.elderly-mode {
   padding: 20rpx 0;
   border-radius: 20rpx;
   font-size: 28rpx;
-  color: #4a6355;
+  color: var(--text-muted);
   font-weight: 500;
   transition: all 0.25s ease;
 }
 .role-btn.active {
-  background: linear-gradient(135deg, #22764d 0%, #38a169 100%);
+  background: linear-gradient(135deg, var(--pine-dark) 0%, var(--pine-light) 100%);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 6rpx 20rpx rgba(34,118,77,0.20);
+  box-shadow: 0 6rpx 20rpx var(--pine-pale-18);
 }
