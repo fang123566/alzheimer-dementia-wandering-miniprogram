@@ -6,8 +6,14 @@
     <image
       class="bg-mountain-img"
       src="../../assets/login-mountains.png"
-      mode="aspectFit"
+      mode="aspectFill"
     ></image>
+
+    <!-- 过渡遮罩，让图片和页面背景更自然融合 -->
+    <view class="bg-blend-top"></view>
+    <view class="bg-blend-bottom"></view>
+    <view class="bg-blend-side bg-blend-left"></view>
+    <view class="bg-blend-side bg-blend-right"></view>
 
     <!-- 主山峦层 -->
     <view class="mountain-wave-1"></view>

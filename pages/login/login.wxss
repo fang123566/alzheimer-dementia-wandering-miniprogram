@@ -2,8 +2,8 @@
 
 .page {
   min-height: 100vh;
-  /* 与山水背景图的顶部底色更接近，减少“割裂感” */
-  background: #f2f9f4;
+  /* 与山水背景图统一成更柔和的浅青绿色底色 */
+  background: linear-gradient(180deg, #f5fbf7 0%, #eef7f1 38%, #e7f2eb 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -27,11 +27,54 @@
 /* 使用图片作为背景山水（替代原先的 CSS 山峦） */
 .bg-mountain-img {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
+  left: -4%;
+  bottom: -34rpx;
+  width: 108%;
   height: 100%;
   z-index: 0;
+  opacity: 0.96;
+  filter: saturate(0.96) brightness(1.01);
+}
+
+/* 顶部过渡：把山图自然融进页面背景 */
+.bg-blend-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 180rpx;
+  z-index: 1;
+  background: linear-gradient(180deg, #eef7f1 0%, rgba(238, 247, 241, 0.9) 28%, rgba(238, 247, 241, 0.45) 62%, rgba(238, 247, 241, 0) 100%);
+}
+
+/* 底部轻柔托底，避免图片最下缘发硬 */
+.bg-blend-bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 80rpx;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(214, 232, 221, 0) 0%, rgba(214, 232, 221, 0.22) 45%, rgba(214, 232, 221, 0.46) 100%);
+}
+
+/* 两侧羽化，避免横向出现切边感 */
+.bg-blend-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 72rpx;
+  z-index: 1;
+}
+
+.bg-blend-left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(235, 245, 238, 0.62) 0%, rgba(235, 245, 238, 0.22) 45%, rgba(235, 245, 238, 0) 100%);
+}
+
+.bg-blend-right {
+  right: 0;
+  background: linear-gradient(270deg, rgba(229, 241, 233, 0.62) 0%, rgba(229, 241, 233, 0.22) 45%, rgba(229, 241, 233, 0) 100%);
 }
 
 /* 隐藏原先 CSS 山峦层，避免叠加发丑 */
