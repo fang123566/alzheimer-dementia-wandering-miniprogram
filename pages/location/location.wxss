@@ -66,7 +66,7 @@
   flex: 1; text-align: center;
   padding: 20rpx 0; border-radius: 16rpx;
   background: #f3f4f6; border: 2rpx solid transparent;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 .hist-shortcut:active { opacity: 0.8; }
 .hist-shortcut-active {
@@ -321,7 +321,7 @@
   justify-content: center;
   border-radius: 50%;
   background: #fee2e2;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 
 .fence-delete-btn:active {
@@ -561,7 +561,7 @@
   background: #f0faf4;
   border: 1rpx solid rgba(56, 161, 105, 0.2);
   border-radius: 999rpx;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 
 .fence-type-tag:active {

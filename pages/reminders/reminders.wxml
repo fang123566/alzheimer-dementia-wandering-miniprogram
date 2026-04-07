@@ -78,7 +78,7 @@
   </view>
 
   <!-- 今日预览 -->
-  <view class="group" style="margin-top:24rpx;">
+  <view class="group group-gap-top">
     <text class="group-title">🗓️ 今日预览</text>
     <view wx:for="{{today}}" wx:key="id" class="row">
       <text class="row-icon">{{item.icon || '⏰'}}</text>

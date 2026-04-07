@@ -186,9 +186,9 @@
         <text class="e-contact-name">设置</text>
         <text class="e-contact-relation">紧急联系人 · 方言 · 围栏</text>
       </view>
-      <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
+      <view class="e-call-btn e-call-btn-amber">
         <text class="e-call-icon">›</text>
-        <text class="e-call-text" style="color:var(--amber)">查看</text>
+        <text class="e-call-text e-call-text-amber">查看</text>
       </view>
     </view>
 
@@ -198,21 +198,21 @@
         <text class="e-contact-name">蓝牙设备</text>
         <text class="e-contact-relation">连接智能语音设备</text>
       </view>
-      <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
+      <view class="e-call-btn e-call-btn-amber">
         <text class="e-call-icon">›</text>
-        <text class="e-call-text" style="color:var(--amber)">查看</text>
+        <text class="e-call-text e-call-text-amber">查看</text>
       </view>
     </view>
 
-    <view class="e-contact-card" bindtap="goBinding" style="margin-bottom:0">
+    <view class="e-contact-card e-contact-card-tight" bindtap="goBinding">
       <view class="e-contact-avatar">🔗</view>
       <view class="e-contact-info">
         <text class="e-contact-name">账号关联</text>
         <text class="e-contact-relation">{{bindings.length ? ('已关联 ' + bindings.length + ' 个家属 · 最近：' + binding.linkedUser.name) : '暂无家属关联'}}</text>
       </view>
-      <view class="e-call-btn" style="background:var(--amber-pale);border-color:rgba(245,166,35,0.3)">
+      <view class="e-call-btn e-call-btn-amber">
         <text class="e-call-icon">›</text>
-        <text class="e-call-text" style="color:var(--amber)">查看</text>
+        <text class="e-call-text e-call-text-amber">查看</text>
       </view>
     </view>
 

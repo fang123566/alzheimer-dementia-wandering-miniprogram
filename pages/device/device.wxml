@@ -43,7 +43,7 @@
       <text class="scanning-dot">●</text>
       <text class="scanning-dot">●</text>
       <text class="scanning-dot">●</text>
-      <text class="scanning-label"> 正在寻找设备...</text>
+      <text class="scanning-label"> 正在寻找设备…</text>
     </view>
   </view>
 
@@ -71,7 +71,7 @@
 
   <!-- ══ 连接中占位 ═══════════════════════════════ -->
   <view wx:if="{{status === 'connecting'}}" class="connecting-placeholder">
-    <text class="connecting-text">⏳ 正在连接，请稍候...</text>
+    <text class="connecting-text">⏳ 正在连接，请稍候…</text>
   </view>
 
   <!-- ══ 消息区域（已连接后显示）════════════════ -->
@@ -134,7 +134,7 @@
       </view>
 
       <!-- 底部占位，保证最新消息可见 -->
-      <view style="height: 16rpx;"></view>
+      <view class="message-bottom-spacer"></view>
     </scroll-view>
 
     <!-- ══ 输入工具栏 ════════════════════════════ -->
@@ -143,7 +143,7 @@
         class="text-input"
         value="{{inputText}}"
         bindinput="onInputChange"
-        placeholder="发送消息到屏幕..."
+        placeholder="发送消息到屏幕…"
         confirm-type="send"
         bindconfirm="sendText"
         maxlength="200"
@@ -165,7 +165,7 @@
       </button>
 
       <view wx:if="{{isPlaying}}" class="playing-indicator">
-        <text>🎵 播放中...</text>
+        <text>🎵 播放中…</text>
       </view>
     </view>
 

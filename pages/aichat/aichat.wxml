@@ -70,7 +70,7 @@
         <view class="msg-avatar" wx:if="{{item.isUser}}">👴</view>
       </view>
       <!-- 底部占位，避免被输入框遮挡 -->
-      <view style="height: 160rpx;"></view>
+      <view class="chat-bottom-spacer"></view>
     </view>
   </scroll-view>
 
@@ -86,7 +86,7 @@
           type="text"
           class="text-input"
           placeholder="例如：今天天气怎么样 / 我刚吃药了 / 我想聊聊天"
-          placeholder-style="color:#94a3b8;font-size:28rpx;"
+          placeholder-class="ph"
           value="{{inputText}}"
           bindinput="onInput"
           confirm-type="send"
@@ -98,7 +98,5 @@
       </view>
       <view class="send-btn {{sendBtnClass}}" bindtap="sendMessage">{{sendBtnText}}</view>
     </view>
-    <!-- 安全区域适配 -->
-    <view style="height: {{safeAreaBottom}}rpx;"></view>
   </view>
 </view>

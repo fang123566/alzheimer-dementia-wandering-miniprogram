@@ -2,8 +2,8 @@
 
 /* ─── 全局 ─────────────────────────────────── */
 page {
-  background: #f2f4f7;
-  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  background: transparent;
+  font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif;
   box-sizing: border-box;
 }
 
@@ -19,8 +19,10 @@ page {
   align-items: center;
   justify-content: space-between;
   padding: 24rpx 32rpx 20rpx;
-  background: #ffffff;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(18rpx);
+  border-bottom: 1rpx solid rgba(47,133,90,0.08);
+  box-shadow: 0 10rpx 30rpx rgba(44,61,53,0.06);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -28,8 +30,8 @@ page {
 
 .app-title {
   font-size: 36rpx;
-  font-weight: 700;
-  color: #1a1a2e;
+  font-weight: 900;
+  color: var(--pine-dark);
   letter-spacing: 1rpx;
 }
 
@@ -41,25 +43,25 @@ page {
   border-radius: 40rpx;
   font-size: 24rpx;
   font-weight: 500;
-  transition: all 0.3s;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
 }
 
 .status-pill.status-idle,
 .status-pill.status-disconnected {
-  background: #f0f0f0;
-  color: #888;
+  background: rgba(44,61,53,0.06);
+  color: var(--text-dim);
 }
 .status-pill.status-scanning {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--amber-pale);
+  color: #8a5f3a;
 }
 .status-pill.status-connecting {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: rgba(47,158,132,0.12);
+  color: var(--teal);
 }
 .status-pill.status-connected {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--green-pale);
+  color: var(--green);
 }
 
 .status-icon { font-size: 20rpx; }
@@ -83,9 +85,10 @@ page {
   letter-spacing: 2rpx;
 }
 
-.ctrl-btn.primary  { background: #4f6ef7; color: #fff; }
-.ctrl-btn.secondary { background: #eceff1; color: #455a64; }
-.ctrl-btn.danger   { background: #ffebee; color: #c62828; }
+.ctrl-btn.primary  { background: linear-gradient(135deg, var(--pine-dark), var(--pine-light)); color: #fff; box-shadow: 0 12rpx 28rpx var(--pine-pale-18); }
+.ctrl-btn.secondary { background: rgba(255,255,255,0.9); color: var(--pine-ink); border: 1rpx solid var(--pine-border-12); box-shadow: var(--shadow-soft); }
+.ctrl-btn.danger   { background: rgba(239,68,68,0.08); color: #b91c1c; border: 1rpx solid rgba(239,68,68,0.18); }
+.ctrl-btn:active { transform: scale(var(--press-scale)); opacity: var(--press-opacity); }
 
 .ctrl-btn::after { border: none; }
 
@@ -99,12 +102,13 @@ page {
 }
 .scanning-dot {
   font-size: 18rpx;
-  color: #4f6ef7;
+  color: var(--pine);
   animation: blink 1.2s infinite;
 }
 .scanning-dot:nth-child(2) { animation-delay: 0.4s; }
 .scanning-dot:nth-child(3) { animation-delay: 0.8s; }
 .scanning-label { font-size: 24rpx; color: #888; }
+.scanning-label { font-size: 24rpx; color: var(--text-muted); }
 
 @keyframes blink {
   0%, 100% { opacity: 0.2; }
@@ -118,7 +122,7 @@ page {
 
 .section-label {
   font-size: 24rpx;
-  color: #888;
+  color: var(--text-muted);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 2rpx;
@@ -131,11 +135,12 @@ page {
   display: flex;
   align-items: center;
   gap: 20rpx;
-  background: #fff;
+  background: rgba(255,255,255,0.96);
   border-radius: 20rpx;
   padding: 24rpx 28rpx;
   margin-bottom: 12rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  border: 1rpx solid rgba(47,133,90,0.08);
+  box-shadow: var(--shadow-soft);
   transition: transform 0.1s;
 }
 .device-card:active { transform: scale(0.98); }
@@ -143,9 +148,10 @@ page {
 .device-icon { font-size: 48rpx; }
 .device-info { flex: 1; min-width: 0; }
 .device-name { font-size: 28rpx; font-weight: 600; color: #1a1a2e; display: block; }
+.device-name { font-size: 28rpx; font-weight: 800; color: var(--pine-ink); display: block; }
 .device-id {
   font-size: 20rpx;
-  color: #aaa;
+  color: var(--text-muted);
   display: block;
   margin-top: 4rpx;
   overflow: hidden;
@@ -154,7 +160,8 @@ page {
 }
 .device-rssi { text-align: right; }
 .device-rssi text { display: block; font-size: 22rpx; color: #aaa; }
-.connect-hint { color: #4f6ef7 !important; font-size: 24rpx !important; font-weight: 600 !important; }
+.device-rssi text { display: block; font-size: 22rpx; color: var(--text-muted); }
+.connect-hint { color: var(--pine) !important; font-size: 24rpx !important; font-weight: 700 !important; }
 
 /* ─── 连接中占位 ───────────────────────────── */
 .connecting-placeholder {
@@ -165,6 +172,7 @@ page {
   padding: 80rpx 0;
 }
 .connecting-text { font-size: 30rpx; color: #888; }
+.connecting-text { font-size: 30rpx; color: var(--text-muted); }
 
 /* ─── 空状态 ───────────────────────────────── */
 .empty-state {
@@ -193,6 +201,10 @@ page {
   flex: 1;
   height: calc(100vh - 280rpx - env(safe-area-inset-bottom));
   padding: 16rpx 24rpx;
+}
+
+.message-bottom-spacer {
+  height: 16rpx;
 }
 
 /* ─── 消息气泡 ─────────────────────────────── */
@@ -228,23 +240,25 @@ page {
 }
 
 .msg-bubble.sent {
-  background: #4f6ef7;
+  background: linear-gradient(135deg, var(--pine-dark), var(--pine-light));
   border-bottom-right-radius: 8rpx;
 }
 .msg-bubble.sent .msg-text { color: #fff; font-size: 28rpx; }
 
 .msg-bubble.received {
-  background: #fff;
+  background: rgba(255,255,255,0.96);
   border-bottom-left-radius: 8rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+  border: 1rpx solid rgba(47,133,90,0.08);
+  box-shadow: var(--shadow-soft);
 }
-.msg-bubble.received .msg-text { color: #1a1a2e; font-size: 28rpx; }
+.msg-bubble.received .msg-text { color: var(--pine-ink); font-size: 28rpx; }
 
 /* 音频气泡 */
 .msg-bubble.audio {
-  background: #fff;
+  background: rgba(255,255,255,0.96);
   border-bottom-left-radius: 8rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+  border: 1rpx solid rgba(47,133,90,0.08);
+  box-shadow: var(--shadow-soft);
   display: flex;
   align-items: center;
   gap: 16rpx;
@@ -252,9 +266,9 @@ page {
   min-width: 220rpx;
 }
 .audio-icon { font-size: 48rpx; }
-.audio-title { font-size: 28rpx; color: #1a1a2e; display: block; font-weight: 600; }
-.audio-hint  { font-size: 22rpx; color: #aaa; display: block; margin-top: 4rpx; }
-.audio-wave  { font-size: 28rpx; color: #4f6ef7; margin-left: auto; }
+.audio-title { font-size: 28rpx; color: var(--pine-ink); display: block; font-weight: 800; }
+.audio-hint  { font-size: 22rpx; color: var(--text-muted); display: block; margin-top: 4rpx; }
+.audio-wave  { font-size: 28rpx; color: var(--pine); margin-left: auto; }
 
 /* 紧急消息 */
 .msg-emergency {
@@ -286,26 +300,27 @@ page {
   align-items: center;
   gap: 16rpx;
   padding: 16rpx 24rpx 12rpx;
-  background: #fff;
-  border-top: 1rpx solid #f0f0f0;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(18rpx);
+  border-top: 1rpx solid rgba(47,133,90,0.08);
 }
 
 .text-input {
   flex: 1;
   height: 76rpx;
-  background: #f6f7fb;
+  background: rgba(44,61,53,0.04);
   border-radius: 38rpx;
   padding: 0 28rpx;
   font-size: 28rpx;
-  color: #1a1a2e;
+  color: var(--pine-ink);
   border: 2rpx solid transparent;
 }
-.text-input:focus { border-color: #4f6ef7; }
+.text-input:focus { border-color: var(--pine); }
 
 .send-btn {
   width: 120rpx;
   height: 76rpx;
-  background: #4f6ef7;
+  background: linear-gradient(135deg, var(--pine-dark), var(--pine-light));
   color: #fff;
   font-size: 26rpx;
   font-weight: 600;
@@ -314,7 +329,7 @@ page {
   padding: 0;
   flex-shrink: 0;
 }
-.send-btn[disabled] { background: #c5cef7; }
+.send-btn[disabled] { background: rgba(44,61,53,0.18); color: rgba(44,61,53,0.55); }
 .send-btn::after { border: none; }
 
 /* ─── 录音栏 ───────────────────────────────── */
@@ -324,7 +339,8 @@ page {
   justify-content: center;
   gap: 32rpx;
   padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
-  background: #fff;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(18rpx);
 }
 
 .record-btn {
@@ -334,12 +350,12 @@ page {
   height: 88rpx;
   padding: 0 48rpx;
   border-radius: 44rpx;
-  background: #f1f3fe;
-  border: 3rpx solid #4f6ef7;
-  color: #4f6ef7;
+  background: rgba(61,107,87,0.10);
+  border: 2rpx solid rgba(61,107,87,0.28);
+  color: var(--pine-dark);
   font-size: 28rpx;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 .record-btn.recording {
   background: #ff1744;
@@ -358,6 +374,6 @@ page {
 
 .playing-indicator {
   font-size: 26rpx;
-  color: #4f6ef7;
+  color: var(--pine);
   font-weight: 500;
 }

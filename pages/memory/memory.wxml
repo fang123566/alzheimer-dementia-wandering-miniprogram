@@ -63,7 +63,7 @@
         <view class="form-field">
           <text class="form-label">照片描述</text>
           <input class="form-input" placeholder="如：全家去旅游，2020年"
-            placeholder-style="color:#94a3b8;font-size:28rpx;"
+            placeholder-class="ph"
             value="{{photoForm.caption}}" bindinput="onPhotoCaptionInput" />
         </view>
       </view>

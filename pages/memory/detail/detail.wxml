@@ -23,7 +23,7 @@
       <text class="card-title">📖 当时的故事</text>
       <text class="card-link" bindtap="toggleEditStory">{{editingStory ? '收起' : '编辑'}}</text>
     </view>
-    <textarea wx:if="{{editingStory}}" class="story-textarea" value="{{storyDraft}}" bindinput="onStoryInput" maxlength="1000" placeholder="写下这段记忆背后的故事…" placeholder-style="color:#94a3b8;font-size:28rpx;" />
+    <textarea wx:if="{{editingStory}}" class="story-textarea" value="{{storyDraft}}" bindinput="onStoryInput" maxlength="1000" placeholder="写下这段记忆背后的故事…" placeholder-class="ph" />
     <text wx:else class="story-text">{{memory.story || '还没有记录这段故事，点击右上角开始补充。'}}</text>
     <view class="action-row" wx:if="{{editingStory}}">
       <view class="action-btn ghost" bindtap="cancelEditStory">取消</view>
@@ -37,7 +37,7 @@
       <text class="card-link" bindtap="toggleVoiceTextEdit">{{editingVoiceText ? '收起' : '编辑文字'}}</text>
     </view>
     <text class="voice-text">{{voiceTextDraft || memory.voiceNote.text || '还没有语音记忆，可以录一段声音帮助老人回忆。'}}</text>
-    <textarea wx:if="{{editingVoiceText}}" class="story-textarea" value="{{voiceTextDraft}}" bindinput="onVoiceTextInput" maxlength="300" placeholder="可填写语音记忆的文字内容…" placeholder-style="color:#94a3b8;font-size:28rpx;" />
+    <textarea wx:if="{{editingVoiceText}}" class="story-textarea" value="{{voiceTextDraft}}" bindinput="onVoiceTextInput" maxlength="300" placeholder="可填写语音记忆的文字内容…" placeholder-class="ph" />
     <view class="voice-actions">
       <view class="voice-btn record {{recording ? 'recording' : ''}} {{voiceLoading ? 'disabled' : ''}}" bindtap="toggleRecordVoice">{{voiceLoading ? '保存中…' : (recording ? '结束录音' : '录制语音')}}</view>
       <view class="voice-btn play {{!memory.voiceNote.url ? 'disabled' : ''}}" bindtap="playVoice">{{playingVoice ? '停止播放' : '播放语音'}}</view>

@@ -57,6 +57,22 @@ page {
   --radius-lg:  36rpx;
   --shadow-card: 0 8rpx 32rpx var(--pine-shadow), 0 2rpx 8rpx rgba(44, 61, 53, 0.04);
   --shadow-float: 0 16rpx 48rpx rgba(44, 61, 53, 0.10), 0 4rpx 12rpx rgba(44, 61, 53, 0.06);
+  --shadow-soft: 0 6rpx 18rpx rgba(44, 61, 53, 0.06);
+
+  /* 统一间距刻度（页面间更一致） */
+  --space-1: 8rpx;
+  --space-2: 12rpx;
+  --space-3: 16rpx;
+  --space-4: 20rpx;
+  --space-5: 24rpx;
+  --space-6: 28rpx;
+  --space-7: 32rpx;
+  --space-8: 36rpx;
+  --space-9: 40rpx;
+
+  /* 统一可点按反馈 */
+  --press-scale: 0.98;
+  --press-opacity: 0.92;
 
   /* 老人模式大字号变量 */
   --font-base:     28rpx;
@@ -114,12 +130,19 @@ page.elderly-mode {
 
 /* ── 通用卡片 ─────────────────────────────── */
 .card {
-  background: #ffffff;
+  background: var(--glass);
   border: 1rpx solid var(--pine-border);
   border-radius: var(--radius);
   padding: 36rpx;
   margin-bottom: 28rpx;
   box-shadow: var(--shadow-card);
+}
+.card-soft {
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-soft);
+}
+.card:active {
+  opacity: var(--press-opacity);
 }
 
 /* ── 状态标签 ─────────────────────────────── */
@@ -148,10 +171,19 @@ page.elderly-mode {
   font-weight: 700;
   padding: 26rpx 0;
   letter-spacing: 1rpx;
+  min-height: 88rpx;
+  transition: transform 0.18s ease, opacity 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 .btn-primary  { background: linear-gradient(135deg, var(--pine-dark) 0%, var(--pine-light) 100%);  color: #ffffff; box-shadow: 0 12rpx 28rpx var(--pine-pale-18); }
 .btn-danger   { background: linear-gradient(135deg, #ef4444, #f87171);  color: #fff; box-shadow: 0 10rpx 24rpx rgba(239,68,68,0.18); }
 .btn-ghost    { background: #ffffff;  color: var(--pine-ink); border: 1rpx solid var(--pine-border-12); box-shadow: var(--shadow-card); }
+.btn:active {
+  transform: scale(var(--press-scale));
+  opacity: var(--press-opacity);
+}
+.btn-ghost:active {
+  background: rgba(255, 255, 255, 0.92);
+}
 
 /* ── 页面头部 ────────────────────────────── */
 .page-header {
@@ -188,6 +220,9 @@ page.elderly-mode {
   border-bottom: 1rpx solid var(--glass-border);
 }
 .list-row:last-child { border-bottom: none; }
+.list-row:active {
+  opacity: var(--press-opacity);
+}
 
 /* ── 角色切换条 ──────────────────────────── */
 .role-bar {
@@ -207,7 +242,7 @@ page.elderly-mode {
   font-size: 28rpx;
   color: var(--text-muted);
   font-weight: 500;
-  transition: all 0.25s ease;
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 .role-btn.active {
   background: linear-gradient(135deg, var(--pine-dark) 0%, var(--pine-light) 100%);

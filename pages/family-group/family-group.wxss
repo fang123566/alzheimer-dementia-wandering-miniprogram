@@ -8,39 +8,39 @@
   padding: 48rpx 36rpx 32rpx; text-align: center;
 }
 .page-header-icon { font-size: 64rpx; margin-bottom: 12rpx; }
-.page-header-title { font-size: 40rpx; font-weight: 800; color: #0d2b1f; }
-.page-header-sub { font-size: 26rpx; color: #6b8577; margin-top: 8rpx; }
+.page-header-title { font-size: 40rpx; font-weight: 900; color: var(--pine-ink); }
+.page-header-sub { font-size: 26rpx; color: var(--text-muted); margin-top: 8rpx; }
 
 /* 邀请按钮 */
 .invite-btn {
   display: flex; align-items: center; gap: 22rpx;
   margin: 0 36rpx 32rpx; padding: 32rpx 28rpx;
-  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-  border: 2rpx dashed rgba(34,118,77,0.35);
+  background: linear-gradient(135deg, rgba(61,107,87,0.08), rgba(61,107,87,0.02));
+  border: 2rpx dashed rgba(61,107,87,0.32);
   border-radius: 20rpx;
 }
 .invite-btn:active { opacity: 0.85; }
 .invite-icon-wrap {
   width: 72rpx; height: 72rpx; border-radius: 50%;
-  background: #38a169; display: flex; align-items: center; justify-content: center;
+  background: var(--pine); display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; box-shadow: 0 4rpx 12rpx rgba(56,161,105,0.3);
 }
 .invite-icon { font-size: 40rpx; color: #fff; font-weight: 700; line-height: 1; }
 .invite-text-wrap { flex: 1; }
-.invite-title { display: block; font-size: 32rpx; font-weight: 700; color: #1a6b42; }
-.invite-sub { display: block; font-size: 24rpx; color: #6b8577; margin-top: 6rpx; }
+.invite-title { display: block; font-size: 32rpx; font-weight: 800; color: var(--pine-dark); }
+.invite-sub { display: block; font-size: 24rpx; color: var(--text-muted); margin-top: 6rpx; }
 
 /* 成员区域 */
 .member-section {
-  margin: 0 36rpx; background: #fff;
-  border-radius: 20rpx; border: 1rpx solid rgba(47,133,90,0.08);
-  overflow: hidden; box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+  margin: 0 36rpx; background: rgba(255,255,255,0.96);
+  border-radius: 20rpx; border: 1rpx solid var(--pine-border);
+  overflow: hidden; box-shadow: var(--shadow-card);
 }
 .member-section-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 28rpx 32rpx; border-bottom: 1rpx solid rgba(47,133,90,0.06);
 }
-.member-section-title { font-size: 30rpx; font-weight: 800; color: #0d2b1f; }
+.member-section-title { font-size: 30rpx; font-weight: 900; color: var(--pine-ink); }
 .member-section-count {
   font-size: 24rpx; color: #38a169; font-weight: 600;
   background: #e6f9ee; padding: 6rpx 18rpx; border-radius: 999rpx;
@@ -54,6 +54,7 @@
 .member-empty-icon { font-size: 72rpx; opacity: 0.5; }
 .member-empty-title { font-size: 30rpx; font-weight: 700; color: #6b8577; }
 .member-empty-sub { font-size: 24rpx; color: #8a9e92; }
+.member-empty-title { color: var(--text-muted); }
 
 /* 成员卡片 */
 .member-card {

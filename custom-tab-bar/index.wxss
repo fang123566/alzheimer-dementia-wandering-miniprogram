@@ -36,7 +36,7 @@
   font-size: 46rpx;
   line-height: 1;
   filter: grayscale(80%) opacity(0.45);
-  transition: all 0.25s ease;
+  transition: transform 0.25s ease, filter 0.25s ease;
 }
 
 .tab-item.active .icon-text {
@@ -48,7 +48,7 @@
   font-size: 22rpx;
   color: #8a9e92;
   letter-spacing: 1rpx;
-  transition: all 0.25s ease;
+  transition: color 0.25s ease, transform 0.25s ease, opacity 0.25s ease;
 }
 
 .tab-item.active .tab-text {

@@ -36,6 +36,7 @@
   overflow: hidden;
   box-shadow: 0 2rpx 12rpx rgba(47,133,90,0.08);
 }
+.group-gap-top { margin-top: 24rpx; }
 .group-title {
   display: block;
   padding: 28rpx 28rpx 12rpx;
@@ -103,7 +104,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 .checkbox.checked { background: #1a6b42; border-color: #1a6b42; }
 .check-mark { color: #fff; font-size: 24rpx; font-weight: 700; }

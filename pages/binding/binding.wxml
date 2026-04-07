@@ -44,7 +44,7 @@
         class="phone-input"
         type="number"
         placeholder="请输入对方手机号"
-        placeholder-style="color:#94a3b8;font-size:28rpx;"
+        placeholder-class="ph"
         value="{{linkedPhone}}"
         bindinput="onPhoneInput"
         maxlength="11"
@@ -53,7 +53,7 @@
     <input
       class="note-input"
       placeholder="备注（可选）"
-      placeholder-style="color:#94a3b8;font-size:26rpx;"
+      placeholder-class="ph ph-sm"
       value="{{note}}"
       bindinput="onNoteInput"
       maxlength="20"

@@ -228,6 +228,7 @@
   color: var(--text);
 }
 .ph { color: var(--text-faint); }
+.ph-sm { font-size: 26rpx; }
 .err-tip { font-size: 22rpx; color: var(--red); margin-bottom: 16rpx; }
 .bind-btn {
   background: linear-gradient(135deg, #22764d 0%, #38a169 100%);

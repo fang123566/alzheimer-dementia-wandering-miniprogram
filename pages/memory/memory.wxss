@@ -87,7 +87,7 @@
   min-width: 120rpx;
   box-shadow: var(--shadow-card);
   border: 2rpx solid transparent;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 .member-chip.active {
   border-color: #22764d;
@@ -340,7 +340,7 @@
   padding: 14rpx 28rpx;
   border-radius: 32rpx;
   border: 2rpx solid transparent;
-  transition: all 0.2s;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
 .tag-option.tag-selected {
   background: rgba(56,161,105,0.12);
@@ -418,6 +418,7 @@
   gap: 20rpx;
   padding: 0 32rpx 32rpx;
 }
+.ph { color: var(--text-faint); font-size: 28rpx; }
 .btn {
   flex: 1;
   text-align: center;

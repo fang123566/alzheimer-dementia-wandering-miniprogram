@@ -314,6 +314,14 @@
 }
 .e-call-icon { font-size: 40rpx; }
 .e-call-text { font-size: 22rpx; color: var(--green); font-weight: 600; }
+.e-call-btn-amber {
+  background: var(--amber-pale);
+  border-color: rgba(245,166,35,0.3);
+}
+.e-call-text-amber {
+  color: var(--amber);
+}
+.e-contact-card-tight { margin-bottom: 0; }
 .e-empty-tip { text-align: center; color: var(--text-dim); font-size: 28rpx; padding: 24rpx; }
 
 /* 今日提醒 */

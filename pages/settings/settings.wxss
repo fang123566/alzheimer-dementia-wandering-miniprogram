@@ -3,17 +3,18 @@
 .container   { background: transparent; min-height: 100vh; padding-bottom: 100rpx; }
 
 /* 分组 */
-.setting-group { margin: 0 36rpx 28rpx; background: #ffffff; border: 1rpx solid rgba(47,133,90,0.08); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card); }
-.group-title   { display: block; font-size: 24rpx; color: #6b8577; letter-spacing: 3rpx; font-weight: 700; padding: 32rpx 32rpx 16rpx; border-bottom: 1rpx solid rgba(47,133,90,0.06); }
+.setting-group { margin: 0 36rpx 28rpx; background: rgba(255,255,255,0.96); border: 1rpx solid var(--pine-border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card); }
+.group-title   { display: block; font-size: 24rpx; color: var(--text-muted); letter-spacing: 3rpx; font-weight: 800; padding: 32rpx 32rpx 16rpx; border-bottom: 1rpx solid rgba(47,133,90,0.06); }
 
 /* 行 */
 .setting-row   { display: flex; align-items: center; padding: 32rpx; border-bottom: 1rpx solid rgba(47,133,90,0.06); }
 .setting-row:last-child { border-bottom: none; }
+.setting-row:active { background: rgba(61, 107, 87, 0.04); }
 .row-icon      { font-size: 44rpx; margin-right: 22rpx; flex-shrink: 0; }
 .row-main      { flex: 1; }
 .row-label     { font-size: 32rpx; color: var(--text); display: block; font-weight: 700; }
 .row-label-amber { font-size: 32rpx; color: var(--amber); font-weight: 700; }
-.row-sub       { font-size: 26rpx; color: #4a6355; display: block; margin-top: 8rpx; }
+.row-sub       { font-size: 26rpx; color: var(--text-dim); display: block; margin-top: 8rpx; }
 .row-sub-green { color: var(--green); }
 .row-arrow     { font-size: 36rpx; color: #8a9e92; }
 .add-row       { background: var(--amber-pale); }
@@ -25,7 +26,7 @@
   border-bottom: 1rpx solid rgba(47,133,90,0.06);
 }
 .contact-header-icon { font-size: 40rpx; }
-.contact-header-title { font-size: 32rpx; font-weight: 800; color: #0d2b1f; flex: 1; }
+.contact-header-title { font-size: 32rpx; font-weight: 900; color: var(--pine-ink); flex: 1; }
 .contact-header-count {
   font-size: 24rpx; color: #38a169; font-weight: 600;
   background: #e6f9ee; padding: 6rpx 18rpx; border-radius: 999rpx;
@@ -41,10 +42,10 @@
 .contact-add-btn:active { background: rgba(34,118,77,0.1); }
 .contact-add-icon-wrap {
   width: 56rpx; height: 56rpx; border-radius: 50%;
-  background: #38a169; display: flex; align-items: center; justify-content: center;
+  background: var(--pine); display: flex; align-items: center; justify-content: center;
 }
 .contact-add-icon { font-size: 36rpx; color: #fff; font-weight: 700; line-height: 1; }
-.contact-add-text { font-size: 30rpx; color: #1a6b42; font-weight: 700; }
+.contact-add-text { font-size: 30rpx; color: var(--pine-dark); font-weight: 800; }
 
 /* 联系人卡片 */
 .contact-card {

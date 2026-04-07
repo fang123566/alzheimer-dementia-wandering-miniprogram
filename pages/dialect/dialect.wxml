@@ -20,7 +20,7 @@
     <!-- 右侧方言选择（修复重复标签问题 + 增加data-type） -->
     <view class="lang-box lang-box-right" bindtap="openDialectSelect" data-type="to">
       <text class="lang-label">{{dirTo}}</text>
-      <text class="lang-change" style="font-size: 18rpx;">切换</text>
+      <text class="lang-change lang-change-sm">切换</text>
     </view>
   </view>
 
@@ -57,7 +57,7 @@
     <textarea
       class="text-area"
       placeholder="或在此输入文字…"
-      placeholder-style="color:#94a3b8;font-size:28rpx;"
+      placeholder-class="ph"
       value="{{inputText}}"
       bindinput="onInput"
       maxlength="200"
@@ -79,7 +79,7 @@
   </view>
 
   <!-- 测试用：上传本地音频文件 -->
-  <button bindtap="chooseLocalAudio" type="primary" style="margin: 10rpx;">
+  <button bindtap="chooseLocalAudio" type="default" class="test-upload-btn">
     上传音频文件测试
   </button>
 
