@@ -15,51 +15,60 @@ page { background: var(--app-bg); }
   align-items: center;
   margin: 0 36rpx 28rpx;
   gap: 0;
-  flex-wrap: nowrap; /* 新增：防止切换栏换行 */
-  background: rgba(255,255,255,0.96);
-  border: 1rpx solid var(--pine-border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
+  flex-wrap: nowrap;
+  position: relative;
+  background: rgba(255,255,255,0.94);
+  border: 1rpx solid rgba(47,133,90,0.10);
+  border-radius: 28rpx;
+  overflow: visible; /* 让中间交换按钮浮在上面 */
+  box-shadow: 0 10rpx 26rpx rgba(44, 61, 53, 0.08);
 }
 .lang-box {
   flex: 1;
   background: transparent;
   border: none;
-  border-radius: 0;
-  padding: 22rpx 20rpx;
-  min-height: 96rpx;
+  border-radius: 28rpx;
+  padding: 22rpx 22rpx;
+  min-height: 104rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6rpx;
+  justify-content: center;
+  gap: 8rpx;
   box-shadow: none;
 }
 .lang-box-right {
-  border-left: 1rpx solid rgba(47,133,90,0.08);
+  border-left: 1rpx solid rgba(47,133,90,0.10);
 }
 .lang-label  { 
-  font-size: 28rpx; 
-  font-weight: 700; 
+  font-size: 30rpx; 
+  font-weight: 800; 
   color: var(--pine-dark); 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 160rpx;
+  max-width: 220rpx;
   text-align: center; 
 }
-.lang-change { font-size: 20rpx; color: var(--text-muted); }
+.lang-change { font-size: 22rpx; color: rgba(44, 61, 53, 0.60); font-weight: 600; }
 .lang-change-sm { font-size: 18rpx; }
 .swap-btn {
-  width: 80rpx; height: 80rpx;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 84rpx;
+  height: 84rpx;
   background: linear-gradient(135deg, var(--pine-dark), var(--pine-light));
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 10rpx 26rpx var(--pine-22);
-  border-radius: 50%; /* 新增：改成圆形，视觉更友好 */
-  margin: 0 14rpx;
+  box-shadow: 0 14rpx 30rpx rgba(61, 107, 87, 0.28);
+  border-radius: 50%;
+  border: 6rpx solid rgba(245, 251, 247, 0.92); /* 与页面淡绿背景融合 */
 }
-.swap-btn:active { opacity: var(--press-opacity); transform: scale(var(--press-scale)); }
+.swap-btn:active { opacity: var(--press-opacity); transform: translate(-50%, -50%) scale(var(--press-scale)); }
 .swap-icon { font-size: 36rpx; color: #ffffff; font-weight: 700; }
 
 /* ── 新增：方言选择下拉弹窗样式（适配多方言选项） ─────────── */
@@ -177,8 +186,10 @@ button.test-upload-btn:active { transform: scale(var(--press-scale)); opacity: v
   border: 1rpx solid var(--pine-border-12);
 }
 .btn-primary {
-  background: linear-gradient(135deg, var(--pine-dark), var(--pine-light));
-  color: #fff;
+  background: var(--pine-pale);
+  border: 1rpx solid var(--pine-pale-12);
+  color: var(--pine);
+  font-weight: 800;
 }
 .btn-half   { flex: 1; }
 .disabled   { opacity: 0.5; pointer-events: none; }

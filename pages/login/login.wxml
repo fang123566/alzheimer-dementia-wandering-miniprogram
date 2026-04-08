@@ -5,7 +5,7 @@
     <!-- 直接使用你提供的山水样式图（纯视觉） -->
     <image
       class="bg-mountain-img"
-      src="../../assets/login-mountains.png"
+      src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/login-mountains.png"
       mode="aspectFill"
     ></image>
 
