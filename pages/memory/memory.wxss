@@ -146,13 +146,14 @@
   margin-bottom: 32rpx;
 }
 .empty-btn {
-  background: linear-gradient(135deg, #22764d, #38a169);
-  color: #fff;
+  background: var(--pine-pale);
+  border: 1rpx solid var(--pine-pale-12);
+  color: var(--pine);
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 800;
   padding: 24rpx 48rpx;
-  border-radius: var(--radius);
-  box-shadow: 0 12rpx 28rpx rgba(34,118,77,0.22);
+  border-radius: 999rpx;
+  box-shadow: 0 10rpx 24rpx rgba(44, 61, 53, 0.10);
 }
 
 /* 照片网格 */

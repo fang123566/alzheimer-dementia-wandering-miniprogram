@@ -10,6 +10,12 @@
   box-sizing: border-box;
 }
 
+/* 家属端统计卡片字号稍大一档（老人端用 home-page--elder 另行控制） */
+.home-page:not(.home-page--elder) {
+  --home-stat-label: 26rpx;
+  --home-stat-value: 36rpx;
+}
+
 /* 老人端：首页字号再放大一档 */
 .home-page--elder {
   --home-banner-title: 54rpx;
