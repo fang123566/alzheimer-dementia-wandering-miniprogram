@@ -8,12 +8,20 @@
   height: var(--tab-bar-height);
   padding-bottom: var(--tab-bar-safe);
   box-sizing: content-box;
+  background: transparent; /* 安全区不铺底色，避免出现“白色空白条” */
+  display: flex;
+  align-items: flex-start;
+  z-index: 999;
+}
+
+.tab-bar-inner {
+  height: var(--tab-bar-height);
+  width: 100%;
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(24rpx);
   border-top: 1rpx solid rgba(47,133,90,0.06);
   display: flex;
   align-items: center;
-  z-index: 999;
   box-shadow: 0 -6rpx 28rpx rgba(20,51,42,0.06);
 }
 

@@ -17,12 +17,6 @@ Page({
       { action: 'settings', glyph: '设', name: '基础设置', tone: 'tone-ink' },
       { action: 'dialect', glyph: '言', name: '方言助手', tone: 'tone-ink' }
     ],
-    recommendList: [
-      { id: 'r1', title: '轨迹围栏', sub: '地图与电子围栏', url: '/pages/location/location', isTab: true, artClass: 'art-mountain' },
-      { id: 'r2', title: '温情记忆', sub: '相册与语音回忆', url: '/pages/memory/memory', isTab: false, artClass: 'art-blossom' },
-      { id: 'r3', title: '智能语音', sub: '伴聊与情绪安抚', url: '/pages/aichat/aichat', isTab: true, artClass: 'art-brush' },
-      { id: 'r4', title: '家庭共济', sub: '成员协同守护', url: '/pages/family-group/family-group', isTab: false, artClass: 'art-pine' }
-    ],
     role: 'family',
     userInfo: {},
     greeting: '',
@@ -218,14 +212,6 @@ Page({
     }
     const fn = map[action]
     if (fn) fn()
-  },
-
-  onRecommendTap(e) {
-    const url = e.currentTarget.dataset.url
-    const isTab = Number(e.currentTarget.dataset.tab) === 1
-    if (!url) return
-    if (isTab) wx.switchTab({ url })
-    else wx.navigateTo({ url })
   },
 
   _getGreeting() {

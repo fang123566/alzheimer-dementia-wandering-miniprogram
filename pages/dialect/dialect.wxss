@@ -1,7 +1,8 @@
 /* pages/dialect/dialect.wxss */
 /* 兜底：确保页面底部空白区域也使用全局淡绿背景 */
 page { background: var(--app-bg); }
-.container { background: var(--app-bg); min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
+/* 底部仅 tab-bar-spacer，避免与 padding-bottom 叠加双倍留白 */
+.container { background: var(--app-bg); min-height: 100vh; padding-bottom: 0; }
 
 /* 统一：页面标题（与全站一致的文字层级） */
 .page-header { padding: 48rpx 36rpx 28rpx; }

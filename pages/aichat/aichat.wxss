@@ -59,13 +59,32 @@
 .header-btn { padding: 14rpx 22rpx; border-radius: 999rpx; background: rgba(255,255,255,0.92); border: 1rpx solid rgba(15, 23, 42, 0.10); color: rgba(15, 23, 42, 0.76); font-size: 26rpx; font-weight: 700; box-shadow: var(--shadow-sm); transition: transform 120ms ease, background-color 120ms ease; }
 .header-btn:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.04); }
 .header-btn.active { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; border-color: transparent; box-shadow: 0 10rpx 26rpx rgba(34,118,77,0.22); }
-.capability-bar { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 22rpx; }
-.capability-tag { padding: 12rpx 18rpx; border-radius: 999rpx; background: rgba(255,255,255,0.92); border: 1rpx solid rgba(34,118,77,0.14); color: rgba(34, 118, 77, 0.92); font-size: 24rpx; }
-.quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16rpx; margin-top: 22rpx; }
-.quick-card { background: rgba(255,255,255,0.96); border-radius: var(--radius-lg); min-height: 148rpx; padding: 22rpx 10rpx; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14rpx; box-shadow: var(--shadow-sm); border: 1rpx solid rgba(15, 23, 42, 0.08); transition: transform 120ms ease, background-color 120ms ease; }
-.quick-card:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.03); }
-.quick-icon { font-size: 38rpx; }
-.quick-label { font-size: 26rpx; color: rgba(15, 23, 42, 0.88); font-weight: 700; }
+.capability-bar {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 22rpx;
+}
+/* 等分铺满：无论 3/4/5 个短句，都按行等分；不够放就自动换行继续等分 */
+.capability-tag {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12rpx 10rpx;
+  border-radius: 999rpx;
+  background: rgba(255,255,255,0.92);
+  border: 1rpx solid rgba(34,118,77,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.capability-tag-text {
+  font-size: 24rpx;
+  color: rgba(34, 118, 77, 0.92);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .chat-log { flex: 1; padding: 28rpx 24rpx 24rpx; overflow: hidden; }
 .welcome-card { background: rgba(255,255,255,0.96); border-radius: var(--radius-lg); padding: 34rpx; box-shadow: var(--shadow-sm); margin-bottom: 28rpx; border: 1rpx solid rgba(15, 23, 42, 0.08); }
 .welcome-title { display: block; font-size: 40rpx; font-weight: 800; color: var(--text); letter-spacing: 0.4rpx; }
@@ -74,8 +93,16 @@
 .suggestion-chip { padding: 16rpx 24rpx; border-radius: 999rpx; background: rgba(34,118,77,0.08); color: rgba(15, 23, 42, 0.80); font-size: 26rpx; border: 1rpx solid rgba(34,118,77,0.12); font-weight: 600; transition: transform 120ms ease, background-color 120ms ease; }
 .suggestion-chip:active { transform: scale(0.98); background: rgba(34,118,77,0.12); }
 .msg-row { display: flex; gap: 18rpx; margin-bottom: 32rpx; align-items: flex-start; }
-.msg-row.user { flex-direction: row-reverse; }
+/* 用户消息：内容靠右，头像在最右侧（不使用 row-reverse，避免头像跑到左边） */
+.msg-row.user { justify-content: flex-end; }
+.msg-row.user .msg-body { order: 1; }
+.msg-row.user .msg-avatar { order: 2; }
 .msg-avatar { width: 72rpx; height: 72rpx; border-radius: 22rpx; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.92); border: 1rpx solid rgba(15, 23, 42, 0.08); font-size: 40rpx; box-shadow: var(--shadow-sm); flex-shrink: 0; }
+.avatar-bot { background: rgba(255,255,255,0.92); }
+.avatar-user {
+  background: rgba(34, 118, 77, 0.12);
+  border-color: rgba(34,118,77,0.18);
+}
 .msg-body { max-width: 78%; }
 .msg-name { font-size: 24rpx; color: var(--text-dim); display: block; margin-bottom: 10rpx; }
 .msg-row.user .msg-name { text-align: right; }
@@ -100,7 +127,15 @@
 /* 语音按钮 */
 .voice-btn { width: 72rpx; height: 72rpx; border-radius: 999rpx; background: rgba(255,255,255,0.92); border: 1rpx solid rgba(15, 23, 42, 0.10); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 32rpx; box-shadow: var(--shadow-sm); transition: transform 120ms ease, background-color 120ms ease; }
 .voice-btn:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.04); }
-.voice-btn.recording { background: linear-gradient(135deg, #ef4444, #f87171); color: #fff; border-color: #ef4444; animation: pulse 1s infinite; }
+.voice-btn.recording {
+  width: auto;
+  min-width: 72rpx;
+  padding: 0 16rpx;
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  color: #fff;
+  border-color: #ef4444;
+  animation: pulse 1s infinite;
+}
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
 /* 底部输入区域 - 固定定位 */
@@ -109,25 +144,87 @@
   left: 0;
   right: 0;
   bottom: var(--tab-bar-total-height);
+  background: transparent;
+  z-index: 1000;
+  padding: 0 0 12rpx;
+}
+
+/* 输入框上方横向滚动快捷功能栏（scroll-view） */
+.quick-strip {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12rpx 16rpx 10rpx;
+}
+.quick-strip-inner {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding-right: 12rpx;
+}
+.quick-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 14rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1rpx solid rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.82);
+  flex-shrink: 0;
+  transition: transform 120ms ease, background-color 120ms ease;
+}
+.quick-chip:active { transform: scale(0.98); background: rgba(15, 23, 42, 0.07); }
+.quick-chip-icon { font-size: 30rpx; line-height: 1; }
+.quick-chip-text { font-size: 26rpx; font-weight: 700; letter-spacing: 0.2rpx; }
+
+.input-shell {
+  margin: 0 16rpx;
+  padding: 10rpx 0;
+  border-radius: 28rpx;
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(20rpx);
-  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
-  z-index: 1000;
-  padding-bottom: calc(8rpx + env(safe-area-inset-bottom));
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
   box-shadow: 0 -12rpx 40rpx rgba(15, 23, 42, 0.08);
 }
 
-.input-bar { display: flex; align-items: center; gap: 12rpx; padding: 10rpx 16rpx; background: transparent; }
-.input-wrap { flex: 1; min-width: 0; background: rgba(15, 23, 42, 0.04); border: 1rpx solid rgba(15, 23, 42, 0.10); border-radius: 999rpx; padding: 10rpx 18rpx; min-height: 56rpx; display: flex; align-items: center; }
-.text-input { flex: 1; font-size: 30rpx; color: rgba(15, 23, 42, 0.92); background: transparent; min-height: 36rpx; line-height: 1.4; width: 100%; }
+.input-bar { display: flex; align-items: center; gap: 12rpx; padding: 0 16rpx; background: transparent; }
+.input-wrap {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 72rpx;
+  min-height: 72rpx;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1rpx solid rgba(15, 23, 42, 0.10);
+  border-radius: 999rpx;
+  padding: 0 20rpx;
+  display: flex;
+  align-items: center;
+}
+.text-input { flex: 1; font-size: 30rpx; color: rgba(15, 23, 42, 0.92); background: transparent; height: 44rpx; min-height: 44rpx; line-height: 44rpx; width: 100%; }
 .ph { color: rgba(148, 163, 184, 0.95); font-size: 28rpx; }
-.send-btn { flex-shrink: 0; min-width: 104rpx; text-align: center; padding: 12rpx 20rpx; border-radius: 999rpx; background: rgba(15, 23, 42, 0.08); color: rgba(15, 23, 42, 0.52); font-size: 28rpx; white-space: nowrap; font-weight: 700; transition: transform 120ms ease, filter 120ms ease, background-color 120ms ease; }
+.send-btn {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-width: 104rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  padding: 0 20rpx;
+  border-radius: 999rpx;
+  background: rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.52);
+  font-size: 28rpx;
+  white-space: nowrap;
+  font-weight: 700;
+  transition: transform 120ms ease, filter 120ms ease, background-color 120ms ease;
+}
 .send-btn:active { transform: scale(0.98); }
 .send-btn.active { background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; font-weight: 800; box-shadow: 0 10rpx 26rpx rgba(34,118,77,0.22); }
 .send-btn.sending { opacity: 0.8; }
 
 .chat-bottom-spacer {
-  height: 160rpx;
+  height: calc(var(--tab-bar-total-height) + 180rpx);
 }
 
 /* ========== 老人模式大字号 ========== */
@@ -137,10 +234,16 @@
 .elderly-mode .bot-status { font-size: 32rpx; }
 .elderly-mode .header-btn { padding: 16rpx 28rpx; font-size: 32rpx; }
 
-.elderly-mode .capability-tag { font-size: 30rpx; padding: 12rpx 24rpx; }
-.elderly-mode .quick-card { min-height: 170rpx; padding: 24rpx 16rpx; }
-.elderly-mode .quick-icon { font-size: 48rpx; }
-.elderly-mode .quick-label { font-size: 34rpx; }
+.elderly-mode .capability-tag { padding: 14rpx 12rpx; }
+.elderly-mode .capability-tag-text { font-size: 30rpx; }
+.elderly-mode .quick-strip { padding: 12rpx 16rpx 10rpx; }
+.elderly-mode .quick-strip-inner { gap: 14rpx; }
+.elderly-mode .quick-chip { padding: 18rpx 22rpx; gap: 12rpx; }
+.elderly-mode .quick-chip-icon { font-size: 34rpx; }
+.elderly-mode .quick-chip-text { font-size: 32rpx; }
+
+.elderly-mode .input-section { padding-bottom: 16rpx; }
+.elderly-mode .input-shell { margin: 0 16rpx; padding: 12rpx 0; border-radius: 32rpx; }
 
 .elderly-mode .welcome-title { font-size: 46rpx; }
 .elderly-mode .welcome-desc { font-size: 36rpx; }

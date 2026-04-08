@@ -2,7 +2,8 @@
 
 .home-page {
   min-height: 100vh;
-  padding-bottom: var(--tab-bar-total-height);
+  /* 底部仅依赖 wxml 中 tab-bar-spacer，避免与 padding-bottom 叠加倍增高 */
+  padding-bottom: 0;
   background: var(--app-bg);
   font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', 'Hiragino Sans GB', sans-serif;
   color: var(--pine-ink);
@@ -21,8 +22,6 @@
   --home-card-title: 36rpx;
   --home-stat-label: 28rpx;
   --home-stat-value: 34rpx;
-  --home-rec-title: 34rpx;
-  --home-rec-sub: 28rpx;
   --home-sos-label: 56rpx;
   --home-sos-hint: 32rpx;
   --home-e-loc-addr: 36rpx;
@@ -39,8 +38,6 @@
   --home-func-label: 28rpx;
   --home-func-glyph: 46rpx;
   --home-card-title: 32rpx;
-  --home-rec-title: 30rpx;
-  --home-rec-sub: 24rpx;
 }
 
 .home-page--elder.home-page--comfort {
@@ -295,82 +292,6 @@
 .home-cell-active {
   opacity: 0.88;
   transform: scale(0.98);
-}
-
-/* ── 推荐双列 ── */
-.home-rec-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20rpx;
-  margin-bottom: 12rpx;
-}
-
-.home-rec-card {
-  position: relative;
-  min-height: 220rpx;
-  padding: 24rpx;
-  border-radius: 36rpx;
-  background: rgba(255, 255, 255, 0.88);
-  border: 1rpx solid var(--pine-border);
-  box-shadow: 0 12rpx 36rpx var(--pine-shadow);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.home-rec-art {
-  width: 100%;
-  height: 88rpx;
-  border-radius: 24rpx;
-  margin-bottom: 16rpx;
-}
-
-.art-mountain {
-  background: linear-gradient(135deg, var(--pine-25) 0%, rgba(232, 228, 218, 0.9) 100%);
-}
-.art-blossom {
-  background: linear-gradient(135deg, rgba(201, 169, 98, 0.28) 0%, rgba(245, 242, 235, 0.95) 100%);
-}
-.art-brush {
-  background: linear-gradient(135deg, rgba(90, 110, 100, 0.2) 0%, rgba(240, 237, 230, 0.95) 100%);
-}
-.art-pine {
-  background: linear-gradient(135deg, var(--pine-20) 0%, rgba(229, 152, 102, 0.12) 55%, rgba(255, 255, 255, 0.9) 100%);
-}
-
-.home-rec-body {
-  flex: 1;
-}
-
-.home-rec-title {
-  display: block;
-  font-size: var(--home-rec-title);
-  font-weight: 800;
-  color: var(--pine-ink);
-}
-
-.home-rec-sub {
-  display: block;
-  margin-top: 8rpx;
-  font-size: var(--home-rec-sub);
-  color: var(--text-muted);
-  line-height: 1.45;
-}
-
-.home-rec-arrow {
-  position: absolute;
-  right: 20rpx;
-  bottom: 20rpx;
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 50%;
-  background: var(--pine-pale-12);
-  color: var(--pine);
-  font-size: 32rpx;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* ── 国风卡片（原 card） ── */
@@ -767,7 +688,7 @@
 
 .e-device-row {
   display: flex;
-  margin-bottom: 24rpx;
+  margin-bottom: 12rpx;
 }
 
 .e-device-item {
@@ -789,6 +710,7 @@
   font-weight: 600;
 }
 
-.home-bottom-spacer {
-  height: 24rpx;
+/* 家属端：最后一卡与 tab 占位之间略收紧，减少见底时空旷感 */
+.home-page .home-body:not(.home-body-elder) > .gj-card:last-child {
+  margin-bottom: 12rpx;
 }

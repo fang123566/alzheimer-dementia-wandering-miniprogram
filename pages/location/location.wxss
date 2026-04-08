@@ -1,6 +1,7 @@
 /* pages/location/location.wxss */
 
-.container { background: transparent; min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
+/* 底部仅 tab-bar-spacer，避免与 padding-bottom 叠加双倍留白 */
+.container { background: transparent; min-height: 100vh; padding-bottom: 0; }
 .map-wrap   { position: relative; }
 .map-view   { width: 100%; height: 520rpx; }
 .map-refresh-btn {

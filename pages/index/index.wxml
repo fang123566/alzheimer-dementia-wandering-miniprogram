@@ -88,26 +88,6 @@
       </view>
     </view>
 
-    <text class="home-section-title font-calligraphy">为您推荐</text>
-    <view class="home-rec-grid">
-      <view
-        wx:for="{{recommendList}}"
-        wx:key="id"
-        class="home-rec-card"
-        bindtap="onRecommendTap"
-        data-tab="{{item.isTab ? 1 : 0}}"
-        data-url="{{item.url}}"
-        hover-class="home-cell-active"
-      >
-        <view class="home-rec-art {{item.artClass}}"></view>
-        <view class="home-rec-body">
-          <text class="home-rec-title">{{item.title}}</text>
-          <text class="home-rec-sub">{{item.sub}}</text>
-        </view>
-        <view class="home-rec-arrow">›</view>
-      </view>
-    </view>
-
     <view class="gj-card">
       <view class="card-title-row">
         <text class="card-title">最近预警</text>

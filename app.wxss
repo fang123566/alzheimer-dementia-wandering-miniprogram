@@ -91,8 +91,6 @@ page {
   --home-card-title:     30rpx;
   --home-stat-label:     22rpx;
   --home-stat-value:     28rpx;
-  --home-rec-title:      28rpx;
-  --home-rec-sub:        22rpx;
   --home-sos-label:      48rpx;
   --home-sos-hint:       26rpx;
   --home-e-loc-addr:     30rpx;
@@ -120,8 +118,6 @@ page.elderly-mode {
   --home-card-title:     34rpx;
   --home-stat-label:     26rpx;
   --home-stat-value:     32rpx;
-  --home-rec-title:      32rpx;
-  --home-rec-sub:        26rpx;
   --home-sos-label:      56rpx;
   --home-sos-hint:       30rpx;
   --home-e-loc-addr:     34rpx;
@@ -251,7 +247,8 @@ page.elderly-mode {
   box-shadow: 0 6rpx 20rpx var(--pine-pale-18);
 }
 
-/* ── 底部导航栏占位块（所有 tabBar 页面底部必须加） ── */
+/* ── 底部导航栏占位块（tabBar 页面 wxml 末尾加此块即可） ──
+ * 勿与页面根节点上 padding-bottom: var(--tab-bar-total-height) 同时使用，否则会双倍留白。 */
 .tab-bar-spacer {
   height: var(--tab-bar-total-height);
   flex-shrink: 0;

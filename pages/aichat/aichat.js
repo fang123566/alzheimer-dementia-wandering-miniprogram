@@ -32,6 +32,19 @@ function buildViewState(patch = {}) {
   const isRecording = !!patch.isRecording
   const inputText   = patch.inputText || ''
   const sending     = !!patch.sending
+  const keyboardHeightRpx = Number(patch.keyboardHeightRpx || 0)
+
+  // 输入区本体（快捷栏 + 输入栏）的大致高度：用于给消息列表预留空间
+  // 这里用固定 rpx，避免复杂测量；视觉上足够稳定
+  const inputAreaReserveRpx = elderlyMode ? 260 : 220
+
+  const inputSectionStyle = keyboardHeightRpx > 0
+    ? `bottom: ${keyboardHeightRpx}rpx;`
+    : `bottom: var(--tab-bar-total-height);`
+
+  const chatBottomSpacerStyle = keyboardHeightRpx > 0
+    ? `height: calc(${keyboardHeightRpx}rpx + ${inputAreaReserveRpx}rpx);`
+    : `height: calc(var(--tab-bar-total-height) + ${inputAreaReserveRpx}rpx);`
 
   return {
     pageClass:       elderlyMode ? 'elderly-mode' : '',
@@ -41,7 +54,9 @@ function buildViewState(patch = {}) {
     elderlyModeLabel: elderlyMode ? '大' : '标',
     voiceBtnClass:   isRecording ? 'recording' : '',
     sendBtnClass:    `${inputText ? 'active' : ''} ${sending ? 'sending' : ''}`.trim(),
-    sendBtnText:     sending ? '发送中' : '发送'
+    sendBtnText:     sending ? '发送中' : '发送',
+    inputSectionStyle,
+    chatBottomSpacerStyle
   }
 }
 
@@ -62,7 +77,7 @@ Page({
     sending:        false,
     messages:       [],
     quickActions:   QUICK_ACTIONS,
-    capabilityTags: ['天气提醒', '健康记录', '紧急协助', '反诈提醒', '日常陪聊'],
+    capabilityTags: ['日常陪聊', '紧急协助', '反诈提醒',],
     suggestions: [
       '今天天气怎么样',
       '我刚吃药了',
@@ -77,6 +92,11 @@ Page({
     speaking:        false,
     // 安全区域
     safeAreaBottom:  0,
+    rpxPerPx:        0,
+    // 键盘高度（rpx），用于输入栏避让
+    keyboardHeightRpx: 0,
+    inputSectionStyle: '',
+    chatBottomSpacerStyle: '',
     // 反诈预警横幅（当前对话触发时临时展示）
     fraudBanner:     null,   // { level, desc }
     // 提醒确认条（AI 检测到用药提及时展示）
@@ -88,6 +108,7 @@ Page({
     const elderlyMode = app.globalData.elderlyMode
     const sysInfo     = wx.getSystemInfoSync()
     const safeArea    = sysInfo.safeArea
+    const rpxPerPx    = 750 / sysInfo.windowWidth
     const safeAreaBottom = (sysInfo.screenHeight - safeArea.bottom) *
       (750 / sysInfo.windowWidth)
 
@@ -96,9 +117,32 @@ Page({
       elderlyMode,
       autoSpeak: elderlyMode,
       safeAreaBottom,
-      ...buildViewState({ elderlyMode, autoSpeak: elderlyMode })
+      rpxPerPx,
+      ...buildViewState({ elderlyMode, autoSpeak: elderlyMode, keyboardHeightRpx: 0 })
     })
+
+    // 键盘弹出适配：弹起时输入栏顶住键盘，收起时回到底部 tabBar 上方
+    this._keyboardListener = (res) => {
+      const heightPx = Number(res && res.height ? res.height : 0)
+      const keyboardHeightRpx = Math.max(0, Math.round(heightPx * (this.data.rpxPerPx || rpxPerPx)))
+      this.setData({
+        keyboardHeightRpx,
+        ...buildViewState({ ...this.data, keyboardHeightRpx })
+      })
+      // 键盘弹起后稍微延迟，确保滚动到底
+      if (keyboardHeightRpx > 0) {
+        setTimeout(() => this._scrollToBottom(), 80)
+      }
+    }
+    wx.onKeyboardHeightChange(this._keyboardListener)
     this._fetchHistory()
+  },
+
+  onUnload() {
+    if (this._keyboardListener) {
+      wx.offKeyboardHeightChange(this._keyboardListener)
+      this._keyboardListener = null
+    }
   },
 
   onShow() {

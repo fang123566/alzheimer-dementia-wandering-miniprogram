@@ -8,7 +8,7 @@
       <view class="bot-avatar">🤖</view>
       <view class="bot-text-wrap">
         <text class="bot-name">小守</text>
-        <text class="bot-status">● 在线 · 陪你聊天，也能帮你查天气、记健康、做提醒</text>
+        <text class="bot-status">● 我一直在这里陪着你</text>
       </view>
       <view class="header-actions">
         <view class="header-btn {{autoSpeakClass}}" bindtap="toggleAutoSpeak">{{autoSpeakLabel}}</view>
@@ -17,12 +17,8 @@
       </view>
     </view>
     <view class="capability-bar">
-      <text class="capability-tag" wx:for="{{capabilityTags}}" wx:key="*this">{{item}}</text>
-    </view>
-    <view class="quick-grid">
-      <view class="quick-card" wx:for="{{quickActions}}" wx:key="id" data-text="{{item.text}}" bindtap="onQuickAction">
-        <text class="quick-icon">{{item.icon}}</text>
-        <text class="quick-label">{{item.label}}</text>
+      <view class="capability-tag" wx:for="{{capabilityTags}}" wx:key="*this">
+        <text class="capability-tag-text">{{item}}</text>
       </view>
     </view>
   </view>
@@ -32,14 +28,14 @@
     <view class="chat-log">
       <view class="welcome-card" wx:if="{{!messages.length}}">
         <text class="welcome-title">您好，我是小守</text>
-        <text class="welcome-desc">您可以直接跟我说话，也可以点上面的快捷按钮。我会陪您聊天，也能帮您处理常见事情。</text>
+        <text class="welcome-desc">您可以直接跟我说话，也可以点聊天框上面的快捷按钮。我会陪您聊天，也能帮您处理常见事情。</text>
         <view class="suggestion-list">
           <view class="suggestion-chip" wx:for="{{suggestions}}" wx:key="*this" data-text="{{item}}" bindtap="useSuggestion">{{item}}</view>
         </view>
       </view>
 
       <view wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}" class="msg-row {{item.role}}">
-        <view class="msg-avatar" wx:if="{{item.isBot}}">🤖</view>
+        <view class="msg-avatar avatar-bot" wx:if="{{item.isBot}}">🤖</view>
 
         <view class="msg-body">
           <text class="msg-name">{{item.displayName}}</text>
@@ -67,15 +63,25 @@
           <text class="msg-time">{{item.time}}</text>
         </view>
 
-        <view class="msg-avatar" wx:if="{{item.isUser}}">👴</view>
+        <view class="msg-avatar avatar-user" wx:if="{{item.isUser}}">👴</view>
       </view>
-      <!-- 底部占位，避免被输入框遮挡 -->
-      <view class="chat-bottom-spacer"></view>
+      <!-- 底部占位，避免被输入框/键盘遮挡 -->
+      <view class="chat-bottom-spacer" style="{{chatBottomSpacerStyle}}"></view>
     </view>
   </scroll-view>
 
   <!-- 底部固定输入区 -->
-  <view class="input-section">
+  <view class="input-section" style="{{inputSectionStyle}}">
+    <!-- 输入框上方横向滚动快捷功能栏（scroll-view） -->
+    <scroll-view class="quick-strip" scroll-x enhanced show-scrollbar="{{false}}" enable-flex>
+      <view class="quick-strip-inner">
+        <view class="quick-chip" wx:for="{{quickActions}}" wx:key="id" data-text="{{item.text}}" bindtap="onQuickAction">
+          <text class="quick-chip-icon">{{item.icon}}</text>
+          <text class="quick-chip-text">{{item.label}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
     <view class="input-bar">
       <view class="voice-btn {{voiceBtnClass}}" bindtap="toggleRecording">
         <text wx:if="{{!isRecording}}">🎙️</text>
@@ -85,7 +91,7 @@
         <input
           type="text"
           class="text-input"
-          placeholder="例如：今天天气怎么样 / 我刚吃药了 / 我想聊聊天"
+          placeholder="发消息"
           placeholder-class="ph"
           value="{{inputText}}"
           bindinput="onInput"

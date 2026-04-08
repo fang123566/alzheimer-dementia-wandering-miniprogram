@@ -1,6 +1,7 @@
 /* pages/alert/alert.wxss */
 
-.container   { background: transparent; min-height: 100vh; padding-bottom: var(--tab-bar-total-height); }
+/* 底部仅 tab-bar-spacer，避免与 padding-bottom 叠加双倍留白 */
+.container   { background: transparent; min-height: 100vh; padding-bottom: 0; }
 .filter-bar  { white-space: nowrap; padding: 0 36rpx 28rpx; }
 .filter-tag  { display: inline-block; padding: 14rpx 32rpx; border-radius: 999rpx; font-size: 26rpx; color: var(--text-muted); background: rgba(255,255,255,0.92); border: 1rpx solid var(--pine-border-12); margin-right: 16rpx; box-shadow: var(--shadow-soft); font-weight: 600; }
 .filter-tag.active { background: linear-gradient(135deg, var(--pine-dark), var(--pine-light)); color: #ffffff; border-color: transparent; font-weight: 800; box-shadow: 0 10rpx 26rpx var(--pine-20); }
