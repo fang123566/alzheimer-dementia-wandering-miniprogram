@@ -1,7 +1,7 @@
 /* pages/profile/profile.wxss */
 
 /* 底部仅 tab-bar-spacer，避免与 padding-bottom 叠加双倍留白 */
-.container { background: transparent; min-height: 100vh; padding-bottom: 0; }
+.container { background: var(--app-bg); min-height: 100vh; padding-bottom: 0; }
 
 /* ── 用户信息卡 ─────────────────────────────── */
 .user-card {

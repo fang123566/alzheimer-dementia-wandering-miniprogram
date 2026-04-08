@@ -8,14 +8,10 @@ Page({
     statusBarHeight: 20,
     shortLocation: '定位',
     familyFuncs: [
-      { action: 'location', glyph: '位', name: '实时位置', tone: 'tone-pine' },
-      { action: 'alert', glyph: '警', name: '预警中心', tone: 'tone-coral' },
-      { action: 'memory', glyph: '忆', name: '记忆相册', tone: 'tone-mist' },
-      { action: 'chat', glyph: '聊', name: 'AI 关怀', tone: 'tone-gold' },
-      { action: 'family', glyph: '家', name: '家庭组', tone: 'tone-pine' },
-      { action: 'remind', glyph: '时', name: '今日提醒', tone: 'tone-gold' },
-      { action: 'settings', glyph: '设', name: '基础设置', tone: 'tone-ink' },
-      { action: 'dialect', glyph: '言', name: '方言助手', tone: 'tone-ink' }
+      { action: 'memory', name: '记忆相册', iconImage: '../../assets/记忆相册.png' },
+      { action: 'family', name: '家庭组', iconImage: '../../assets/家庭组.png' },
+      { action: 'remind', name: '今日提醒', iconImage: '../../assets/今日提醒.png' },
+      { action: 'dialect', name: '方言助手', iconImage: '../../assets/方言助手.png' }
     ],
     role: 'family',
     userInfo: {},
@@ -201,13 +197,9 @@ Page({
   onFuncTap(e) {
     const action = e.currentTarget.dataset.action
     const map = {
-      location: () => this.goLocation(),
-      alert: () => this.goAlert(),
       memory: () => this.goMemory(),
-      chat: () => this.goChat(),
       family: () => this.goFamilyGroup(),
       remind: () => this.goReminders(),
-      settings: () => this.goSettings(),
       dialect: () => this.goDialect()
     }
     const fn = map[action]

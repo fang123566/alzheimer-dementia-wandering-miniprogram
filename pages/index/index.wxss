@@ -253,16 +253,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1rpx solid var(--pine-pale-12);
-  box-shadow: 0 10rpx 28rpx var(--pine-shadow);
+  border: none;
+  box-shadow: none;
   margin-bottom: 14rpx;
+  background: transparent;
+  overflow: hidden;
 }
 
-.home-func-glyph {
-  font-size: var(--home-func-glyph);
-  font-weight: 800;
-  font-family: 'STKaiti', 'KaiTi', 'Songti SC', serif;
-  color: var(--pine);
+.home-func-img {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
 }
 
 .home-func-label {

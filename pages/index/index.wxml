@@ -40,8 +40,8 @@
         data-action="{{item.action}}"
         hover-class="home-cell-active"
       >
-        <view class="home-func-icon {{item.tone}}">
-          <text class="home-func-glyph">{{item.glyph}}</text>
+        <view class="home-func-icon">
+          <image class="home-func-img" src="{{item.iconImage}}" mode="aspectFill" />
         </view>
         <text class="home-func-label">{{item.name}}</text>
       </view>
@@ -118,19 +118,27 @@
     <text class="home-section-title font-calligraphy">常用功能</text>
     <view class="home-func-grid home-func-grid-elder">
       <view class="home-func-cell" bindtap="callEmergency" hover-class="home-cell-active">
-        <view class="home-func-icon tone-gold"><text class="home-func-glyph">福</text></view>
+        <view class="home-func-icon tone-gold">
+          <image class="home-func-img" src="../../assets/联系家人.png" mode="aspectFill" />
+        </view>
         <text class="home-func-label">联系家人</text>
       </view>
       <view class="home-func-cell" bindtap="goChat" hover-class="home-cell-active">
-        <view class="home-func-icon tone-pine"><text class="home-func-glyph">松</text></view>
+        <view class="home-func-icon tone-pine">
+          <image class="home-func-img" src="../../assets/AI陪聊.png" mode="aspectFill" />
+        </view>
         <text class="home-func-label">AI 陪聊</text>
       </view>
       <view class="home-func-cell" bindtap="goDialect" hover-class="home-cell-active">
-        <view class="home-func-icon tone-ink"><text class="home-func-glyph">笔</text></view>
+        <view class="home-func-icon tone-ink">
+          <image class="home-func-img" src="../../assets/方言助手.png" mode="aspectFill" />
+        </view>
         <text class="home-func-label">方言助手</text>
       </view>
       <view class="home-func-cell" bindtap="goMemory" hover-class="home-cell-active">
-        <view class="home-func-icon tone-mist"><text class="home-func-glyph">忆</text></view>
+        <view class="home-func-icon tone-mist">
+          <image class="home-func-img" src="../../assets/记忆相册.png" mode="aspectFill" />
+        </view>
         <text class="home-func-label">记忆相册</text>
       </view>
     </view>
