@@ -21,6 +21,15 @@ function callCloud(name, data = {}) {
     })
   })
 }
+
+function getCurrentRole() {
+  try {
+    const app = getApp && getApp()
+    const role = app && app.globalData ? app.globalData.role : ''
+    if (role) return role
+  } catch (e) {}
+  return wx.getStorageSync('role') || 'family'
+}
 // ── 认证（已迁移至 auth 云函数）────────────────────────────
 const authAPI = {
   login:         (phone, password)              => callCloud('auth', { action: 'login', phone, password }),
@@ -112,62 +121,62 @@ const settingsAPI = {
 // ── 账号关联（已迁移至 binding 云函数）──────────────────────
 const bindingAPI = {
   getBinding: () => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('binding', { action: 'getBindings', role })
   },
   getBindings: () => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('binding', { action: 'getBindings', role })
   },
   createBinding: (linkedPhone, note) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('binding', { action: 'createBinding', role, linkedPhone, note })
   },
   updateBinding: (id, data) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('binding', { action: 'updateBinding', role, bindingId: id, ...data })
   },
   deleteBinding: (id) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('binding', { action: 'deleteBinding', role, bindingId: id })
   }
 }
 // ── 今日提醒（已迁移至 reminders 云函数）─────────────────
 const remindersAPI = {
   getTemplates: (elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'getTemplates', role, elderlyOpenid: elderlyOpenid || '' })
   },
   addTemplate: (data, elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'addTemplate', role, elderlyOpenid: elderlyOpenid || '', ...data })
   },
   updateTemplate: (id, d, elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'updateTemplate', role, elderlyOpenid: elderlyOpenid || '', templateId: id, ...d })
   },
   deleteTemplate: (id, elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'deleteTemplate', role, elderlyOpenid: elderlyOpenid || '', templateId: id })
   },
   batchDelete: (ids, elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'batchDelete', role, elderlyOpenid: elderlyOpenid || '', templateIds: ids })
   },
   getToday: (elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'getToday', role, elderlyOpenid: elderlyOpenid || '' })
   },
   toggleDone: (templateId, done, elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'toggleDone', role, elderlyOpenid: elderlyOpenid || '', templateId, done })
   },
   getAutoRemindSetting: (elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'getAutoRemindSetting', role, elderlyOpenid: elderlyOpenid || '' })
   },
   toggleAutoRemind: (enabled, elderlyOpenid) => {
-    const role = wx.getStorageSync('role') || 'family'
+    const role = getCurrentRole()
     return callCloud('reminders', { action: 'toggleAutoRemind', role, elderlyOpenid: elderlyOpenid || '', enabled })
   }
 }

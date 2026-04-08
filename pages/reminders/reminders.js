@@ -1,5 +1,6 @@
 // pages/reminders/reminders.js
 const { remindersAPI, bindingAPI } = require('../../utils/api')
+const app = getApp()
 
 function todayNoticeKey() {
   const now = new Date()
@@ -18,6 +19,7 @@ Page({
     selectedMap: {},       // { [id]: true } 删除模式勾选
     selectAll: false,
     selectedCount: 0,
+    hasBinding: false,
     elderlyOpenid: '',
     elderlyName: ''
   },
@@ -38,15 +40,24 @@ Page({
   async _loadBindingThenRefresh() {
     const role = wx.getStorageSync('role') || 'family'
     if (role === 'family') {
+      const cachedElderly = app.globalData.elderlyInfo || {}
+      let hasBinding = !!cachedElderly.name
+      let elderlyOpenid = cachedElderly.openid || cachedElderly._openid || cachedElderly.openId || ''
+      let elderlyName = cachedElderly.name || '老人'
       try {
         const br = await bindingAPI.getBindings()
         if (br && br.code === 0 && br.data && br.data.length > 0) {
-          const eid = br.data[0].linkedUser.openid || ''
-          const ename = br.data[0].linkedUser.name || '老人'
-          this._elderlyOpenid = eid
-          this.setData({ elderlyOpenid: eid, elderlyName: ename })
+          const linkedUser = br.data[0].linkedUser || {}
+          elderlyOpenid = linkedUser.openid || linkedUser._openid || linkedUser.openId || elderlyOpenid || ''
+          elderlyName = linkedUser.name || elderlyName || '老人'
+          hasBinding = true
+          app.globalData.elderlyInfo = { ...cachedElderly, ...linkedUser }
         }
       } catch (e) {}
+      this._elderlyOpenid = elderlyOpenid
+      this.setData({ hasBinding, elderlyOpenid, elderlyName })
+    } else {
+      this.setData({ hasBinding: true })
     }
     this.refreshAll()
   },
@@ -114,6 +125,10 @@ Page({
 
   // ── 新增提醒 ──────────────────────────────────────
   addTemplate() {
+    if ((wx.getStorageSync('role') || 'family') === 'family' && !this.data.hasBinding) {
+      wx.showToast({ title: '请先绑定老人账号', icon: 'none' })
+      return
+    }
     const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
     wx.navigateTo({ url: '/pages/reminders/edit/edit?eid=' + encodeURIComponent(eid) })
   },
@@ -124,6 +139,10 @@ Page({
     if (this.data.mode === 'delete') {
       this._toggleSelect(id)
     } else {
+      if ((wx.getStorageSync('role') || 'family') === 'family' && !this.data.hasBinding) {
+        wx.showToast({ title: '请先绑定老人账号', icon: 'none' })
+        return
+      }
       // normal / edit 模式均跳转编辑页
       const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
       wx.navigateTo({ url: '/pages/reminders/edit/edit?id=' + id + '&eid=' + encodeURIComponent(eid) })
@@ -186,6 +205,10 @@ Page({
 
   // ── 自动提醒开关 ──────────────────────────────────
   async toggleAutoRemind() {
+    if ((wx.getStorageSync('role') || 'family') === 'family' && !this.data.hasBinding) {
+      wx.showToast({ title: '请先绑定老人账号', icon: 'none' })
+      return
+    }
     const next = !this.data.autoRemind
     try {
       wx.showLoading({ title: next ? '开启中…' : '关闭中…', mask: true })

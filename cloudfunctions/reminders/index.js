@@ -49,24 +49,26 @@ async function findElderlyOpenid(callerOpenid, role, explicitEid) {
   if (role === 'elderly') return callerOpenid
 
   const { data } = await db.collection('bindings')
-    .where({ fromOpenid: callerOpenid }).limit(1).get()
+    .where({ fromOpenid: callerOpenid }).orderBy('createdAt', 'desc').get()
   if (!data.length) return null
 
-  const binding = data[0]
-  if (binding.toOpenid) return binding.toOpenid
+  for (const binding of data) {
+    if (binding.toOpenid) return binding.toOpenid
 
-  if (binding.toPhone) {
-    const { data: elders } = await db.collection('elderly')
-      .where({ phone: binding.toPhone }).limit(1).get()
-    if (elders.length > 0) {
-      const eid = elders[0]._openid || elders[0].openid || ''
-      if (eid) {
-        await db.collection('bindings').doc(binding._id)
-          .update({ data: { toOpenid: eid } }).catch(() => {})
-        return eid
+    if (binding.toPhone) {
+      const { data: elders } = await db.collection('elderly')
+        .where({ phone: binding.toPhone }).limit(1).get()
+      if (elders.length > 0) {
+        const eid = elders[0]._openid || elders[0].openid || ''
+        if (eid) {
+          await db.collection('bindings').doc(binding._id)
+            .update({ data: { toOpenid: eid } }).catch(() => {})
+          return eid
+        }
       }
     }
   }
+
   return null
 }
 

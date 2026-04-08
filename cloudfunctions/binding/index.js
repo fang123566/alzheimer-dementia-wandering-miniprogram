@@ -33,6 +33,16 @@ function validPhone(phone) {
   return /^1[3-9]\d{9}$/.test(phone)
 }
 
+function uniqueBindings(list = []) {
+  const seen = new Set()
+  return list.filter(item => {
+    const id = item && item._id
+    if (!id || seen.has(id)) return false
+    seen.add(id)
+    return true
+  })
+}
+
 // ─── 各 action 处理器 ──────────────────────────────────────────────────────
 
 /**
@@ -40,28 +50,29 @@ function validPhone(phone) {
  * 同时返回 meta（能否新增绑定、能否解绑）
  */
 async function getBindings({ openid, role }) {
-  // 查询"我发起的"绑定（家属视角）或"别人绑定了我"的记录（老人视角）
-  const field = role === 'elderly' ? 'toOpenid' : 'fromOpenid'
-  let { data: rawList } = await bindingsCol.where({ [field]: openid }).get()
+  const selfCol = getColByRole(role)
+  const [selfSnap1, selfSnap2, initiatedRes, receivedRes] = await Promise.all([
+    selfCol.where({ _openid: openid }).limit(1).get(),
+    selfCol.where({ openid }).limit(1).get(),
+    bindingsCol.where({ fromOpenid: openid }).get(),
+    bindingsCol.where({ toOpenid: openid }).get()
+  ])
 
-  // 老人视角补救：toOpenid 可能为空，用手机号匹配并回填
-  if (role === 'elderly' && rawList.length === 0) {
-    // query by both _openid and plain openid field
-    const [snap1, snap2] = await Promise.all([
-      elderlyCol.where({ _openid: openid }).limit(1).get(),
-      elderlyCol.where({ openid }).limit(1).get()
-    ])
-    const selfList = snap1.data.length ? snap1.data : snap2.data
-    const selfPhone = selfList[0] ? selfList[0].phone : ''
-    if (selfPhone) {
-      const { data: phoneBindings } = await bindingsCol.where({ toPhone: selfPhone }).get()
-      if (phoneBindings.length > 0) {
-        rawList = phoneBindings
-        // 回填 toOpenid
-        for (const b of phoneBindings) {
-          if (!b.toOpenid) {
-            await bindingsCol.doc(b._id).update({ data: { toOpenid: openid } }).catch(() => {})
-          }
+  const self = selfSnap1.data[0] || selfSnap2.data[0] || {}
+  const selfPhone = self.phone || ''
+
+  let rawList = uniqueBindings([
+    ...(initiatedRes.data || []),
+    ...(receivedRes.data || [])
+  ])
+
+  if (selfPhone) {
+    const { data: phoneBindings } = await bindingsCol.where({ toPhone: selfPhone }).get()
+    if (phoneBindings.length > 0) {
+      rawList = uniqueBindings([...rawList, ...phoneBindings])
+      for (const b of phoneBindings) {
+        if (!b.toOpenid) {
+          await bindingsCol.doc(b._id).update({ data: { toOpenid: openid } }).catch(() => {})
         }
       }
     }
@@ -71,9 +82,18 @@ async function getBindings({ openid, role }) {
   const peerCol = getPeerColByRole(role)   // 家属 → 查 elderly；老人 → 查 family
   const results = await Promise.all(
     rawList.map(async item => {
-      // 对端 openid：家属看老人(toOpenid)，老人看家属(fromOpenid)
-      let peerOpenid = role === 'elderly' ? item.fromOpenid : item.toOpenid
+      const isCurrentUserInitiator = item.fromOpenid === openid
+      const isCurrentUserReceiver = item.toOpenid === openid || (!!selfPhone && item.toPhone === selfPhone)
+      let peerOpenid = ''
       let linkedUser = {}
+
+      if (isCurrentUserInitiator) {
+        peerOpenid = item.toOpenid || ''
+      } else if (isCurrentUserReceiver) {
+        peerOpenid = item.fromOpenid || ''
+      } else {
+        peerOpenid = role === 'elderly' ? item.fromOpenid : item.toOpenid
+      }
 
       // 先用 openid 查找对端用户（兼容 _openid 和 openid 两个字段）
       if (peerOpenid) {
@@ -84,8 +104,8 @@ async function getBindings({ openid, role }) {
         linkedUser = snap1.data[0] || snap2.data[0] || {}
       }
 
-      // 家属视角：如果 toOpenid 为空但 toPhone 存在，尝试用手机号查找并回填
-      if (role === 'family' && !peerOpenid && item.toPhone) {
+      // 当前用户在发起侧时，如果对端 openid 为空但 toPhone 存在，尝试用手机号查找并回填
+      if (isCurrentUserInitiator && !peerOpenid && item.toPhone) {
         const { data: phoneUsers } = await peerCol.where({ phone: item.toPhone }).limit(1).get()
         if (phoneUsers.length > 0) {
           linkedUser = phoneUsers[0]
@@ -106,14 +126,15 @@ async function getBindings({ openid, role }) {
         linkedUser: {
           openid: peerOpenid || '',
           name: linkedUser.nickName || linkedUser.name || '',
-          phone: role === 'elderly' ? (linkedUser.phone || '') : (item.toPhone || '')
+          phone: linkedUser.phone || (isCurrentUserInitiator ? (item.toPhone || '') : '')
         }
       }
     })
   )
 
-  // meta：家属最多绑定1个老人；老人不能主动创建绑定
-  const canCreateBinding = role === 'family' && rawList.length === 0
+  // meta：家属最多绑定1个老人；老人侧保持现有页面可见能力
+  const initiatedCount = (initiatedRes.data || []).length
+  const canCreateBinding = role === 'family' ? initiatedCount === 0 : true
   const canUnbind = rawList.length > 0
 
   return ok(results, { canCreateBinding, canUnbind })
