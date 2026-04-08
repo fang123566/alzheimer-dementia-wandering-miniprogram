@@ -3,15 +3,32 @@ const app = getApp()
 const { locationAPI, alertsAPI, sosAPI, settingsAPI } = require('../../utils/api')
 const amap = require('../../utils/amap')
 
+
 Page({
   data: {
     statusBarHeight: 20,
     shortLocation: '定位',
     familyFuncs: [
-      { action: 'memory', name: '记忆相册', iconImage: '../../assets/记忆相册.png' },
-      { action: 'family', name: '家庭组', iconImage: '../../assets/家庭组.png' },
-      { action: 'remind', name: '今日提醒', iconImage: '../../assets/今日提醒.png' },
-      { action: 'dialect', name: '方言助手', iconImage: '../../assets/方言助手.png' }
+      { 
+        action: 'memory', 
+        name: '记忆相册', 
+        iconImage: 'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/记忆相册.png' 
+      },
+      { 
+        action: 'family', 
+        name: '家庭组', 
+        iconImage: 'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家庭组.png' 
+      },
+      { 
+        action: 'remind', 
+        name: '今日提醒', 
+        iconImage: 'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/今日提醒.png' 
+      },
+      { 
+        action: 'dialect', 
+        name: '方言助手', 
+        iconImage: 'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/方言助手.png' 
+      }
     ],
     role: 'family',
     userInfo: {},
