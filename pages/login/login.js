@@ -1,10 +1,43 @@
 // pages/login/login.js
 const app = getApp()
-const { authAPI } = require('../../utils/api')
+
+const PHONE_HISTORY_KEY = 'loginPhoneHistory'
+const MAX_PHONE_HISTORY = 20
+
+function readPhoneHistory() {
+  try {
+    const list = wx.getStorageSync(PHONE_HISTORY_KEY)
+    if (Array.isArray(list)) {
+      return list.filter((x) => x && x.phone && String(x.phone).length >= 11)
+    }
+  } catch (e) { /* ignore */ }
+  return []
+}
+
+function upsertPhoneHistory(phone, nickname) {
+  const p = String(phone || '').trim()
+  if (!/^1[3-9]\d{9}$/.test(p)) return
+  const nick = (nickname != null && String(nickname).trim()) || ''
+  let list = readPhoneHistory().filter((x) => x.phone !== p)
+  list.unshift({ phone: p, nickname: nick })
+  if (list.length > MAX_PHONE_HISTORY) list = list.slice(0, MAX_PHONE_HISTORY)
+  try {
+    wx.setStorageSync(PHONE_HISTORY_KEY, list)
+  } catch (e) { /* ignore */ }
+}
+
+function removePhoneFromHistory(phone) {
+  const p = String(phone || '').trim()
+  if (!p) return
+  const list = readPhoneHistory().filter((x) => x.phone !== p)
+  try {
+    wx.setStorageSync(PHONE_HISTORY_KEY, list)
+  } catch (e) { /* ignore */ }
+}
 
 Page({
   data: {
-    mode: 'login',   // 'login' | 'register'
+    mode: 'login',
     form: {
       name: '',
       phone: '',
@@ -12,41 +45,85 @@ Page({
       role: 'family'
     },
     loading: false,
-    errorMsg: ''
+    errorMsg: '',
+    savedPhones: [],
+    showPhoneDropdown: false
   },
 
   onLoad() {
     const token = wx.getStorageSync('token')
     if (token) {
       this._goHome()
+      return
     }
+    this._loadSavedPhones()
+  },
+
+  onShow() {
+    if (wx.getStorageSync('token')) return
+    this._loadSavedPhones()
+  },
+
+  _loadSavedPhones() {
+    this.setData({ savedPhones: readPhoneHistory() })
   },
 
   setMode(e) {
+    const m = e.currentTarget.dataset.m
     this.setData({
-      mode: e.currentTarget.dataset.m,
+      mode: m,
       errorMsg: '',
+      showPhoneDropdown: false,
       'form.name': '',
       'form.phone': '',
       'form.password': ''
     })
   },
 
-  // 【修复】优化输入绑定逻辑，增加调试日志
+  togglePhoneDropdown() {
+    if (!this.data.savedPhones.length) return
+    this.setData({ showPhoneDropdown: !this.data.showPhoneDropdown })
+  },
+
+  closePhoneDropdown() {
+    this.setData({ showPhoneDropdown: false })
+  },
+
+  noop() {},
+
+  onPickSavedPhone(e) {
+    const phone = e.currentTarget.dataset.phone
+    if (!phone) return
+    this.setData({
+      'form.phone': phone,
+      'form.password': '',
+      errorMsg: '',
+      showPhoneDropdown: false
+    })
+  },
+
+  onRemoveSavedPhone(e) {
+    const phone = e.currentTarget.dataset.phone
+    if (!phone) return
+    removePhoneFromHistory(phone)
+    const list = readPhoneHistory()
+    const patch = { savedPhones: list }
+    if (this.data.form.phone === phone) {
+      patch['form.phone'] = ''
+    }
+    if (!list.length) {
+      patch.showPhoneDropdown = false
+    }
+    this.setData(patch)
+  },
+
   onInput(e) {
     const key = e.currentTarget.dataset.key
     const value = e.detail.value
-    // 调试：打印输入的字段和值，方便排查
-    console.log(`输入字段：${key}，输入值："${value}"`)
-    
-    // 确保数据更新路径正确
     const updateData = {}
     updateData[`form.${key}`] = value
     updateData.errorMsg = ''
     this.setData(updateData)
-    
-    // 调试：确认数据已更新
-    console.log('更新后form.name：', this.data.form.name)
   },
 
   selectRole(e) {
@@ -57,14 +134,7 @@ Page({
     if (this.data.loading) return
     const { mode, form } = this.data
 
-    // 调试：打印提交时的完整数据
-    console.log('提交模式：', mode)
-    console.log('提交form数据：', form)
-    console.log('姓名trim后："', form.name.trim(), '"')
-
-    // 【修复】优化姓名校验逻辑（兼容全角空格/特殊空格）
     if (mode === 'register') {
-      // 移除所有类型的空格（包括全角、半角）
       const pureName = form.name.replace(/\s+/g, '')
       if (!pureName) {
         return this.setData({ errorMsg: '请填写姓名（不可为空或仅含空格）' })
@@ -86,55 +156,55 @@ Page({
     this.setData({ loading: true, errorMsg: '' })
 
     try {
-        const { result } = await wx.cloud.callFunction({
-          name: 'auth',
-          data: {
-            action:   mode,           
-            name:     form.name.replace(/\s+/g, ''), // 确保姓名无空格
-            phone:    form.phone.trim(),
-            password: form.password,
-            role:     form.role
-          }
-        })
-  
-        if (result.code === 0) {
-          const { token, user } = result.data
-          wx.setStorageSync('token',    token)
-          wx.setStorageSync('userInfo', user)
-          wx.setStorageSync('role',     user.role)
-  
-          app.globalData.userInfo = user
-          app.globalData.role     = user.role
-          app.globalData.elderlyInfo = user.role === 'elderly'
+      const { result } = await wx.cloud.callFunction({
+        name: 'auth',
+        data: {
+          action: mode,
+          name: form.name.replace(/\s+/g, ''),
+          phone: form.phone.trim(),
+          password: form.password,
+          role: form.role
+        }
+      })
+
+      if (result.code === 0) {
+        const { token, user } = result.data
+        wx.setStorageSync('token', token)
+        wx.setStorageSync('userInfo', user)
+        wx.setStorageSync('role', user.role)
+
+        app.globalData.userInfo = user
+        app.globalData.role = user.role
+        app.globalData.elderlyInfo =
+          user.role === 'elderly'
             ? {
-                name:      user.name,
+                name: user.name,
                 elderlyId: user.elderlyId,
-                age:       user.age    || '',
-                avatar:    user.avatar || ''
+                age: user.age || '',
+                avatar: user.avatar || ''
               }
             : app.globalData.elderlyInfo
-  
-          wx.showToast({ title: mode === 'login' ? '登录成功' : '注册成功', icon: 'success' })
-          setTimeout(() => this._goHome(), 800)
-  
-        } else {
-          this.setData({ errorMsg: result.msg || '操作失败，请重试' })
-        }
-  
-      } catch (err) {
-        console.error('云函数调用失败：', err)
-        this.setData({ errorMsg: '网络连接失败，请稍后重试' })
-      } finally {
-        this.setData({ loading: false })
+
+        const ph = user.phone || form.phone.trim()
+        upsertPhoneHistory(ph, user.name || '')
+
+        wx.showToast({ title: mode === 'login' ? '登录成功' : '注册成功', icon: 'success' })
+        setTimeout(() => this._goHome(), 800)
+      } else {
+        this.setData({ errorMsg: result.msg || '操作失败，请重试' })
       }
-    },
-  
+    } catch (err) {
+      console.error('云函数调用失败：', err)
+      this.setData({ errorMsg: '网络连接失败，请稍后重试' })
+    } finally {
+      this.setData({ loading: false })
+    }
+  },
 
   _goHome() {
     wx.reLaunch({ url: '/pages/index/index' })
   },
 
-  // 发送验证码（登录模式）
   sendCode() {
     const { phone } = this.data.form
     if (!phone || !/^1[3-9]\d{9}$/.test(phone.trim())) {
@@ -142,12 +212,9 @@ Page({
       return
     }
     wx.showToast({ title: '验证码已发送', icon: 'success' })
-    // TODO: 接入实际短信验证码接口
   },
 
-  // 微信一键登录
   wechatLogin() {
     wx.showToast({ title: '微信登录开发中', icon: 'none' })
-    // TODO: 接入微信登录接口
   }
 })

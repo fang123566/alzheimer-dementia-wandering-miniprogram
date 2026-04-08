@@ -49,7 +49,7 @@
   </view>
 
 <!-- 表单卡片 -->
-<view class="form-card">
+<view class="form-card {{mode === 'login' && showPhoneDropdown ? 'form-card-dropdown-open' : ''}}">
 
   <!-- 姓名（仅注册） -->
   <view class="field" wx:if="{{mode === 'register'}}">
@@ -66,16 +66,56 @@
     />
   </view>
 
-  <!-- 手机号 -->
-  <view class="field">
+  <!-- 手机号（登录：右侧 ▼ 展开已登录过的号码） -->
+  <view class="field field-phone-field">
     <text class="field-label">手机号</text>
+    <view class="field-phone-combo" wx:if="{{mode === 'login'}}">
+      <input
+        class="field-input field-input-phone-login"
+        type="number"
+        placeholder="请输入手机号"
+        placeholder-class="ph"
+        value="{{form.phone}}"
+        bindinput="onInput"
+        data-key="phone"
+        maxlength="11"
+      />
+      <view
+        class="phone-dropdown-trigger"
+        wx:if="{{savedPhones.length > 0}}"
+        catchtap="togglePhoneDropdown"
+      >
+        <text class="phone-dropdown-arrow {{showPhoneDropdown ? 'is-open' : ''}}">▼</text>
+      </view>
+      <view class="phone-dropdown-panel" wx:if="{{showPhoneDropdown && savedPhones.length > 0}}">
+        <scroll-view scroll-y class="phone-dropdown-scroll">
+          <view class="phone-dropdown-item" wx:for="{{savedPhones}}" wx:key="phone">
+            <view
+              class="phone-dropdown-item-main"
+              catchtap="onPickSavedPhone"
+              data-phone="{{item.phone}}"
+            >
+              <text class="phone-dropdown-num">{{item.phone}}</text>
+              <text class="phone-dropdown-nick" wx:if="{{item.nickname}}">{{item.nickname}}</text>
+            </view>
+            <text
+              class="phone-dropdown-remove"
+              catchtap="onRemoveSavedPhone"
+              data-phone="{{item.phone}}"
+            >X</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
     <input
+      wx:else
       class="field-input"
       type="number"
       placeholder="请输入手机号"
       placeholder-class="ph"
       value="{{form.phone}}"
-      bindinput="onInput" data-key="phone"
+      bindinput="onInput"
+      data-key="phone"
       maxlength="11"
     />
   </view>
@@ -145,5 +185,12 @@
   </view>
 
 </view>
+
+  <view
+    class="phone-dropdown-backdrop"
+    wx:if="{{mode === 'login' && showPhoneDropdown}}"
+    catchtap="closePhoneDropdown"
+    catchtouchmove="noop"
+  ></view>
 
 </view>

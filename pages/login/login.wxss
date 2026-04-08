@@ -268,6 +268,10 @@
   z-index: 1;
   border: 1rpx solid rgba(47,133,90,0.06);
 }
+.form-card-dropdown-open {
+  position: relative;
+  z-index: 120;
+}
 
 /* ── 输入字段 ────────────────────────────── */
 .field {
@@ -295,6 +299,108 @@
 }
 .field-input:focus {
   border-color: #22764d;
+}
+.field-phone-field {
+  position: relative;
+}
+.field-phone-combo {
+  position: relative;
+}
+.field-input-phone-login {
+  padding-right: 88rpx;
+}
+.phone-dropdown-trigger {
+  position: absolute;
+  right: 4rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 76rpx;
+  height: 76rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+}
+.phone-dropdown-trigger:active {
+  background: rgba(47,133,90,0.1);
+}
+.phone-dropdown-arrow {
+  font-size: 22rpx;
+  color: #22764d;
+  font-weight: 700;
+  line-height: 1;
+  display: block;
+  transition: transform 0.2s ease;
+}
+.phone-dropdown-arrow.is-open {
+  transform: rotate(180deg);
+}
+.phone-dropdown-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 10rpx);
+  background: #ffffff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 16rpx 48rpx rgba(44, 61, 53, 0.16);
+  border: 1rpx solid rgba(47,133,90,0.14);
+  z-index: 130;
+  overflow: hidden;
+}
+.phone-dropdown-scroll {
+  max-height: 280rpx;
+}
+.phone-dropdown-item {
+  padding: 16rpx 12rpx 16rpx 24rpx;
+  border-bottom: 1rpx solid rgba(47,133,90,0.08);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+}
+.phone-dropdown-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+.phone-dropdown-item-main:active {
+  opacity: 0.85;
+}
+.phone-dropdown-num {
+  font-size: 30rpx;
+  color: #0d2b1f;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+.phone-dropdown-nick {
+  font-size: 22rpx;
+  color: #4a6355;
+}
+.phone-dropdown-remove {
+  flex-shrink: 0;
+  width: 56rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #94a3b8;
+  font-weight: 300;
+  border-radius: 12rpx;
+}
+.phone-dropdown-remove:active {
+  background: rgba(229, 57, 53, 0.12);
+  color: #e53935;
+}
+.phone-dropdown-backdrop {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 110;
+  background: rgba(0, 0, 0, 0.12);
 }
 .ph { color: #333333; }
 
