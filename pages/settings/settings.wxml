@@ -61,7 +61,11 @@
     <!-- 姓名 / 年龄 -->
     <view class="elderly-row" bindtap="editElderly">
       <view class="elderly-row-icon-wrap elderly-row-icon-blue">
-        <text class="elderly-row-icon">🪪</text>
+        <image
+          class="elderly-row-icon-img"
+          src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/老人端.png"
+          mode="aspectFill"
+        />
       </view>
       <view class="elderly-row-main">
         <text class="elderly-row-label">姓名 / 年龄</text>
@@ -73,7 +77,11 @@
     <!-- 老人方言 -->
     <view class="elderly-row" bindtap="editDialect">
       <view class="elderly-row-icon-wrap elderly-row-icon-purple">
-        <text class="elderly-row-icon">🗣️</text>
+        <image
+          class="elderly-row-icon-img"
+          src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/方言助手.png"
+          mode="aspectFill"
+        />
       </view>
       <view class="elderly-row-main">
         <text class="elderly-row-label">老人方言</text>
@@ -136,7 +144,11 @@
 
     <view class="section-row" bindtap="goReminders">
       <view class="section-row-icon-wrap section-icon-rose">
-        <text class="section-row-icon">🗓️</text>
+      <image
+        class="section-row-icon-img"
+        src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/今日提醒.png"
+        mode="aspectFill"
+      />
       </view>
       <view class="section-row-main">
         <text class="section-row-label">今日提醒管理</text>
@@ -149,14 +161,22 @@
   <!-- 家庭组与设备 -->
   <view class="setting-group">
     <view class="family-header">
-      <text class="family-header-icon">👥</text>
+      <image
+        class="family-header-icon-img"
+        src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家庭组.png"
+        mode="aspectFill"
+      />
       <text class="family-header-title">家庭组</text>
     </view>
 
     <!-- 家庭组成员 -->
     <view class="family-row" bindtap="showFamilyGroupInfo">
       <view class="family-row-icon-wrap family-row-icon-green">
-        <text class="family-row-icon">🏠</text>
+        <image
+          class="family-row-icon-img"
+          src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家庭成员.png"
+          mode="aspectFill"
+        />
       </view>
       <view class="family-row-main">
         <text class="family-row-label">家庭组成员</text>
