@@ -36,9 +36,9 @@ const authAPI = {
   register:      (name, phone, password, role)  => callCloud('auth', { action: 'register', name, phone, password, role }),
   logout:        ()                             => callCloud('auth', { action: 'logout' }),
   cancelAccount: ()                             => callCloud('auth', { action: 'cancelAccount' }),
-  profile:       ()                             => callCloud('auth', { action: 'profile' }),
-  updateProfile: (data)                         => callCloud('auth', { action: 'updateProfile', ...data }),
-  uploadAvatar:  (fileID)                       => callCloud('auth', { action: 'uploadAvatar', fileID })
+  profile:       ()                             => callCloud('auth', { action: 'profile', token: wx.getStorageSync('token') }),
+  updateProfile: (data)                         => callCloud('auth', { action: 'updateProfile', token: wx.getStorageSync('token'), ...data }),
+  uploadAvatar:  (fileID)                       => callCloud('auth', { action: 'uploadAvatar', token: wx.getStorageSync('token'), fileID })
 }
 // ── 位置（已迁移至微信云函数）────────────────────────────
 const locationAPI = {
@@ -122,23 +122,23 @@ const settingsAPI = {
 const bindingAPI = {
   getBinding: () => {
     const role = getCurrentRole()
-    return callCloud('binding', { action: 'getBindings', role })
+    return callCloud('binding', { action: 'getBindings', role, token: wx.getStorageSync('token') })
   },
   getBindings: () => {
     const role = getCurrentRole()
-    return callCloud('binding', { action: 'getBindings', role })
+    return callCloud('binding', { action: 'getBindings', role, token: wx.getStorageSync('token') })
   },
   createBinding: (linkedPhone, note) => {
     const role = getCurrentRole()
-    return callCloud('binding', { action: 'createBinding', role, linkedPhone, note })
+    return callCloud('binding', { action: 'createBinding', role, token: wx.getStorageSync('token'), linkedPhone, note })
   },
   updateBinding: (id, data) => {
     const role = getCurrentRole()
-    return callCloud('binding', { action: 'updateBinding', role, bindingId: id, ...data })
+    return callCloud('binding', { action: 'updateBinding', role, token: wx.getStorageSync('token'), bindingId: id, ...data })
   },
   deleteBinding: (id) => {
     const role = getCurrentRole()
-    return callCloud('binding', { action: 'deleteBinding', role, bindingId: id })
+    return callCloud('binding', { action: 'deleteBinding', role, token: wx.getStorageSync('token'), bindingId: id })
   }
 }
 // ── 今日提醒（已迁移至 reminders 云函数）─────────────────

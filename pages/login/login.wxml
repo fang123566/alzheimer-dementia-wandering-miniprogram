@@ -142,7 +142,11 @@
         class="role-card {{form.role === 'family' ? 'role-active-family' : ''}}"
         bindtap="selectRole" data-role="family"
       >
-        <text class="role-emoji">👨‍👩‍👧</text>
+        <image
+          class="role-icon"
+          src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家属端.jpg"
+          mode="aspectFill"
+        />
         <text class="role-name">家属端</text>
         <text class="role-desc">查看轨迹、接收预警、管理记忆</text>
         <view class="role-check" wx:if="{{form.role === 'family'}}">✓</view>
@@ -151,7 +155,11 @@
         class="role-card {{form.role === 'elderly' ? 'role-active-elderly' : ''}}"
         bindtap="selectRole" data-role="elderly"
       >
-        <text class="role-emoji">👴</text>
+        <image
+          class="role-icon"
+          src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/老人端.jpg"
+          mode="aspectFill"
+        />
         <text class="role-name">老人端</text>
         <text class="role-desc">SOS求助、AI伴聊、简洁模式</text>
         <view class="role-check" wx:if="{{form.role === 'elderly'}}">✓</view>

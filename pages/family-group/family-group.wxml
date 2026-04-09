@@ -3,7 +3,11 @@
 
   <!-- 页面标题 -->
   <view class="page-header">
-    <text class="page-header-icon">👥</text>
+    <image
+      class="page-header-icon-img"
+      src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家庭组.png"
+      mode="aspectFill"
+    />
     <text class="page-header-title">家庭组管理</text>
     <text class="page-header-sub">管理家庭成员，共同守护老人</text>
   </view>
@@ -37,7 +41,11 @@
 
     <!-- 空状态 -->
     <view class="member-empty" wx:if="{{!members.length}}">
-      <text class="member-empty-icon">👨‍👩‍👧‍👦</text>
+      <image
+        class="member-empty-icon-img"
+        src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家庭成员.jpg"
+        mode="aspectFill"
+      />
       <text class="member-empty-title">暂无家庭成员</text>
       <text class="member-empty-sub">点击上方按钮邀请家人加入</text>
     </view>
@@ -47,7 +55,13 @@
       <view class="member-card-body">
         <!-- 头像 -->
         <view class="member-avatar-wrap">
-          <text class="member-avatar">{{item.avatar || '👤'}}</text>
+          <image
+            wx:if="{{item.avatar}}"
+            class="member-avatar-img"
+            src="{{item.avatar}}"
+            mode="aspectFill"
+          />
+          <text wx:else class="member-avatar">{{role === 'family' ? '👴' : '👤'}}</text>
         </view>
         <!-- 信息 -->
         <view class="member-info">

@@ -27,6 +27,10 @@
           <text class="phone-icon">📱</text>
           <text class="user-phone">{{userInfo.phone || ''}}</text>
         </view>
+        <view class="gender-chip-wrap" catchtap="editGender">
+          <text class="gender-chip-key">性别</text>
+          <text class="gender-chip-val">{{genderLabel}}</text>
+        </view>
       </view>
     </view>
 
@@ -52,7 +56,20 @@
     <view class="section-title">守护对象</view>
     <view class="card elderly-card">
       <view class="elderly-row">
-        <view class="elderly-avatar-wrap"><text class="elderly-avatar">👴</text></view>
+        <view class="elderly-avatar-wrap">
+          <image
+            wx:if="{{elderlyInfo.avatar}}"
+            class="elderly-avatar-img"
+            src="{{elderlyInfo.avatar}}"
+            mode="aspectFill"
+          />
+          <image
+            wx:else
+            class="elderly-avatar-img"
+            src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/老爷爷.jpg"
+            mode="aspectFill"
+          />
+        </view>
         <view class="elderly-info">
           <text class="elderly-name">{{elderlyInfo.name || '暂未绑定老人账号'}}</text>
           <text class="elderly-meta">{{binding ? ((elderlyInfo.age || '--') + ' 岁 · 设备已绑定') : '请先前往账号关联页面完成绑定'}}</text>
@@ -130,6 +147,10 @@
       <view class="e-phone-row">
         <text class="e-phone-icon">📱</text>
         <text class="e-user-phone">{{userInfo.phone || ''}}</text>
+      </view>
+      <view class="e-gender-chip-wrap" catchtap="editGender">
+        <text class="e-gender-chip-key">性别</text>
+        <text class="e-gender-chip-val">{{genderLabel}}</text>
       </view>
     </view>
 

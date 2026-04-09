@@ -15,7 +15,15 @@
   </view>
 
   <view class="self-card">
-    <view class="self-avatar">{{role === 'family' ? '👨‍👩‍👧' : '👴'}}</view>
+    <view class="self-avatar-wrap">
+      <image
+        wx:if="{{userInfo.avatar}}"
+        class="self-avatar-img"
+        src="{{userInfo.avatar}}"
+        mode="aspectFill"
+      />
+      <text wx:else class="self-avatar-fallback">{{role === 'family' ? '👨‍👩‍👧' : '👴'}}</text>
+    </view>
     <view class="self-info">
       <text class="self-name">{{userInfo.name || '当前账号'}}</text>
       <text class="self-role">{{role === 'family' ? '家属端账号' : '老人端账号'}}</text>
@@ -73,7 +81,15 @@
   </view>
 
   <view wx:for="{{bindings}}" wx:key="index" class="linked-card" bindtap="editBinding" data-id="{{item.binding.id}}">
-    <view class="linked-avatar">{{role === 'family' ? '👴' : '👨‍👩‍👧'}}</view>
+    <view class="linked-avatar-wrap">
+      <image
+        wx:if="{{item.linkedUser.avatar}}"
+        class="linked-avatar-img"
+        src="{{item.linkedUser.avatar}}"
+        mode="aspectFill"
+      />
+      <text wx:else class="linked-avatar-fallback">{{role === 'family' ? '👴' : '👨‍👩‍👧'}}</text>
+    </view>
     <view class="linked-info">
       <text class="linked-name">{{item.linkedUser.name}}</text>
       <text class="linked-role">{{item.binding.roleLabel}}{{item.binding.note ? ' · ' + item.binding.note : ''}}</text>

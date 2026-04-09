@@ -10,6 +10,7 @@ const _ = db.command
 const bindingsCol  = db.collection('bindings')
 const elderlyCol   = db.collection('elderly')   // 老人用户集合
 const familyCol    = db.collection('family')    // 家属用户集合
+const tokensCol    = db.collection('tokens')
 
 // 根据角色返回自己的集合 / 对端的集合
 function getColByRole(role) {
@@ -43,22 +44,35 @@ function uniqueBindings(list = []) {
   })
 }
 
+/** 用 token 精确定位当前登录账号（避免同一 openid 多账号导致 role/self 串号） */
+async function resolveSession(openid, token) {
+  if (!openid || !token) return null
+  try {
+    const tokRes = await tokensCol.where({ openid, token }).limit(1).get()
+    const rec = tokRes.data && tokRes.data[0]
+    if (!rec || !rec.userId || !rec.role) return null
+    return { userId: rec.userId, role: rec.role }
+  } catch (e) {
+    console.error('[binding] resolveSession error:', e)
+    return null
+  }
+}
+
 // ─── 各 action 处理器 ──────────────────────────────────────────────────────
 
 /**
  * 获取当前用户的所有绑定关系
  * 同时返回 meta（能否新增绑定、能否解绑）
  */
-async function getBindings({ openid, role }) {
+async function getBindings({ openid, role, userId }) {
   const selfCol = getColByRole(role)
-  const [selfSnap1, selfSnap2, initiatedRes, receivedRes] = await Promise.all([
-    selfCol.where({ _openid: openid }).limit(1).get(),
-    selfCol.where({ openid }).limit(1).get(),
+  const [selfDocRes, initiatedRes, receivedRes] = await Promise.all([
+    userId ? selfCol.doc(userId).get().catch(() => ({ data: {} })) : Promise.resolve({ data: {} }),
     bindingsCol.where({ fromOpenid: openid }).get(),
     bindingsCol.where({ toOpenid: openid }).get()
   ])
 
-  const self = selfSnap1.data[0] || selfSnap2.data[0] || {}
+  const self = selfDocRes.data || {}
   const selfPhone = self.phone || ''
 
   let rawList = uniqueBindings([
@@ -85,34 +99,50 @@ async function getBindings({ openid, role }) {
       const isCurrentUserInitiator = item.fromOpenid === openid
       const isCurrentUserReceiver = item.toOpenid === openid || (!!selfPhone && item.toPhone === selfPhone)
       let peerOpenid = ''
+      let peerUserId = ''
       let linkedUser = {}
 
       if (isCurrentUserInitiator) {
         peerOpenid = item.toOpenid || ''
+        peerUserId = item.toUserId || ''
       } else if (isCurrentUserReceiver) {
         peerOpenid = item.fromOpenid || ''
+        peerUserId = item.fromUserId || ''
       } else {
         peerOpenid = role === 'elderly' ? item.fromOpenid : item.toOpenid
+        peerUserId = role === 'elderly' ? (item.fromUserId || '') : (item.toUserId || '')
       }
 
-      // 先用 openid 查找对端用户（兼容 _openid 和 openid 两个字段）
-      if (peerOpenid) {
-        const [snap1, snap2] = await Promise.all([
-          peerCol.where({ _openid: peerOpenid }).limit(1).get(),
-          peerCol.where({ openid: peerOpenid }).limit(1).get()
-        ])
-        linkedUser = snap1.data[0] || snap2.data[0] || {}
+      // 优先用对端 userId 精准查询（支持同一 openid 多账号）
+      if (peerUserId) {
+        const docRes = await peerCol.doc(peerUserId).get().catch(() => ({ data: {} }))
+        linkedUser = docRes.data || {}
       }
 
       // 当前用户在发起侧时，如果对端 openid 为空但 toPhone 存在，尝试用手机号查找并回填
-      if (isCurrentUserInitiator && !peerOpenid && item.toPhone) {
+      // 注意：同一微信 openid 多账号时，peerOpenid 可能等于当前 openid，不能用于定位对端账号
+      const openidAmbiguous = !!peerOpenid && peerOpenid === openid
+      if (!peerUserId && isCurrentUserInitiator && item.toPhone) {
         const { data: phoneUsers } = await peerCol.where({ phone: item.toPhone }).limit(1).get()
         if (phoneUsers.length > 0) {
           linkedUser = phoneUsers[0]
-          peerOpenid = linkedUser.openid || linkedUser._openid || ''
-          // 回填 toOpenid，下次查询不再需要手机号查找
-          if (peerOpenid) {
-            await bindingsCol.doc(item._id).update({ data: { toOpenid: peerOpenid } }).catch(() => {})
+          // 回填 toUserId（优先），并保留旧字段兼容
+          await bindingsCol.doc(item._id).update({
+            data: {
+              toUserId: linkedUser._id || '',
+              toOpenid: linkedUser.openid || linkedUser._openid || ''
+            }
+          }).catch(() => {})
+        }
+      }
+
+      // 如果 openid 可疑（同 openid 多账号）且还没拿到 linkedUser，则用手机号兜底查找
+      if (!linkedUser._id && (openidAmbiguous || !peerOpenid)) {
+        const phone = isCurrentUserInitiator ? (item.toPhone || '') : (item.fromPhone || '')
+        if (phone) {
+          const { data: phoneUsers2 } = await peerCol.where({ phone }).limit(1).get()
+          if (phoneUsers2.length > 0) {
+            linkedUser = phoneUsers2[0]
           }
         }
       }
@@ -126,6 +156,7 @@ async function getBindings({ openid, role }) {
         linkedUser: {
           openid: peerOpenid || '',
           name: linkedUser.nickName || linkedUser.name || '',
+          avatar: linkedUser.avatar || '',
           phone: linkedUser.phone || (isCurrentUserInitiator ? (item.toPhone || '') : '')
         }
       }
@@ -145,16 +176,15 @@ async function getBindings({ openid, role }) {
  * payload: { linkedPhone, note }
  * 逻辑：通过手机号在 users 集合里找到老人，写入 bindings
  */
-async function createBinding({ openid, role }, { linkedPhone, note }) {
+async function createBinding({ openid, role, userId }, { linkedPhone, note }) {
   if (!validPhone(linkedPhone)) return fail('手机号格式不正确')
 
   // 不能绑自己：在自己的集合里查自己的手机号（兼容 _openid 和 openid）
   const selfCol = getColByRole(role)
-  const [selfSnap1, selfSnap2] = await Promise.all([
-    selfCol.where({ _openid: openid }).limit(1).get(),
-    selfCol.where({ openid }).limit(1).get()
-  ])
-  const self = selfSnap1.data[0] || selfSnap2.data[0] || {}
+  const selfRes = userId
+    ? await selfCol.doc(userId).get().catch(() => ({ data: {} }))
+    : { data: {} }
+  const self = selfRes.data || {}
   if (self.phone === linkedPhone) return fail('不能绑定自己的账号')
 
   // 通过手机号在对端集合里查找用户（可以不存在，toOpenid 留空，等对端登录后关联）
@@ -177,9 +207,11 @@ async function createBinding({ openid, role }, { linkedPhone, note }) {
   const now = Date.now()
   const record = {
     fromOpenid: openid,
+    fromUserId: userId || '',
     fromPhone: self.phone || '',  // 家属手机号，用于后续解绑鉴权
     toPhone: linkedPhone,
     toOpenid: peer ? (peer.openid || peer._openid || '') : '',
+    toUserId: peer ? (peer._id || '') : '',
     note: note || '',
     createdAt: now
   }
@@ -197,8 +229,9 @@ async function updateBinding({ openid }, { bindingId, linkedPhone, note }) {
   if (linkedPhone && !validPhone(linkedPhone)) return fail('手机号格式不正确')
 
   // 鉴权：只能修改自己的绑定
-  const { data: [record] } = await bindingsCol.doc(bindingId).get().catch(() => ({ data: [] }))
-  if (!record) return fail('绑定记录不存在')
+  const recordRes = await bindingsCol.doc(bindingId).get().catch(() => null)
+  const record = recordRes && recordRes.data ? recordRes.data : null
+  if (!record || !record._id) return fail('绑定记录不存在')
   if (record.fromOpenid !== openid) return fail('无权操作')
 
   const update = {}
@@ -223,15 +256,16 @@ async function updateBinding({ openid }, { bindingId, linkedPhone, note }) {
  * 2. 检查 fromOpenid / toOpenid 匹配（使用 openid 字段兼容 _openid）
  * 3. 检查手机号匹配：通过 openid 查用户手机号，再匹配 binding 的 toPhone/fromPhone
  */
-async function deleteBinding({ openid }, { bindingId }) {
+async function deleteBinding({ openid, userId = '' }, { bindingId }) {
   if (!bindingId) return fail('缺少 bindingId')
 
   console.log('[deleteBinding] 开始解绑，bindingId:', bindingId, 'caller openid:', openid)
 
-  const { data: [record] } = await bindingsCol.doc(bindingId).get().catch((e) => {
+  const recordRes = await bindingsCol.doc(bindingId).get().catch((e) => {
     console.error('[deleteBinding] 查询绑定记录失败:', e)
-    return { data: [] }
+    return null
   })
+  const record = recordRes && recordRes.data ? recordRes.data : null
 
   if (!record) {
     console.log('[deleteBinding] 绑定记录不存在')
@@ -239,6 +273,13 @@ async function deleteBinding({ openid }, { bindingId }) {
   }
 
   console.log('[deleteBinding] 找到记录:', { fromOpenid: record.fromOpenid, toOpenid: record.toOpenid, toPhone: record.toPhone })
+
+  // 0. userId 精准鉴权（优先）
+  if (userId && (record.fromUserId === userId || record.toUserId === userId)) {
+    console.log('[deleteBinding] userId 匹配成功，执行删除')
+    await bindingsCol.doc(bindingId).remove()
+    return ok({ bindingId })
+  }
 
   // 1. 直接 openid 匹配（兼容 _openid 和 openid 字段）
   const fromMatch = record.fromOpenid === openid || record.fromOpenid === ''
@@ -295,9 +336,14 @@ async function deleteBinding({ openid }, { bindingId }) {
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
-  const { action, role = 'family', ...payload } = event
+  const { action, role = 'family', token = '', ...payload } = event
 
-  const caller = { openid: OPENID, role }
+  const session = await resolveSession(OPENID, token).catch(() => null)
+  const caller = {
+    openid: OPENID,
+    role: (session && session.role) || role,
+    userId: session ? session.userId : ''
+  }
 
   try {
     switch (action) {

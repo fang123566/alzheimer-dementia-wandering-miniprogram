@@ -438,7 +438,15 @@
   border-color: #38a169;
   background: rgba(56,161,105,0.08);
 }
-.role-emoji { font-size: 52rpx; margin-bottom: 12rpx; }
+.role-icon {
+  width: 86rpx;
+  height: 86rpx;
+  border-radius: 22rpx;
+  margin-bottom: 14rpx;
+  background: rgba(255,255,255,0.55);
+  border: 2rpx solid rgba(47,133,90,0.10);
+  box-shadow: 0 10rpx 24rpx rgba(20,51,42,0.08);
+}
 .role-name  {
   font-size: 28rpx;
   font-weight: 700;

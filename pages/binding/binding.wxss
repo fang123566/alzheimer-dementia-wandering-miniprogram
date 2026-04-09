@@ -29,10 +29,24 @@
   padding: 28rpx;
 }
 
-.self-avatar {
-  font-size: 68rpx;
+.self-avatar-wrap {
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 50%;
+  overflow: hidden;
   flex-shrink: 0;
+  background: linear-gradient(135deg, #e6f9ee 0%, #d0ece3 100%);
+  border: 2rpx solid rgba(56,161,105,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.self-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.self-avatar-fallback { font-size: 56rpx; line-height: 1; }
 
 .self-info {
   flex: 1;
@@ -132,7 +146,24 @@
   padding: 32rpx;
   box-shadow: var(--shadow-card);
 }
-.linked-avatar { font-size: 72rpx; flex-shrink: 0; }
+.linked-avatar-wrap {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #e6f9ee 0%, #d0ece3 100%);
+  border: 2rpx solid rgba(56,161,105,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.linked-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+.linked-avatar-fallback { font-size: 52rpx; line-height: 1; }
 .linked-info   { flex: 1; }
 .linked-name   { display: block; font-size: 36rpx; font-weight: 700; color: var(--text); }
 .linked-role   { display: block; font-size: 22rpx; color: var(--teal); margin-top: 6rpx; }

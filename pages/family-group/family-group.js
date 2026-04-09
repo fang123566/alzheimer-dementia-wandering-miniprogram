@@ -36,7 +36,7 @@ Page({
           id: item.binding.id,
           name: item.linkedUser.name || ('家属' + (idx + 1)),
           phone: item.linkedUser.phone || '',
-          avatar: '👤',
+          avatar: item.linkedUser.avatar || '',
           role: idx === 0 ? 'admin' : 'member',
           isSelf: false,
           joinTime: item.binding.createdAt ? _fmt(item.binding.createdAt) : ''
@@ -49,7 +49,7 @@ Page({
           id: elderly.binding.id,
           name: elderly.linkedUser.name || '老人',
           phone: elderly.linkedUser.phone || '',
-          avatar: '👴',
+          avatar: elderly.linkedUser.avatar || '',
           role: 'elderly',
           isSelf: false,
           joinTime: elderly.binding.createdAt ? _fmt(elderly.binding.createdAt) : ''

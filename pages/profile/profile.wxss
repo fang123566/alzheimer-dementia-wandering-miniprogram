@@ -28,6 +28,25 @@
   display: flex; flex-direction: column; align-items: center; gap: 12rpx;
   position: relative;
   z-index: 2;
+  flex-shrink: 0;
+}
+
+.gender-chip-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  align-self: flex-start;
+  margin-top: 14rpx;
+}
+.gender-chip-key {
+  font-size: 24rpx;
+  color: rgba(13,43,31,0.55);
+  font-weight: 600;
+}
+.gender-chip-val {
+  font-size: 26rpx;
+  color: rgba(13,43,31,0.72);
+  font-weight: 600;
 }
 .avatar-circle {
   width: 136rpx; height: 136rpx;
@@ -132,7 +151,23 @@
 /* ── 守护对象卡片 ────────────────────────────── */
 .elderly-card { margin: 0 36rpx 0; }
 .elderly-row  { display: flex; align-items: center; gap: 24rpx; margin-bottom: 18rpx; }
-.elderly-avatar { font-size: 64rpx; }
+.elderly-avatar-wrap {
+  width: 92rpx;
+  height: 92rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(34,118,77,0.10);
+  border: 2rpx solid rgba(47,133,90,0.14);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.elderly-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
 .elderly-info { flex: 1; }
 .elderly-name { display: block; font-size: 36rpx; font-weight: 700; color: #0d2b1f; }
 .elderly-meta { display: block; font-size: 26rpx; color: #4a6355; margin-top: 6rpx; }
@@ -242,6 +277,26 @@
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.15);
   z-index: 3;
 }
+
+.e-gender-chip-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  position: relative;
+  z-index: 2;
+  /* 与 .e-phone-row 一致：无白底胶囊 */
+}
+.e-gender-chip-key {
+  font-size: 28rpx;
+  color: rgba(13,43,31,0.55);
+  font-weight: 600;
+}
+.e-gender-chip-val {
+  font-size: 30rpx;
+  color: rgba(13,43,31,0.72);
+  font-weight: 600;
+}
+
 .e-name-row {
   display: flex; align-items: center; gap: 16rpx;
   position: relative;

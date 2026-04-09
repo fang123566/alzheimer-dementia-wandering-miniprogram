@@ -5,14 +5,17 @@ const app = getApp()
 
 // ─── 统一调用云函数的封装 ──────────────────────────────────────────────────
 // 调用云函数 `binding`，传入 action 和其余参数
-// 自动注入当前用户 role（从 app.globalData.role 读取）
+// 自动注入当前用户 role（优先读 storage，避免全局 role 串号）
 function callBinding(action, payload = {}) {
+  const role = wx.getStorageSync('role') || app.globalData.role || 'family'
+  const token = wx.getStorageSync('token') || ''
   return new Promise((resolve, reject) => {
     wx.cloud.callFunction({
       name: 'binding',
       data: {
         action,
-        role: app.globalData.role || 'family',
+        role,
+        token,
         ...payload
       },
       success: res => resolve(res.result),
@@ -41,8 +44,9 @@ Page({
 
   onLoad() {
     if (!app.checkLogin()) return
+    const role = wx.getStorageSync('role') || app.globalData.role || 'family'
     this.setData({
-      role:     app.globalData.role,
+      role,
       userInfo: app.globalData.userInfo || {}
     })
     this._fetchBinding()

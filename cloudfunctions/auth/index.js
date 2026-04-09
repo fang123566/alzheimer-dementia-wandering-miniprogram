@@ -4,6 +4,22 @@ const crypto = require('crypto')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 
+/** 按身份 + 性别的默认头像（注册默认视为男性；改性别时同步切换） */
+const DEFAULT_AVATAR_BY_ROLE = {
+  elderly: {
+    male:
+      'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/老爷爷.jpg',
+    female:
+      'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/老奶奶.jpg'
+  },
+  family: {
+    male:
+      'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/年轻男性.jpg',
+    female:
+      'cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/年轻女性.jpg'
+  }
+}
+
 // ── 工具函数 ──────────────────────────────────────────
 function genElderlyId() {
   const ts = Date.now().toString(36).toUpperCase()
@@ -42,6 +58,25 @@ async function findUserByOpenid(openid) {
   return resE2.data[0] || resF2.data[0] || null
 }
 
+/**
+ * 用当前会话 token 精确定位用户（同一微信 openid 下可能存在多条账号）
+ * token 由登录/注册后下发，并存入 tokens 集合：{ userId, role, openid, token }
+ */
+async function resolveUserFromToken(openid, token) {
+  if (!openid || !token || typeof token !== 'string') return null
+  try {
+    const tokRes = await db.collection('tokens').where({ openid, token }).limit(1).get()
+    const rec = tokRes.data && tokRes.data[0]
+    if (!rec || !rec.userId) return null
+    const col = rec.role === 'elderly' ? 'elderly' : 'family'
+    const docRes = await db.collection(col).doc(rec.userId).get()
+    return docRes.data || null
+  } catch (e) {
+    console.error('resolveUserFromToken', e)
+    return null
+  }
+}
+
 // ── 注册 ──────────────────────────────────────────────
 async function register(openid, { name, phone, password, role }) {
   try {
@@ -52,6 +87,7 @@ async function register(openid, { name, phone, password, role }) {
     }
 
     const now = new Date()
+    const roleKey = role === 'elderly' ? 'elderly' : 'family'
     const baseUser = {
       _openid: openid,
       openid,          // plain field, no underscore — reliably queryable from cloud functions
@@ -59,7 +95,7 @@ async function register(openid, { name, phone, password, role }) {
       phone,
       password: hashPassword(password),
       role,
-      avatar: '',
+      avatar: DEFAULT_AVATAR_BY_ROLE[roleKey].male,
       createdAt: now,
       updatedAt: now
     }
@@ -137,9 +173,9 @@ async function logout(openid) {
 }
 
 // ── 获取用户信息 ──────────────────────────────────────
-async function getProfile(openid) {
+async function getProfile(openid, { token } = {}) {
   try {
-    const user = await findUserByOpenid(openid)
+    const user = token ? await resolveUserFromToken(openid, token) : await findUserByOpenid(openid)
     if (!user) return { code: 1, msg: '用户不存在' }
     return { code: 0, data: safeUser(user) }
   } catch (err) {
@@ -147,32 +183,45 @@ async function getProfile(openid) {
   }
 }
 
-// ── 更新昵称 ──────────────────────────────────────────
-async function updateProfile(openid, { name }) {
-  if (!name || !name.trim()) {
-    return { code: 1, msg: '昵称不能为空' }
-  }
+// ── 更新资料（昵称、性别，至少一项） ───────────────────
+async function updateProfile(openid, { name, gender, token }) {
   try {
-    const user = await findUserByOpenid(openid)
+    const user = token ? await resolveUserFromToken(openid, token) : await findUserByOpenid(openid)
     if (!user) return { code: 1, msg: '用户不存在' }
 
-    const col = user.role === 'elderly' ? 'elderly' : 'family'
-    await db.collection(col).doc(user._id).update({
-      data: { name: name.trim(), updatedAt: new Date() }
-    })
+    const data = { updatedAt: new Date() }
+    if (name != null) {
+      const t = String(name).trim()
+      if (!t) return { code: 1, msg: '昵称不能为空' }
+      data.name = t
+    }
+    if (gender != null) {
+      if (gender !== 'male' && gender !== 'female') {
+        return { code: 1, msg: '性别参数错误' }
+      }
+      data.gender = gender
+      const roleKey = user.role === 'elderly' ? 'elderly' : 'family'
+      data.avatar = DEFAULT_AVATAR_BY_ROLE[roleKey][gender]
+    }
+    if (Object.keys(data).length === 1) {
+      return { code: 1, msg: '没有可更新的内容' }
+    }
 
-    const updated = await findUserByOpenid(openid)
-    return { code: 0, msg: '已更新', data: safeUser(updated) }
+    const col = user.role === 'elderly' ? 'elderly' : 'family'
+    await db.collection(col).doc(user._id).update({ data })
+
+    const updated = await db.collection(col).doc(user._id).get()
+    return { code: 0, msg: '已更新', data: safeUser(updated.data) }
   } catch (err) {
     return { code: 2, msg: '更新失败' }
   }
 }
 
 // ── 更新头像（接收云存储 fileID） ─────────────────────
-async function uploadAvatar(openid, { fileID }) {
+async function uploadAvatar(openid, { fileID, token }) {
   if (!fileID) return { code: 1, msg: '请选择图片' }
   try {
-    const user = await findUserByOpenid(openid)
+    const user = token ? await resolveUserFromToken(openid, token) : await findUserByOpenid(openid)
     if (!user) return { code: 1, msg: '用户不存在' }
 
     const col = user.role === 'elderly' ? 'elderly' : 'family'
@@ -180,8 +229,8 @@ async function uploadAvatar(openid, { fileID }) {
       data: { avatar: fileID, updatedAt: new Date() }
     })
 
-    const updated = await findUserByOpenid(openid)
-    return { code: 0, msg: '头像已更新', data: safeUser(updated) }
+    const updated = await db.collection(col).doc(user._id).get()
+    return { code: 0, msg: '头像已更新', data: safeUser(updated.data) }
   } catch (err) {
     return { code: 2, msg: '头像更新失败' }
   }
@@ -227,7 +276,7 @@ exports.main = async (event) => {
       case 'register':      return await register(OPENID, params)
       case 'login':         return await login(OPENID, params)
       case 'logout':        return await logout(OPENID)
-      case 'profile':       return await getProfile(OPENID)
+      case 'profile':       return await getProfile(OPENID, params)
       case 'updateProfile': return await updateProfile(OPENID, params)
       case 'uploadAvatar':  return await uploadAvatar(OPENID, params)
       case 'cancelAccount': return await cancelAccount(OPENID)

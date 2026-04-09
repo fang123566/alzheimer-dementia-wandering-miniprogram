@@ -22,7 +22,8 @@ Page({
     bindings: [],
     binding: null,
     stats: { unreadAlerts: 0, totalAlerts: 0, chatCount: 0 },
-    avatarFullUrl: ''
+    avatarFullUrl: '',
+    genderLabel: '未设置'
   },
 
   onLoad() {
@@ -59,8 +60,15 @@ Page({
       currentLocation: loc,
       locationStatus:  loc.status || 'safe',
       contacts:        app.globalData.contacts   || [],
-      avatarFullUrl:   this._buildAvatarUrl(userInfo.avatar)
+      avatarFullUrl:   this._buildAvatarUrl(userInfo.avatar),
+      genderLabel:     this._formatGenderLabel(userInfo.gender)
     })
+  },
+
+  _formatGenderLabel(g) {
+    if (g === 'male') return '男'
+    if (g === 'female') return '女'
+    return '未设置'
   },
 
   _buildAvatarUrl(avatar) {
@@ -208,6 +216,31 @@ Page({
     })
   },
 
+  editGender() {
+    wx.showActionSheet({
+      itemList: ['男', '女'],
+      success: async (res) => {
+        const genders = ['male', 'female']
+        const gender = genders[res.tapIndex]
+        if (!gender || gender === this.data.userInfo.gender) return
+        try {
+          wx.showLoading({ title: '保存中…', mask: true })
+          const result = await authAPI.updateProfile({ gender })
+          wx.hideLoading()
+          if (result.code === 0 && result.data) {
+            this._syncUserInfo(result.data)
+            wx.showToast({ title: '已更新', icon: 'success' })
+          } else {
+            wx.showToast({ title: (result && result.msg) || '保存失败', icon: 'none' })
+          }
+        } catch (e) {
+          wx.hideLoading()
+          wx.showToast({ title: '保存失败', icon: 'none' })
+        }
+      }
+    })
+  },
+
   editNickname() {
     const current = this.data.userInfo.name || ''
     wx.showModal({
@@ -242,9 +275,19 @@ Page({
   _syncUserInfo(userData) {
     app.globalData.userInfo = userData
     wx.setStorageSync('userInfo', userData)
+    if (userData.role === 'elderly') {
+      app.globalData.elderlyInfo = {
+        ...(app.globalData.elderlyInfo || {}),
+        name: userData.name,
+        elderlyId: userData.elderlyId,
+        age: userData.age || '',
+        avatar: userData.avatar || ''
+      }
+    }
     this.setData({
       userInfo: userData,
-      avatarFullUrl: this._buildAvatarUrl(userData.avatar)
+      avatarFullUrl: this._buildAvatarUrl(userData.avatar),
+      genderLabel: this._formatGenderLabel(userData.gender)
     })
   },
 
