@@ -19,10 +19,19 @@
     </view>
   </view>
 
+  <!-- 家属端：解除绑定按钮（有绑定关系时显示） -->
+  <view class="unbind-section" wx:if="{{role === 'family' && canUnbind}}">
+    <view class="unbind-btn" bindtap="handleUnbind">
+      <text class="unbind-icon">🔗</text>
+      <text class="unbind-text">解除与老人的绑定</text>
+    </view>
+    <text class="unbind-hint">解除后将无法查看该老人的位置和预警信息</text>
+  </view>
+
   <!-- 成员列表 -->
   <view class="member-section">
     <view class="member-section-header">
-      <text class="member-section-title">成员列表</text>
+      <text class="member-section-title">{{role === 'elderly' ? '成员列表' : '已绑定老人'}}</text>
       <text class="member-section-count">{{members.length}} 人</text>
     </view>
 
@@ -49,8 +58,8 @@
           </view>
           <text class="member-join-time">{{item.joinTime || '加入时间未知'}}</text>
         </view>
-        <!-- 操作按钮（仅管理员可见，且不可操作自己） -->
-        <view class="member-action" wx:if="{{isAdmin && !item.isSelf}}" catchtap="onMemberAction" data-id="{{item.id}}" data-name="{{item.name}}" data-role="{{item.role}}">
+        <!-- 操作按钮：老人端管理员可见 / 家属端可见 -->
+        <view class="member-action" wx:if="{{(isAdmin && !item.isSelf) || (role === 'family' && item.role === 'elderly')}}" catchtap="onMemberAction" data-id="{{item.id}}" data-name="{{item.name}}" data-role="{{item.role}}">
           <text class="member-action-icon">⋯</text>
         </view>
       </view>

@@ -1,435 +1,408 @@
-// cloudfunctions/aiChat/index.js
-// 小守 AI 伴聊云函数
-// 功能：千问对话 | 记忆提取存储 | 反诈预警 | 提醒检测
+// pages/dialect/dialect.js
+const app = getApp()
+const { speechAPI } = require('../../utils/api')
 
-const cloud = require('wx-server-sdk')
-const https = require('https')
-
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
-
-const db    = cloud.database()
-const _     = db.command
-
-// ── 千问 API 配置 ──────────────────────────────────────────
-const QIANWEN_API_KEY = 'sk-9a154a15e68b41229e30ea1562680dd5'
-const QIANWEN_URL     = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
-const QIANWEN_MODEL   = 'qwen-turbo'
-
-// ── 数据库集合名 ───────────────────────────────────────────
-const COL_MESSAGES = 'chat_messages'   // 聊天记录
-const COL_MEMORIES = 'chat_memories'   // AI 提取的老人记忆
-const COL_ALERTS   = 'alerts'          // 预警（与 alert.js 共用）
-const COL_REMIND   = 'reminders'       // 提醒模板
-
-// ════════════════════════════════════════════════════════════
-// 系统提示词 —— 阿尔茨海默症陪伴专用
-// ════════════════════════════════════════════════════════════
-function buildSystemPrompt(memories = []) {
-  const memoryBlock = memories.length
-    ? `\n【你记得的关于这位老人的信息，请在对话中自然地运用这些背景，不要生硬地重复】\n${memories.map(m => `- ${m.content}`).join('\n')}\n`
-    : ''
-
-  return `你是"小守"，一个专门陪伴阿尔茨海默症老人的贴心AI助手。
-${memoryBlock}
-【核心原则】
-你首先是一个真诚的陪伴者，要认真、完整地回答老人说的每一件事。不要为了"简短"而省略重要内容，老人问什么就好好回答什么。
-
-【说话方式】
-1. 语言通俗易懂，避免专业术语和复杂句式，用口语化表达
-2. 用温暖、亲切的语气，多用"您"表示尊重，像家人一样陪伴
-3. 如果老人重复说同一件事，耐心正常回应，绝对不要指出或提示他在重复
-4. 回复长度根据内容自然决定：简单问候可以简短，老人提问或聊往事则要完整回应，不要人为截断
-5. 绝对不能催促、纠错或责备老人，保持无限耐心
-6. 不要在每次回复末尾固定加问候语或追问，让对话顺其自然
-
-【特殊情境处理】
-- 老人迷路或不知道自己在哪 → 先温柔安抚："没关系，我在您身边，请先原地等一下，我来帮您联系家人"
-- 老人说身体不舒服 → 关心询问具体情况，视严重程度建议联系家人或拨打120
-- 老人认错人或记忆混乱 → 不纠正，顺着他的情绪温柔回应，帮助他平静
-- 老人心情低落或孤独 → 陪伴倾听，可以引导聊过去的美好记忆
-- 老人说的话难以理解 → 温和地请他再说一遍，不要表现出不耐烦
-
-===== 以下是后台任务指令，绝对不要在正文回复中提及这些内容 =====
-
-【A. 记忆提取】
-若对话中老人透露了有价值的个人信息，在你正式回复内容的最末尾另起一行，严格按以下格式追加（一条信息追加一行）：
-|||MEMORY:{"type":"<类型>","content":"<内容摘要>"}|||
-
-类型（type）说明：
-- family    → 家庭成员相关（如"儿子叫明明，在北京工作"）
-- health    → 健康或用药（如"每天早上服用降压药"）
-- habit     → 日常规律习惯（如"喜欢下午三点喝茶"）
-- preference → 兴趣爱好偏好
-- event     → 重要日期或过往事件
-- concern   → 老人当前的困扰或需求
-
-注意：只提取明确说出的信息，不要推测；content 用简洁的陈述句，不超过30字。
-
-【B. 反诈检测】
-若老人描述的内容涉及以下任一诈骗特征，在回复末尾另起一行追加：
-|||FRAUD:{"level":<数字>,"desc":"<简要描述>","keyword":"<触发词>"}|||
-
-风险等级：
-- level 3（高危）：有人要求老人转账/汇款/提供银行卡号密码；有人说家人出事急需钱；中奖但要先缴费
-- level 2（中危）：有人冒充公检法；有人冒充客服说要退款；陌生人以各种理由借钱
-- level 1（可疑）：有人索要身份证号/家庭住址；电话/网络推销保健品或投资理财
-
-注意：老人主动聊自己正常的家庭汇款等不触发；只在对话内容中出现第三方可疑行为时才追加。
-
-【C. 提醒记录】
-若老人提到刚吃药、打针、需要复诊等用药健康行为，在回复末尾另起一行追加：
-|||REMIND:{"type":"medication","content":"<简要描述，如：老人提到刚服用了降压药>"}|||`
+// ── 翻译规则库（普通话 → 各方言） ────────────────────────
+const TO_DIALECT = {
+  '四川话': {
+    map: [
+      ['不知道', '不晓得'], ['什么', '啥子'], ['去哪里', '走哪里切'],
+      ['吃饭', '恰饭'], ['这里', '这哈'], ['那里', '那哈'],
+      ['怎么了', '咋啦'], ['没有', '冇得'], ['很好', '安逸惨了'],
+      ['是吗', '是哦'], ['好的', '要得'], ['厉害', '巴适得板'],
+      ['我不舒服', '我难受惨了'], ['需要帮助', '要人帮'], ['我想回家', '我要回屋头'],
+      ['帮我打电话', '帮我整个电话'], ['我饿了', '我饿惨了'],
+      ['我需要吃药', '我要吃药了'], ['我要去厕所', '我要上茅厕'],
+      ['我想休息', '我要歇哈'], ['我很好', '老子安逸得很']
+    ],
+    phonetic: '（发音偏平调，语速略快，儿化音少）'
+  },
+  '粤语': {
+    map: [
+      ['不知道', '唔知'], ['什么', '咩嘢'], ['去哪里', '去边度'],
+      ['吃饭', '食饭'], ['这里', '呢度'], ['那里', '嗰度'],
+      ['怎么了', '点解咁㗎'], ['没有', '冇'], ['很好', '好正'],
+      ['是吗', '係咩'], ['好的', '好嘅'], ['厉害', '犀利'],
+      ['我不舒服', '我唔舒服'], ['需要帮助', '需要人帮手'],
+      ['我想回家', '我想返屋企'], ['帮我打电话', '帮我打个电话'],
+      ['我饿了', '我肚饿'], ['我需要吃药', '我要食药'],
+      ['我要去厕所', '我要上厕所'], ['我想休息', '我想休息下'],
+      ['我很好', '我好好']
+    ],
+    phonetic: '（广州话，九声六调，注意平上去入各有阴阳）'
+  },
+  '东北话': {
+    map: [
+      ['不知道', '不知道整啥'], ['什么', '啥玩意'], ['去哪里', '上哪旮旯去'],
+      ['吃饭', '整点吃的'], ['这里', '这旮旯'], ['那里', '那旮旯'],
+      ['怎么了', '咋整啦'], ['没有', '没整'], ['很好', '老得劲了'],
+      ['是吗', '是咋地'], ['好的', '行行行'], ['厉害', '老铁'],
+      ['我不舒服', '俺难受'], ['需要帮助', '得有人搭把手'],
+      ['我想回家', '俺想回家'], ['帮我打电话', '帮俺打个电话'],
+      ['我饿了', '俺饿了'], ['我需要吃药', '俺得吃药'],
+      ['我要去厕所', '俺要上厕所'], ['我想休息', '俺想歇会儿'],
+      ['我很好', '俺可好了'], ['我', '俺']
+    ],
+    phonetic: '（儿化音丰富，声调平缓，语速偏快）'
+  }
 }
 
-// ════════════════════════════════════════════════════════════
-// 调用千问 API
-// ════════════════════════════════════════════════════════════
-function callQianwen(messages) {
-  const body = JSON.stringify({
-    model: QIANWEN_MODEL,
-    messages,
-    max_tokens: 1200,
-    temperature: 0.75
-  })
+// ── 方言 → 普通话（反向规则） ────────────────────────────
+function buildReverse(dialectKey) {
+  const rules = TO_DIALECT[dialectKey]
+  if (!rules) return []
+  return rules.map.map(([std, dia]) => [dia, std])
+}
 
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(QIANWEN_URL)
-    const options = {
-      hostname: urlObj.hostname,
-      path:     urlObj.pathname,
-      method:   'POST',
-      headers: {
-        'Authorization': `Bearer ${QIANWEN_API_KEY}`,
-        'Content-Type':  'application/json',
-        'Content-Length': Buffer.byteLength(body)
+const PHRASES = [
+  { id: 1, emoji: '🏥', text: '我不舒服，需要帮助' },
+  { id: 2, emoji: '🏠', text: '我想回家' },
+  { id: 3, emoji: '📞', text: '帮我打电话给家人' },
+  { id: 4, emoji: '🍚', text: '我饿了，想吃饭' },
+  { id: 5, emoji: '💊', text: '我需要吃药' },
+  { id: 6, emoji: '🚿', text: '我要去厕所' },
+  { id: 7, emoji: '😴', text: '我想休息一下' },
+  { id: 8, emoji: '😊', text: '我很好，不用担心' }
+]
+
+const DIALECTS = ['四川话', '粤语', '东北话']
+
+// ── 方言 → 讯飞 accent 参数映射 ──────────────────────────
+const DIALECT_ACCENT_MAP = {
+  '四川话': 'x3_yezi_sc',
+  '粤语':   'x3_xiaoyue',
+  '东北话': 'x4_ziyang_oral',
+}
+
+// ── 方言 → 讯飞 TTS 发音人映射 ───────────────────────────
+const DIALECT_VOICE_MAP = {
+  '四川话': 'x3_yezi_sc',
+  '粤语':   'x3_xiaoyue',
+  '东北话': 'x4_ziyang_oral',
+}
+
+Page({
+  data: {
+    dialect: '四川话',
+    direction: 'toDialect',
+    dirFrom: '普通话',
+    dirTo: '四川话',
+    inputText: '',
+    result: '',
+    phonetic: '',
+    loading: false,
+    recording: false,
+    isPlayingRecord: false,
+    recordTempPath: '',
+    phrases: PHRASES,
+    history: []
+  },
+
+  onLoad() {
+    if (!app.checkLogin()) return
+    const settings = wx.getStorageSync('settings') || {}
+    const dialect = settings.dialect || '四川话'
+    this.setData({ dialect, dirTo: dialect })
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().init()
+    }
+  },
+
+  onUnload() {
+    if (this._recordAudio) {
+      this._recordAudio.destroy()
+      this._recordAudio = null
+    }
+    if (this._audioContext) {
+      this._audioContext.destroy()
+      this._audioContext = null
+    }
+  },
+
+  // ==============================================
+  // 【完整】按住录音（WAV格式）
+  // ==============================================
+  startRecord() {
+    this.setData({ recording: true })
+    const recorder = wx.getRecorderManager()
+    this._recordAudio = recorder
+
+    recorder.start({
+      format: 'wav',
+      sampleRate: 16000,
+      encodeBitRate: 48000,
+      audioChannels: 1
+    })
+
+    recorder.onStop((res) => {
+      const path = res.tempFilePath
+      this.setData({ recordTempPath: path, recording: false })
+      this._recognizeSpeech(path)
+    })
+  },
+
+  stopRecord() {
+    if (this._recordAudio) {
+      this._recordAudio.stop()
+    }
+  },
+
+  // ==============================================
+  // 新增：选择本地音频文件（测试专用）
+  // ==============================================
+  chooseLocalAudio() {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['mp3', 'wav', 'pcm', 'aac'],
+      success: (res) => {
+        const tempFilePath = res.tempFiles[0].path
+        console.log('选中音频文件路径：', tempFilePath)
+        this.setData({ recordTempPath: tempFilePath })
+        this._recognizeSpeech(tempFilePath)
       },
-      timeout: 15000
-    }
+      fail: (err) => {
+        console.error('选择文件失败：', err)
+        wx.showToast({ title: '选择音频失败', icon: 'none' })
+      }
+    })
+  },
 
-    const req = https.request(options, res => {
-      let data = ''
-      res.on('data', chunk => { data += chunk })
-      res.on('end', () => {
+  // ==============================================
+  // 语音识别【修复：方言大模型mulacc参数】
+  // ==============================================
+  _recognizeSpeech(tempFilePath) {
+    wx.showLoading({ title: '识别中…', mask: true })
+
+    wx.getFileSystemManager().readFile({
+      filePath: tempFilePath,
+      encoding: 'base64',
+      success: async (fileRes) => {
+        console.log('📂 音频读取成功，Base64长度：', fileRes.data?.length)
+
+        if (!fileRes.data || fileRes.data.length === 0) {
+          wx.hideLoading()
+          wx.showToast({ title: '音频数据为空', icon: 'none' })
+          return
+        }
+
         try {
-          const parsed = JSON.parse(data)
-          if (parsed.error) return reject(new Error(parsed.error.message))
-          resolve(parsed)
-        } catch (e) {
-          reject(new Error('千问返回解析失败: ' + data.slice(0, 200)))
+          // 云端语音对话（WAV → AI → WAV）
+          wx.cloud.callFunction({
+            name: 'aiChat',
+            data: {
+              action: 'speechChat',
+              audioBase64: fileRes.data,
+              dialect: this.data.dialect
+            },
+            success: (resp) => {
+              wx.hideLoading()
+              const res = resp.result
+              if (res.code === 0) {
+                this.setData({
+                  inputText: res.data.userText,
+                  result: res.data.botText
+                })
+                this.playReplyAudio(res.data.audioBase64)
+                this.translate()
+              } else {
+                wx.showToast({ title: res.msg, icon: 'none' })
+              }
+            },
+            fail: () => {
+              wx.hideLoading()
+              wx.showToast({ title: '语音对话失败', icon: 'none' })
+            }
+          })
+        } catch (err) {
+          wx.hideLoading()
+          console.error('❌ ASR 错误：', err)
+          wx.showToast({ title: '识别失败，请重试', icon: 'none' })
         }
-      })
-    })
-
-    req.on('error', reject)
-    req.on('timeout', () => {
-      req.destroy()
-      reject(new Error('千问API请求超时'))
-    })
-    req.write(body)
-    req.end()
-  })
-}
-
-// ════════════════════════════════════════════════════════════
-// 解析 AI 回复中的隐藏标记
-// ════════════════════════════════════════════════════════════
-function parseMarkers(rawText) {
-  let cleanText = rawText
-  let memory    = null
-  let fraud     = null
-  let remind    = null
-
-  // 提取 MEMORY
-  const memMatch = rawText.match(/\|\|\|MEMORY:(\{[^}]+\})\|\|\|/)
-  if (memMatch) {
-    try { memory = JSON.parse(memMatch[1]) } catch (e) {}
-    cleanText = cleanText.replace(memMatch[0], '').trim()
-  }
-
-  // 提取 FRAUD
-  const fraudMatch = rawText.match(/\|\|\|FRAUD:(\{[^}]+\})\|\|\|/)
-  if (fraudMatch) {
-    try { fraud = JSON.parse(fraudMatch[1]) } catch (e) {}
-    cleanText = cleanText.replace(fraudMatch[0], '').trim()
-  }
-
-  // 提取 REMIND
-  const remMatch = rawText.match(/\|\|\|REMIND:(\{[^}]+\})\|\|\|/)
-  if (remMatch) {
-    try { remind = JSON.parse(remMatch[1]) } catch (e) {}
-    cleanText = cleanText.replace(remMatch[0], '').trim()
-  }
-
-  return { cleanText, memory, fraud, remind }
-}
-
-// ════════════════════════════════════════════════════════════
-// 时间格式化工具
-// ════════════════════════════════════════════════════════════
-function formatTime(date = new Date()) {
-  const h = String(date.getHours()).padStart(2, '0')
-  const m = String(date.getMinutes()).padStart(2, '0')
-  return `${h}:${m}`
-}
-
-// ════════════════════════════════════════════════════════════
-// 主入口
-// ════════════════════════════════════════════════════════════
-exports.main = async (event, context) => {
-  const wxContext = cloud.getWXContext()
-  const openid    = wxContext.OPENID
-
-  const { action } = event
-
-  switch (action) {
-    case 'getHistory':   return actionGetHistory(openid)
-    case 'clearHistory': return actionClearHistory(openid)
-    case 'getMemories':  return actionGetMemories(openid)
-    case 'sendMessage':  return actionSendMessage(openid, event.text)
-    default:             return { code: -1, msg: '未知 action' }
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// action: 获取历史消息
-// ────────────────────────────────────────────────────────────
-async function actionGetHistory(openid) {
-  try {
-    const res = await db.collection(COL_MESSAGES)
-      .where({ openid })
-      .orderBy('createdAt', 'asc')
-      .limit(40)
-      .get()
-
-    const messages = (res.data || []).map(m => ({
-      id:       m._id,
-      role:     m.role,
-      botName:  m.botName || '小守',
-      text:     m.text,
-      time:     m.time,
-      read:     true,
-      // 前端展示字段
-      isBot:  m.role === 'bot',
-      isUser: m.role === 'user',
-      displayName: m.role === 'bot' ? (m.botName || '小守') : '老人',
-      bubbleClass: m.role === 'bot' ? 'bubble-bot' : 'bubble-user',
-      canSpeak: m.role === 'bot'
-    }))
-
-    return { code: 0, data: messages }
-  } catch (e) {
-    console.error('[getHistory]', e)
-    return { code: -1, msg: '获取历史失败' }
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// action: 清空历史
-// ────────────────────────────────────────────────────────────
-async function actionClearHistory(openid) {
-  try {
-    // 云函数中批量删除需要循环（每次最多删除一条用 where）
-    // 用 collection.where().get() + 循环 remove
-    const res = await db.collection(COL_MESSAGES).where({ openid }).get()
-    const ids  = (res.data || []).map(d => d._id)
-    for (const id of ids) {
-      await db.collection(COL_MESSAGES).doc(id).remove()
-    }
-    return { code: 0, msg: '已清空' }
-  } catch (e) {
-    console.error('[clearHistory]', e)
-    return { code: -1, msg: '清空失败' }
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// action: 获取记忆列表
-// ────────────────────────────────────────────────────────────
-async function actionGetMemories(openid) {
-  try {
-    const res = await db.collection(COL_MEMORIES)
-      .where({ openid })
-      .orderBy('updatedAt', 'desc')
-      .limit(50)
-      .get()
-    return { code: 0, data: res.data || [] }
-  } catch (e) {
-    return { code: -1, msg: '获取记忆失败' }
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// action: 发送消息（核心）
-// ────────────────────────────────────────────────────────────
-async function actionSendMessage(openid, text) {
-  if (!text || !text.trim()) return { code: -1, msg: '消息不能为空' }
-
-  const now    = new Date()
-  const time   = formatTime(now)
-
-  try {
-    // 1. 拉取最近记忆，注入系统提示词
-    const memRes  = await db.collection(COL_MEMORIES)
-      .where({ openid })
-      .orderBy('updatedAt', 'desc')
-      .limit(20)
-      .get()
-    const memories    = memRes.data || []
-    const systemPrompt = buildSystemPrompt(memories)
-
-    // 2. 拉取最近 10 条对话作为上下文
-    const histRes = await db.collection(COL_MESSAGES)
-      .where({ openid })
-      .orderBy('createdAt', 'desc')
-      .limit(10)
-      .get()
-    const recentMsgs = (histRes.data || []).reverse()
-
-    // 3. 组装千问 messages
-    const qwMessages = [
-      { role: 'system', content: systemPrompt },
-      ...recentMsgs.map(m => ({
-        role:    m.role === 'bot' ? 'assistant' : 'user',
-        content: m.text
-      })),
-      { role: 'user', content: text.trim() }
-    ]
-
-    // 4. 调用千问
-    const qwRes  = await callQianwen(qwMessages)
-    const rawBot = qwRes?.choices?.[0]?.message?.content || '小守暂时没听清楚，您能再说一遍吗？'
-
-    // 5. 解析隐藏标记
-    const { cleanText, memory, fraud, remind } = parseMarkers(rawBot)
-
-    // 6. 持久化用户消息
-    const userDoc = await db.collection(COL_MESSAGES).add({
-      data: {
-        openid,
-        role:      'user',
-        text:      text.trim(),
-        time,
-        createdAt: now
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        console.error('❌ 读取音频失败：', err)
+        wx.showToast({ title: '读取音频失败', icon: 'none' })
       }
     })
+  },
 
-    // 7. 持久化机器人消息
-    const botDoc = await db.collection(COL_MESSAGES).add({
-      data: {
-        openid,
-        role:    'bot',
-        botName: '小守',
-        text:    cleanText,
-        time,
-        createdAt: new Date()
+  // ==============================================
+  // 播放AI返回的WAV语音
+  // ==============================================
+  playReplyAudio(audioBase64) {
+    const filePath = `${wx.env.USER_DATA_PATH}/reply_${Date.now()}.wav`
+    wx.getFileSystemManager().writeFile({
+      filePath,
+      data: audioBase64,
+      encoding: 'base64',
+      success: () => {
+        const audio = wx.createInnerAudioContext()
+        this._audioContext = audio
+        audio.src = filePath
+        audio.obeyMuteSwitch = false
+        audio.play()
       }
     })
+  },
 
-    // 8. 存储提取到的记忆
-    if (memory && memory.type && memory.content) {
-      // 同类型记忆去重更新
-      const existRes = await db.collection(COL_MEMORIES)
-        .where({ openid, type: memory.type, content: memory.content })
-        .limit(1).get()
-
-      if (!existRes.data || existRes.data.length === 0) {
-        await db.collection(COL_MEMORIES).add({
-          data: {
-            openid,
-            type:      memory.type,
-            content:   memory.content,
-            source:    text.trim().slice(0, 50),
-            createdAt: now,
-            updatedAt: now
-          }
+  // ── 方言 / 方向切换 ────────────────────────────────────
+  changeDialect() {
+    wx.showActionSheet({
+      itemList: DIALECTS,
+      success: (res) => {
+        const dialect = DIALECTS[res.tapIndex]
+        const { direction } = this.data
+        this.setData({
+          dialect,
+          dirFrom: direction === 'toDialect' ? '普通话' : dialect,
+          dirTo:   direction === 'toDialect' ? dialect  : '普通话',
+          result: '', phonetic: ''
         })
+        wx.showToast({ title: `已选择${dialect}`, icon: 'none' })
+      }
+    })
+  },
+
+  swapDirection() {
+    const { direction, dialect } = this.data
+    const newDir = direction === 'toDialect' ? 'toPutonghua' : 'toDialect'
+    this.setData({
+      direction: newDir,
+      dirFrom:   newDir === 'toDialect' ? '普通话' : dialect,
+      dirTo:     newDir === 'toDialect' ? dialect  : '普通话',
+      inputText: this.data.result || '',
+      result: '', phonetic: ''
+    })
+  },
+
+  // ── 翻译 ───────────────────────────────────────────────
+  onInput(e) {
+    this.setData({ inputText: e.detail.value })
+  },
+
+  translate() {
+    const text = this.data.inputText.trim()
+    if (!text) {
+      wx.showToast({ title: '请先输入或上传音频', icon: 'none' })
+      return
+    }
+    this.setData({ loading: true })
+
+    setTimeout(() => {
+      const { direction, dialect } = this.data
+      let result, phonetic
+
+      if (direction === 'toDialect') {
+        result   = this._applyRules(text, TO_DIALECT[dialect]?.map || [])
+        phonetic = TO_DIALECT[dialect]?.phonetic || ''
       } else {
-        await db.collection(COL_MEMORIES)
-          .doc(existRes.data[0]._id)
-          .update({ data: { updatedAt: now } })
+        result   = this._applyRules(text, buildReverse(dialect))
+        phonetic = '（已还原为普通话表达）'
       }
+
+      const item = {
+        id: Date.now(),
+        original: text,
+        result,
+        fromLang: this.data.dirFrom,
+        toLang:   this.data.dirTo
+      }
+      const history = [item, ...this.data.history].slice(0, 8)
+
+      this.setData({ result, phonetic, loading: false, history })
+      this._speak(result)
+    }, 500)
+  },
+
+  // 修复BUG：for...in 改为 for...of
+  _applyRules(text, rules) {
+    if (!rules || rules.length === 0) return text
+    let out = text
+    const sorted = [...rules].sort((a, b) => b[0].length - a[0].length)
+    for (const [from, to] of sorted) {
+      out = out.split(from).join(to)
+    }
+    return out
+  },
+
+  // ==============================================
+  // 语音合成
+  // ==============================================
+  async _speak(text) {
+    if (!text) return
+
+    if (this._audioContext) {
+      this._audioContext.destroy()
+      this._audioContext = null
     }
 
-    // 9. 反诈预警 → 写入 alerts 集合（与 alert.js 共用）
-    if (fraud && fraud.level >= 1) {
-      await db.collection(COL_ALERTS).add({
-        data: {
-          openid,
-          category:    'fraud',
-          level:       fraud.level,
-          title:       '反诈预警',
-          description: fraud.desc || '检测到可疑对话内容',
-          keyword:     fraud.keyword || '',
-          triggerText: text.trim().slice(0, 100),  // 触发预警的原始语句
-          read:        false,
-          createdAt:   now
+    wx.showLoading({ title: '合成中…', mask: true })
+
+    try {
+      const { dialect, direction } = this.data
+      const voiceName = direction === 'toDialect'
+        ? (DIALECT_VOICE_MAP[dialect] || 'x4_ziyang_oral')
+        : 'xiaoyan'
+
+      const res = await speechAPI.tts(text, 'zh_cn', voiceName)
+      wx.hideLoading()
+
+      if (!res.success) {
+        wx.showToast({ title: res.message || '合成失败', icon: 'none' })
+        return
+      }
+
+      const filePath = `${wx.env.USER_DATA_PATH}/tts_${Date.now()}.mp3`
+      wx.getFileSystemManager().writeFile({
+        filePath,
+        data: res.data,
+        encoding: 'base64',
+        success: () => {
+          const audio = wx.createInnerAudioContext()
+          this._audioContext = audio
+          audio.src = filePath
+          audio.obeyMuteSwitch = false
+          audio.play()
+
+          audio.onError((err) => {
+            console.error('播放失败:', err)
+          })
+        },
+        fail: (err) => {
+          console.error('音频写入失败:', err)
         }
       })
+    } catch (err) {
+      wx.hideLoading()
+      wx.showToast({ title: '合成失败', icon: 'none' })
+      console.error('TTS 错误:', err)
     }
+  },
 
-    // 10. 提醒触发 → 写入 reminders 集合
-    if (remind && remind.type) {
-      await db.collection(COL_REMIND).add({
-        data: {
-          openid,
-          type:      remind.type,
-          content:   remind.content || '',
-          done:      false,
-          source:    'ai_chat',
-          createdAt: now,
-          remindAt:  now  // 可后续改为定时字段
-        }
-      })
-    }
+  replay() {
+    if (this.data.result) this._speak(this.data.result)
+  },
 
-    // 11. 组装返回（与现有前端 normalizeMessage 兼容）
-    const userMsg = {
-      id:          userDoc._id,
-      role:        'user',
-      text:        text.trim(),
-      time,
-      isBot:       false,
-      isUser:      true,
-      displayName: '老人',
-      bubbleClass: 'bubble-user',
-      canSpeak:    false,
-      emotionNote: ''
-    }
+  clearText() {
+    this.setData({ inputText: '', result: '', phonetic: '' })
+  },
 
-    const botMsg = {
-      id:          botDoc._id,
-      role:        'bot',
-      botName:     '小守',
-      text:        cleanText,
-      time,
-      isBot:       true,
-      isUser:      false,
-      displayName: '小守',
-      bubbleClass: 'bubble-bot',
-      canSpeak:    true,
-      // 额外标志，前端可用来展示提示
-      hasFraudAlert: !!fraud,
-      hasRemind:     !!remind,
-      fraudLevel:    fraud ? fraud.level : 0
-    }
+  usePhrase(e) {
+    const text = e.currentTarget.dataset.text
+    this.setData({ inputText: text })
+    setTimeout(() => this.translate(), 100)
+  },
 
-    return {
-      code: 0,
-      data: { userMsg, botMsg },
-      // 透传给前端（可选用于 UI 展示）
-      meta: {
-        memorySaved: !!memory,
-        fraudAlert:  fraud || null,
-        remind:      remind || null
-      }
-    }
+  useHistory(e) {
+    this.setData({ inputText: e.currentTarget.dataset.text })
+  },
 
-  } catch (e) {
-    console.error('[sendMessage] error:', e)
-    return {
-      code: -1,
-      msg:  '小守暂时不在线，请稍后再试',
-      error: e.message
-    }
+  clearHistory() {
+    this.setData({ history: [] })
   }
-}
+})

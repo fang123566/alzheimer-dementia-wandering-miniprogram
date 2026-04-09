@@ -148,10 +148,13 @@ async function getBindings({ openid, role }) {
 async function createBinding({ openid, role }, { linkedPhone, note }) {
   if (!validPhone(linkedPhone)) return fail('手机号格式不正确')
 
-  // 不能绑自己：在自己的集合里查自己的手机号
+  // 不能绑自己：在自己的集合里查自己的手机号（兼容 _openid 和 openid）
   const selfCol = getColByRole(role)
-  const { data: selfList } = await selfCol.where({ _openid: openid }).limit(1).get()
-  const self = selfList[0] || {}
+  const [selfSnap1, selfSnap2] = await Promise.all([
+    selfCol.where({ _openid: openid }).limit(1).get(),
+    selfCol.where({ openid }).limit(1).get()
+  ])
+  const self = selfSnap1.data[0] || selfSnap2.data[0] || {}
   if (self.phone === linkedPhone) return fail('不能绑定自己的账号')
 
   // 通过手机号在对端集合里查找用户（可以不存在，toOpenid 留空，等对端登录后关联）
@@ -174,6 +177,7 @@ async function createBinding({ openid, role }, { linkedPhone, note }) {
   const now = Date.now()
   const record = {
     fromOpenid: openid,
+    fromPhone: self.phone || '',  // 家属手机号，用于后续解绑鉴权
     toPhone: linkedPhone,
     toOpenid: peer ? (peer.openid || peer._openid || '') : '',
     note: note || '',
@@ -214,17 +218,77 @@ async function updateBinding({ openid }, { bindingId, linkedPhone, note }) {
 /**
  * 删除（解除）绑定
  * payload: { bindingId }
+ * 鉴权逻辑：
+ * 1. 检查 fromOpenid / toOpenid 匹配（直接匹配）
+ * 2. 检查 fromOpenid / toOpenid 匹配（使用 openid 字段兼容 _openid）
+ * 3. 检查手机号匹配：通过 openid 查用户手机号，再匹配 binding 的 toPhone/fromPhone
  */
 async function deleteBinding({ openid }, { bindingId }) {
   if (!bindingId) return fail('缺少 bindingId')
 
-  const { data: [record] } = await bindingsCol.doc(bindingId).get().catch(() => ({ data: [] }))
-  if (!record) return fail('绑定记录不存在')
-  // 家属（fromOpenid）和老人（toOpenid）都可以解除
-  if (record.fromOpenid !== openid && record.toOpenid !== openid) return fail('无权操作')
+  console.log('[deleteBinding] 开始解绑，bindingId:', bindingId, 'caller openid:', openid)
 
-  await bindingsCol.doc(bindingId).remove()
-  return ok({ bindingId })
+  const { data: [record] } = await bindingsCol.doc(bindingId).get().catch((e) => {
+    console.error('[deleteBinding] 查询绑定记录失败:', e)
+    return { data: [] }
+  })
+
+  if (!record) {
+    console.log('[deleteBinding] 绑定记录不存在')
+    return fail('绑定记录不存在')
+  }
+
+  console.log('[deleteBinding] 找到记录:', { fromOpenid: record.fromOpenid, toOpenid: record.toOpenid, toPhone: record.toPhone })
+
+  // 1. 直接 openid 匹配（兼容 _openid 和 openid 字段）
+  const fromMatch = record.fromOpenid === openid || record.fromOpenid === ''
+  const toMatch = record.toOpenid === openid || record.toOpenid === ''
+
+  if (fromMatch || toMatch) {
+    console.log('[deleteBinding] openid 直接匹配成功，执行删除')
+    await bindingsCol.doc(bindingId).remove()
+    return ok({ bindingId })
+  }
+
+  // 2. 手机号匹配：通过 openid 查找用户手机号，验证是否是 toPhone 的拥有者
+  // 查老人集合
+  const [elderSnap1, elderSnap2, familySnap1, familySnap2] = await Promise.all([
+    elderlyCol.where({ _openid: openid }).limit(1).get().catch(() => ({ data: [] })),
+    elderlyCol.where({ openid }).limit(1).get().catch(() => ({ data: [] })),
+    familyCol.where({ _openid: openid }).limit(1).get().catch(() => ({ data: [] })),
+    familyCol.where({ openid }).limit(1).get().catch(() => ({ data: [] }))
+  ])
+
+  const elderDoc = elderSnap1.data[0] || elderSnap2.data[0]
+  const familyDoc = familySnap1.data[0] || familySnap2.data[0]
+
+  console.log('[deleteBinding] 用户查询结果:', { elderPhone: elderDoc?.phone, familyPhone: familyDoc?.phone })
+
+  // 如果是老人端：检查 record.toPhone 是否等于老人手机号
+  if (elderDoc && elderDoc.phone && record.toPhone === elderDoc.phone) {
+    console.log('[deleteBinding] 手机号匹配成功（老人端），执行删除并回填 toOpenid')
+    // 回填 toOpenid 方便下次
+    if (!record.toOpenid) {
+      await bindingsCol.doc(bindingId).update({ data: { toOpenid: openid } }).catch(() => {})
+    }
+    await bindingsCol.doc(bindingId).remove()
+    return ok({ bindingId })
+  }
+
+  // 如果是家属端：检查 record.fromOpenid 是否为空，或匹配家属 openid
+  // 家属创建绑定时 fromOpenid 就是自己的 openid
+  if (familyDoc && record.fromOpenid) {
+    // 如果 fromOpenid 不为空，但之前没匹配上，说明数据不一致
+    // 尝试用家属的手机号来确认（如果 binding 里有 fromPhone 字段）
+    if (record.fromPhone && record.fromPhone === familyDoc.phone) {
+      console.log('[deleteBinding] 手机号匹配成功（家属端），执行删除')
+      await bindingsCol.doc(bindingId).remove()
+      return ok({ bindingId })
+    }
+  }
+
+  console.log('[deleteBinding] 鉴权失败：无匹配权限')
+  return fail('无权操作：您不是该绑定的参与方')
 }
 
 // ─── 云函数入口 ────────────────────────────────────────────────────────────

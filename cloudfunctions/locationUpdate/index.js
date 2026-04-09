@@ -188,6 +188,8 @@ exports.main = async (event, context) => {
           latitude,
           longitude
         })
+        // 异步调用 locationAlert 发送短信通知给家属（不阻塞返回）
+        callLocationAlert(targetOpenid, latitude, longitude).catch(e => console.error('[locationAlert] 调用失败:', e))
       }
       if (status === 'emergency') {
         console.log('[预警] 触发紧急越界预警')
@@ -200,6 +202,8 @@ exports.main = async (event, context) => {
           latitude,
           longitude
         })
+        // 异步调用 locationAlert 发送短信通知给家属（不阻塞返回）
+        callLocationAlert(targetOpenid, latitude, longitude).catch(e => console.error('[locationAlert] 调用失败:', e))
       }
     }
 
@@ -217,6 +221,31 @@ exports.main = async (event, context) => {
   } catch (e) {
     console.error('[locationUpdate]', e)
     return { code: 500, msg: e.message || '服务器错误' }
+  }
+}
+
+/**
+ * 调用 locationAlert 云函数发送短信通知
+ * 注意：locationAlert 需要安装 @alicloud/pop-core 依赖
+ */
+async function callLocationAlert(openid, latitude, longitude) {
+  console.log('[callLocationAlert] 调用 locationAlert 云函数:', { openid, latitude, longitude })
+  try {
+    const res = await cloud.callFunction({
+      name: 'locationAlert',
+      data: {
+        openid,
+        latitude,
+        longitude,
+        accuracy: 0,
+        timestamp: Date.now()
+      }
+    })
+    console.log('[callLocationAlert] locationAlert 返回:', res.result)
+    return res.result
+  } catch (e) {
+    console.error('[callLocationAlert] 调用失败:', e)
+    throw e
   }
 }
 
