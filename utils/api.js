@@ -107,16 +107,16 @@ const memoryAPI = {
 }
 // ── 设置 ──────────────────────────────────────────────
 const settingsAPI = {
-  getSettings:     ()     => callCloud('settings', { action: 'getSettings' }),
-  updateSettings:  (data) => callCloud('settings', { action: 'updateSettings', data }),
-  updateElderly:   (data) => callCloud('settings', { action: 'updateElderly', data }),
-  getContacts:     ()     => callCloud('settings', { action: 'getContacts' }),
-  addContact:      (data) => callCloud('settings', { action: 'addContact', data }),
-  updateContact:   (id, d)=> callCloud('settings', { action: 'updateContact', id, data: d }),
-  deleteContact:   (id)   => callCloud('settings', { action: 'deleteContact', id }),
-  getKeywords:     ()     => callCloud('settings', { action: 'getKeywords' }),
-  addKeyword:      (kw)   => callCloud('settings', { action: 'addKeyword', keyword: kw }),
-  deleteKeyword:   (kw)   => callCloud('settings', { action: 'deleteKeyword', keyword: kw })
+  getSettings:     ()     => callCloud('settings', { action: 'getSettings', token: wx.getStorageSync('token') }),
+  updateSettings:  (data) => callCloud('settings', { action: 'updateSettings', token: wx.getStorageSync('token'), data }),
+  updateElderly:   (data) => callCloud('settings', { action: 'updateElderly', token: wx.getStorageSync('token'), data }),
+  getContacts:     ()     => callCloud('settings', { action: 'getContacts', token: wx.getStorageSync('token') }),
+  addContact:      (data) => callCloud('settings', { action: 'addContact', token: wx.getStorageSync('token'), data }),
+  updateContact:   (id, d)=> callCloud('settings', { action: 'updateContact', token: wx.getStorageSync('token'), id, data: d }),
+  deleteContact:   (id)   => callCloud('settings', { action: 'deleteContact', token: wx.getStorageSync('token'), id }),
+  getKeywords:     ()     => callCloud('settings', { action: 'getKeywords', token: wx.getStorageSync('token') }),
+  addKeyword:      (kw)   => callCloud('settings', { action: 'addKeyword', token: wx.getStorageSync('token'), keyword: kw }),
+  deleteKeyword:   (kw)   => callCloud('settings', { action: 'deleteKeyword', token: wx.getStorageSync('token'), keyword: kw })
 }
 // ── 账号关联（已迁移至 binding 云函数）──────────────────────
 const bindingAPI = {

@@ -6,54 +6,80 @@ const _ = db.command
 const COL_USER_SETTINGS = 'user_settings'
 const COL_CONTACTS = 'contacts'
 const COL_KEYWORDS = 'fraud_keywords'
+const COL_TOKENS = 'tokens'
 
-async function findUser(openid) {
-  const [eSnap, fSnap] = await Promise.all([
-    db.collection('elderly').where({ _openid: openid }).limit(1).get(),
-    db.collection('family').where({ _openid: openid }).limit(1).get()
-  ])
-  if (eSnap.data.length) return { ...eSnap.data[0], role: 'elderly' }
-  if (fSnap.data.length) return { ...fSnap.data[0], role: 'family' }
-  const [eSnap2, fSnap2] = await Promise.all([
-    db.collection('elderly').where({ openid }).limit(1).get(),
-    db.collection('family').where({ openid }).limit(1).get()
-  ])
-  if (eSnap2.data.length) return { ...eSnap2.data[0], role: 'elderly' }
-  if (fSnap2.data.length) return { ...fSnap2.data[0], role: 'family' }
-  return null
+async function resolveSession(openid, token) {
+  if (!openid || !token) return null
+  try {
+    const snap = await db.collection(COL_TOKENS).where({ openid, token }).limit(1).get()
+    const rec = snap.data && snap.data[0]
+    if (!rec || !rec.userId || !rec.role) return null
+    return { userId: rec.userId, role: rec.role }
+  } catch (e) {
+    console.error('[settings] resolveSession', e)
+    return null
+  }
 }
 
-async function findElderlyOpenid(familyOpenid) {
+async function findUserById(role, userId) {
+  if (!userId) return null
+  try {
+    const col = role === 'elderly' ? 'elderly' : 'family'
+    const snap = await db.collection(col).doc(userId).get()
+    return snap.data ? { ...snap.data, role } : null
+  } catch (e) {
+    return null
+  }
+}
+
+async function findElderlyTarget(familyOpenid, familyUserId) {
+  const q = familyUserId ? { fromUserId: familyUserId } : { fromOpenid: familyOpenid }
   const { data } = await db.collection('bindings')
-    .where({ fromOpenid: familyOpenid })
+    .where(q)
     .orderBy('createdAt', 'desc')
     .limit(1)
     .get()
   if (!data.length) return null
   const binding = data[0]
-  if (binding.toOpenid) return binding.toOpenid
+  if (binding.toUserId) {
+    // 尝试读老人 doc，拿到 openid（兼容页面/旧字段）
+    const elderDoc = await db.collection('elderly').doc(binding.toUserId).get().catch(() => null)
+    const elder = elderDoc && elderDoc.data ? elderDoc.data : null
+    const eid = elder ? (elder.openid || elder._openid || '') : ''
+    return { userId: binding.toUserId, openid: eid }
+  }
+  if (binding.toOpenid) {
+    // 老数据：只有 openid，无法区分同 openid 多账号；退化为手机号路径
+  }
   if (binding.toPhone) {
     const { data: elders } = await db.collection('elderly')
       .where({ phone: binding.toPhone }).limit(1).get()
     if (elders.length) {
-      const eid = elders[0].openid || elders[0]._openid || ''
-      if (eid) {
-        await db.collection('bindings').doc(binding._id)
-          .update({ data: { toOpenid: eid } }).catch(() => {})
-        return eid
-      }
+      const elder = elders[0]
+      const eid = elder.openid || elder._openid || ''
+      // 回填 toUserId（优先），并保留 toOpenid 兼容
+      await db.collection('bindings').doc(binding._id)
+        .update({ data: { toUserId: elder._id, toOpenid: eid } }).catch(() => {})
+      return { userId: elder._id, openid: eid }
     }
   }
   return null
 }
 
-async function getTargetOpenid(callerOpenid) {
-  const user = await findUser(callerOpenid)
+async function getTargetUser(eventOpenid, token) {
+  const session = await resolveSession(eventOpenid, token)
+  if (!session) return { code: 1, msg: '登录已失效，请重新登录' }
+  const user = await findUserById(session.role, session.userId)
   if (!user) return { code: 1, msg: '用户不存在' }
-  if (user.role === 'elderly') return { code: 0, role: 'elderly', targetOpenid: callerOpenid }
-  const eid = await findElderlyOpenid(callerOpenid)
-  if (!eid) return { code: 1, msg: '未绑定老人账号' }
-  return { code: 0, role: 'family', targetOpenid: eid }
+
+  if (session.role === 'elderly') {
+    const oid = user.openid || user._openid || eventOpenid
+    return { code: 0, role: 'elderly', targetUserId: session.userId, targetOpenid: oid }
+  }
+
+  const target = await findElderlyTarget(eventOpenid, session.userId)
+  if (!target || !target.userId) return { code: 1, msg: '未绑定老人账号' }
+  return { code: 0, role: 'family', targetUserId: target.userId, targetOpenid: target.openid || '' }
 }
 
 function asInt(v) {
@@ -64,19 +90,21 @@ function asInt(v) {
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext()
   const action = event?.action || 'getSettings'
+  const token = event?.token || ''
 
   try {
-    const targetRes = await getTargetOpenid(OPENID)
+    const targetRes = await getTargetUser(OPENID, token)
     if (targetRes.code !== 0) return targetRes
     const targetOpenid = targetRes.targetOpenid
+    const targetUserId = targetRes.targetUserId
 
     // ── 基础设置总览（settings 页面初始化用） ─────────────
     if (action === 'getSettings') {
       const [elderSnap, setSnap] = await Promise.all([
-        db.collection('elderly').where({ _openid: targetOpenid }).limit(1).get(),
-        db.collection(COL_USER_SETTINGS).where({ openid: targetOpenid }).limit(1).get()
+        db.collection('elderly').doc(targetUserId).get().catch(() => ({ data: {} })),
+        db.collection(COL_USER_SETTINGS).where({ userId: targetUserId }).limit(1).get()
       ])
-      const elderly = elderSnap.data?.[0] || {}
+      const elderly = elderSnap.data || {}
       const settings = setSnap.data?.[0]?.settings || {}
 
       // 家庭组信息先做轻量返回（你原页面只展示 members/deviceBound）
@@ -86,7 +114,7 @@ exports.main = async (event, context) => {
 
     if (action === 'updateSettings') {
       const patch = event?.data || {}
-      const exist = await db.collection(COL_USER_SETTINGS).where({ openid: targetOpenid }).limit(1).get()
+      const exist = await db.collection(COL_USER_SETTINGS).where({ userId: targetUserId }).limit(1).get()
       const now = db.serverDate()
       if (exist.data?.length) {
         const current = exist.data[0]
@@ -95,7 +123,7 @@ exports.main = async (event, context) => {
         })
       } else {
         await db.collection(COL_USER_SETTINGS).add({
-          data: { openid: targetOpenid, settings: patch, createdAt: now, updatedAt: now }
+          data: { userId: targetUserId, openid: targetOpenid, settings: patch, createdAt: now, updatedAt: now }
         })
       }
       return { code: 0, msg: 'ok' }
@@ -112,17 +140,18 @@ exports.main = async (event, context) => {
       if (patch.medicalHistory !== undefined) update.medicalHistory = String(patch.medicalHistory || '').trim()
       update.updatedAt = db.serverDate()
 
-      const elderSnap = await db.collection('elderly').where({ _openid: targetOpenid }).limit(1).get()
-      if (!elderSnap.data?.length) return { code: 1, msg: '老人档案不存在，请先注册老人账号' }
-      await db.collection('elderly').doc(elderSnap.data[0]._id).update({ data: update })
-      const newSnap = await db.collection('elderly').doc(elderSnap.data[0]._id).get()
+      const elderSnap = await db.collection('elderly').doc(targetUserId).get().catch(() => ({ data: null }))
+      if (!elderSnap.data) return { code: 1, msg: '老人档案不存在，请先注册老人账号' }
+      await db.collection('elderly').doc(targetUserId).update({ data: update })
+      const newSnap = await db.collection('elderly').doc(targetUserId).get()
       return { code: 0, data: newSnap.data }
     }
 
     // ── 紧急联系人 ─────────────────────────────────────
     if (action === 'getContacts') {
-      const snap = await db.collection(COL_CONTACTS)
-        .where({ openid: targetOpenid })
+      const snap = await db.collection(COL_CONTACTS).where({
+        userId: _.eq(targetUserId)
+      })
         .orderBy('priority', 'asc')
         .orderBy('createdAt', 'desc')
         .get()
@@ -146,7 +175,7 @@ exports.main = async (event, context) => {
       if (!name || !phone || !relation) return { code: 1, msg: '缺少联系人字段' }
       const now = db.serverDate()
       const addRes = await db.collection(COL_CONTACTS).add({
-        data: { openid: targetOpenid, name, phone, relation, avatar, priority, createdAt: now, updatedAt: now }
+        data: { userId: targetUserId, openid: targetOpenid, name, phone, relation, avatar, priority, createdAt: now, updatedAt: now }
       })
       return { code: 0, data: { id: addRes._id } }
     }
@@ -175,7 +204,7 @@ exports.main = async (event, context) => {
     // ── 防诈关键词 ─────────────────────────────────────
     if (action === 'getKeywords') {
       const snap = await db.collection(COL_KEYWORDS)
-        .where({ openid: targetOpenid })
+        .where({ userId: targetUserId })
         .orderBy('createdAt', 'desc')
         .get()
       return { code: 0, data: (snap.data || []).map(i => i.keyword).filter(Boolean) }
@@ -185,11 +214,11 @@ exports.main = async (event, context) => {
       const keyword = String(event?.keyword || '').trim()
       if (!keyword) return { code: 1, msg: '关键词不能为空' }
       const exist = await db.collection(COL_KEYWORDS)
-        .where({ openid: targetOpenid, keyword: _.eq(keyword) })
+        .where({ userId: targetUserId, keyword: _.eq(keyword) })
         .limit(1).get()
       if (!exist.data?.length) {
         await db.collection(COL_KEYWORDS).add({
-          data: { openid: targetOpenid, keyword, createdAt: db.serverDate() }
+          data: { userId: targetUserId, openid: targetOpenid, keyword, createdAt: db.serverDate() }
         })
       }
       return exports.main({ action: 'getKeywords' }, context)
@@ -199,7 +228,7 @@ exports.main = async (event, context) => {
       const keyword = String(event?.keyword || '').trim()
       if (!keyword) return { code: 1, msg: '关键词不能为空' }
       const snap = await db.collection(COL_KEYWORDS)
-        .where({ openid: targetOpenid, keyword: _.eq(keyword) })
+        .where({ userId: targetUserId, keyword: _.eq(keyword) })
         .get()
       for (const d of (snap.data || [])) {
         await db.collection(COL_KEYWORDS).doc(d._id).remove()

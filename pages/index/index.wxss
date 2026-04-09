@@ -296,6 +296,15 @@
   background: linear-gradient(160deg, rgba(229, 152, 102, 0.18) 0%, rgba(255, 255, 255, 0.96) 100%);
 }
 
+/* 老人端：首页功能入口图标容器不铺底色（与家属端一致透明） */
+.home-body-elder .home-func-icon.tone-pine,
+.home-body-elder .home-func-icon.tone-gold,
+.home-body-elder .home-func-icon.tone-ink,
+.home-body-elder .home-func-icon.tone-mist,
+.home-body-elder .home-func-icon.tone-coral {
+  background: transparent;
+}
+
 .home-cell-active {
   opacity: 0.88;
   transform: scale(0.98);

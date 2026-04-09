@@ -43,7 +43,7 @@
     <view class="member-empty" wx:if="{{!members.length}}">
       <image
         class="member-empty-icon-img"
-        src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家庭成员.jpg"
+        src="cloud://cloud1-3gzx0vun034c33f9.636c-cloud1-3gzx0vun034c33f9-1356888498/assets/家庭成员.png"
         mode="aspectFill"
       />
       <text class="member-empty-title">暂无家庭成员</text>

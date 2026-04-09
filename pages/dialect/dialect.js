@@ -244,40 +244,77 @@ Page({
   },
 
   // ========== 补充：录音开始（原代码缺失的实现） ==========
-  startRecord() {
-    if (this.data.recording) return;
-    // 创建录音实例
-    this._recordAudio = wx.createRecorderManager()
-    // 配置录音参数
+  async startRecord() {
+    if (this.data.recording) return
+
+    // RecorderManager 是单例：用 getRecorderManager（createRecorderManager 并不存在）
+    if (!this._recordAudio) {
+      this._recordAudio = wx.getRecorderManager()
+      this._recordAudio.onError((err) => {
+        console.error('录音错误:', err)
+        this.setData({ recording: false })
+        wx.showToast({ title: '录音失败', icon: 'none' })
+      })
+      this._recordAudio.onStop((res) => {
+        this.setData({ recording: false })
+        const path = res && res.tempFilePath
+        const dur = Number(res && res.duration ? res.duration : 0)
+        if (!path) return
+        if (dur > 0 && dur < 800) {
+          wx.showToast({ title: '说话时间太短', icon: 'none' })
+          return
+        }
+        this.setData({ recordTempPath: path })
+        this._recognizeSpeech(path)
+      })
+    }
+
+    // 申请录音权限（真机上未授权/曾拒绝，可能录到静音导致一直“未识别到语音”）
+    try {
+      const setting = await new Promise((resolve) => {
+        wx.getSetting({
+          success: resolve,
+          fail: () => resolve({ authSetting: {} })
+        })
+      })
+      const granted = !!(setting && setting.authSetting && setting.authSetting['scope.record'])
+      if (!granted) {
+        await new Promise((resolve, reject) => {
+          wx.authorize({
+            scope: 'scope.record',
+            success: resolve,
+            fail: reject
+          })
+        })
+      }
+    } catch (e) {
+      wx.showModal({
+        title: '需要录音权限',
+        content: '未获得麦克风权限，无法识别语音。请在设置中开启麦克风权限后再使用。',
+        confirmText: '去设置',
+        success: (res) => {
+          if (res.confirm) wx.openSetting({})
+        }
+      })
+      return
+    }
+
+    this.setData({ recording: true })
+    // 优先 wav：更利于语音识别（mp3 在部分 ASR 流程里可能被当作无效/静音）
     this._recordAudio.start({
       duration: 60000, // 最长60秒
       sampleRate: 16000,
       numberOfChannels: 1,
       encodeBitRate: 96000,
-      format: 'mp3'
+      format: 'wav'
     })
-    // 监听录音错误
-    this._recordAudio.onError((err) => {
-      console.error('录音错误:', err)
-      this.setData({ recording: false })
-      wx.showToast({ title: '录音失败', icon: 'none' })
-    })
-    // 标记录音中
-    this.setData({ recording: true })
   },
 
   // ========== 补充：录音结束（原代码缺失的实现） ==========
   stopRecord() {
-    if (!this.data.recording || !this._recordAudio) return;
-    this.setData({ recording: false })
-    // 停止录音
+    if (!this.data.recording || !this._recordAudio) return
+    // 停止录音（识别逻辑在 onStop 回调中）
     this._recordAudio.stop()
-    // 监听录音完成
-    this._recordAudio.onStop((res) => {
-      this.setData({ recordTempPath: res.tempFilePath })
-      // 识别语音
-      this._recognizeSpeech(res.tempFilePath)
-    })
   },
 
   // 选择本地音频文件（测试用）
