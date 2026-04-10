@@ -66,27 +66,35 @@ async function resolveSession(openid, token) {
  */
 async function getBindings({ openid, role, userId }) {
   const selfCol = getColByRole(role)
-  const [selfDocRes, initiatedRes, receivedRes] = await Promise.all([
+  const [selfDocRes] = await Promise.all([
     userId ? selfCol.doc(userId).get().catch(() => ({ data: {} })) : Promise.resolve({ data: {} }),
-    bindingsCol.where({ fromOpenid: openid }).get(),
-    bindingsCol.where({ toOpenid: openid }).get()
   ])
 
   const self = selfDocRes.data || {}
   const selfPhone = self.phone || ''
 
-  let rawList = uniqueBindings([
-    ...(initiatedRes.data || []),
-    ...(receivedRes.data || [])
+  // 同一微信 openid 下可能有多个账号：必须优先用 userId 精准查询绑定关系
+  const [initiatedRes, receivedRes] = await Promise.all([
+    userId
+      ? bindingsCol.where({ fromUserId: userId }).get()
+      : bindingsCol.where({ fromOpenid: openid }).get(),
+    userId
+      ? bindingsCol.where({ toUserId: userId }).get()
+      : bindingsCol.where({ toOpenid: openid }).get()
   ])
 
+  let rawList = uniqueBindings([...(initiatedRes.data || []), ...(receivedRes.data || [])])
+
   if (selfPhone) {
+    // 兼容历史数据：旧绑定可能没有 toUserId，只能用手机号兜底拉取
     const { data: phoneBindings } = await bindingsCol.where({ toPhone: selfPhone }).get()
     if (phoneBindings.length > 0) {
       rawList = uniqueBindings([...rawList, ...phoneBindings])
       for (const b of phoneBindings) {
-        if (!b.toOpenid) {
-          await bindingsCol.doc(b._id).update({ data: { toOpenid: openid } }).catch(() => {})
+        // 不再回填 toOpenid：openid 在多账号场景下不唯一，会造成串号
+        // 若当前会话能定位到 userId，则回填 toUserId 以便下次精确查询
+        if (userId && !b.toUserId) {
+          await bindingsCol.doc(b._id).update({ data: { toUserId: userId } }).catch(() => {})
         }
       }
     }
@@ -164,7 +172,11 @@ async function getBindings({ openid, role, userId }) {
   )
 
   // meta：家属最多绑定1个老人；老人侧保持现有页面可见能力
-  const initiatedCount = (initiatedRes.data || []).length
+  const initiatedCount = (rawList || []).filter(item => {
+    if (userId) return item.fromUserId === userId
+    // 兜底：历史数据按手机号判断是否“我发起的绑定”
+    return !!selfPhone && item.fromPhone === selfPhone
+  }).length
   const canCreateBinding = role === 'family' ? initiatedCount === 0 : true
   const canUnbind = rawList.length > 0
 
@@ -193,14 +205,15 @@ async function createBinding({ openid, role, userId }, { linkedPhone, note }) {
   const peer = peerList[0] || null
 
   // 查重：是否已绑定该手机号
-  const { data: existing } = await bindingsCol
-    .where({ fromOpenid: openid, toPhone: linkedPhone })
-    .limit(1).get()
+  const existingQuery = userId
+    ? { fromUserId: userId, toPhone: linkedPhone }
+    : { fromOpenid: openid, toPhone: linkedPhone }
+  const { data: existing } = await bindingsCol.where(existingQuery).limit(1).get()
   if (existing.length > 0) return fail('已关联该手机号，请勿重复操作')
 
   // 家属最多绑1个老人
   if (role === 'family') {
-    const { data: myBindings } = await bindingsCol.where({ fromOpenid: openid }).get()
+    const { data: myBindings } = await bindingsCol.where(userId ? { fromUserId: userId } : { fromOpenid: openid }).get()
     if (myBindings.length >= 1) return fail('每个家属账号最多关联1位老人')
   }
 

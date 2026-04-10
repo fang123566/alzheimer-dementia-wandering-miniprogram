@@ -443,9 +443,9 @@
   height: 86rpx;
   border-radius: 22rpx;
   margin-bottom: 14rpx;
-  background: rgba(255,255,255,0.55);
-  border: 2rpx solid rgba(47,133,90,0.10);
-  box-shadow: 0 10rpx 24rpx rgba(20,51,42,0.08);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 .role-name  {
   font-size: 28rpx;
