@@ -1,12 +1,24 @@
 // pages/memory/memory.js
-const { memoryAPI } = require('../../utils/api')
-const http = require('../../utils/request')
+const app = getApp()
 
-function toAbsoluteUrl(url) {
-  if (!url) return ''
-  if (/^https?:\/\//.test(url)) return url
-  if (url.startsWith('/')) return `${http.ROOT_URL}${url}`
-  return url
+function callMemory(action, extra = {}) {
+  return wx.cloud.callFunction({ name: 'memory', data: { action, ...extra } })
+    .then(r => r.result)
+}
+
+function cloudUpload(filePath, type) {
+  const ext = type === 'video' ? 'mp4' : type === 'audio' ? 'mp3' : 'jpg'
+  const cloudPath = `memories/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`
+  console.log('[cloudUpload] filePath:', filePath, 'cloudPath:', cloudPath)
+  return wx.cloud.uploadFile({ cloudPath, filePath })
+    .then(r => {
+      console.log('[cloudUpload] success fileID:', r.fileID)
+      return r.fileID
+    })
+    .catch(e => {
+      console.error('[cloudUpload] error:', JSON.stringify(e))
+      throw e
+    })
 }
 
 Page({
@@ -20,30 +32,27 @@ Page({
   },
 
   onLoad() {
-    if (!getApp().checkLogin()) return
+    if (!app.checkLogin()) return
     this._fetchAll()
   },
 
   onShow() {
-    if (!getApp().checkLogin()) return
+    if (!app.checkLogin()) return
     this._fetchAll()
   },
 
   async _fetchAll() {
     this.setData({ loading: true })
     try {
-      const photosRes = await memoryAPI.getPhotos()
-      if (photosRes.code === 0) {
-        const photos = (photosRes.data || []).map(item => ({
-          ...item,
-          thumb: toAbsoluteUrl(item.thumb || item.cover || item.url),
-          url: toAbsoluteUrl(item.url || item.thumb),
-          cover: toAbsoluteUrl(item.cover || item.thumb || item.url)
-        }))
+      const res = await callMemory('list')
+      if (res.code === 0) {
+        const photos = res.data || []
         this.setData({
           photos,
           videoCount: photos.filter(p => p.type === 'video').length
         })
+      } else {
+        wx.showToast({ title: res.msg || '加载失败', icon: 'none' })
       }
     } catch (e) {
       wx.showToast({ title: '加载失败', icon: 'none' })
@@ -52,7 +61,6 @@ Page({
     }
   },
 
-  // ══════ 添加媒体 ══════
   addPhoto() {
     wx.showActionSheet({
       itemList: ['添加照片', '添加视频'],
@@ -84,34 +92,25 @@ Page({
     wx.showLoading({ title: '上传中…', mask: true })
     try {
       for (const file of files) {
-        const uploadRes = await memoryAPI.uploadMedia(file.tempFilePath, 'image')
-        await memoryAPI.addPhoto({
-          type: 'image',
-          thumb: uploadRes.data.url,
-          url: uploadRes.data.url,
-          cover: uploadRes.data.url,
-          caption: '',
-          story: '',
-          voiceNote: { url: '', duration: 0, text: '' },
-          members: []
+        const fileID = await cloudUpload(file.tempFilePath, 'image')
+        await callMemory('add', {
+          data: { type: 'image', url: fileID, thumb: fileID, caption: '' }
         })
       }
-      wx.hideLoading()
-      wx.showToast({ title: `已添加${files.length}项`, icon: 'success' })
+      wx.showToast({ title: `已添加 ${files.length} 项`, icon: 'success' })
       this._fetchAll()
     } catch (e) {
-      wx.hideLoading()
       wx.showToast({ title: '上传失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
     }
   },
 
-  // ══════ 详情页跳转 ══════
   showPhotoDetail(e) {
     const id = e.currentTarget.dataset.id
     wx.navigateTo({ url: `/pages/memory/detail/detail?id=${id}` })
   },
 
-  // 长按照片弹出操作菜单
   showPhotoActions(e) {
     const id = e.currentTarget.dataset.id
     const photo = this.data.photos.find(p => p.id === id)
@@ -125,10 +124,7 @@ Page({
           this.setData({
             showPhotoEditModal: true,
             editingPhoto: photo,
-            photoForm: {
-              caption: photo.caption || '',
-              type: photo.type || 'image'
-            }
+            photoForm: { caption: photo.caption || '', type: photo.type || 'image' }
           })
         } else if (res.tapIndex === 2) {
           this._deletePhoto(photo.id)
@@ -138,18 +134,22 @@ Page({
   },
 
   async _deletePhoto(id) {
-    const res = await wx.showModal({
+    const modal = await wx.showModal({
       title: '删除照片',
       content: '确定要删除这张照片吗？',
       confirmText: '删除',
       confirmColor: '#ff5c5c'
     })
-    if (!res.confirm) return
+    if (!modal.confirm) return
     wx.showLoading({ title: '删除中…' })
     try {
-      await memoryAPI.deletePhoto(id)
-      wx.showToast({ title: '已删除', icon: 'success' })
-      this._fetchAll()
+      const res = await callMemory('delete', { id })
+      if (res.code === 0) {
+        wx.showToast({ title: '已删除', icon: 'success' })
+        this._fetchAll()
+      } else {
+        wx.showToast({ title: res.msg || '删除失败', icon: 'none' })
+      }
     } catch (e) {
       wx.showToast({ title: '删除失败', icon: 'none' })
     } finally {
@@ -157,9 +157,8 @@ Page({
     }
   },
 
-  // ══════ 照片编辑弹窗 ══════
   hidePhotoEditModal() {
-    this.setData({ showPhotoEditModal: false })
+    this.setData({ showPhotoEditModal: false, editingPhoto: null })
     this._tempAddFile = null
     this._tempAddThumb = null
   },
@@ -170,27 +169,18 @@ Page({
 
   async savePhotoEdit() {
     const { photoForm, editingPhoto } = this.data
-    wx.showLoading({ title: '保存中…' })
+    wx.showLoading({ title: '保存中…', mask: true })
     try {
       if (editingPhoto) {
-        await memoryAPI.updatePhoto(editingPhoto.id, {
-          caption: photoForm.caption,
-          type: photoForm.type
-        })
+        await callMemory('update', { id: editingPhoto.id, data: { caption: photoForm.caption } })
         wx.showToast({ title: '已更新', icon: 'success' })
       } else {
-        const uploadRes = await memoryAPI.uploadMedia(
-          this._tempAddFile || '',
-          photoForm.type === 'video' ? 'video' : 'image'
-        )
-        await memoryAPI.addPhoto({
-          type: photoForm.type,
-          thumb: photoForm.type === 'video' ? (this._tempAddThumb || uploadRes.data.url) : uploadRes.data.url,
-          url: uploadRes.data.url,
-          cover: photoForm.type === 'video' ? (this._tempAddThumb || uploadRes.data.url) : uploadRes.data.url,
-          caption: photoForm.caption,
-          story: '',
-          voiceNote: { url: '', duration: 0, text: '' }
+        const fileID = await cloudUpload(this._tempAddFile, photoForm.type)
+        const thumbID = photoForm.type === 'video' && this._tempAddThumb
+          ? await cloudUpload(this._tempAddThumb, 'image')
+          : fileID
+        await callMemory('add', {
+          data: { type: photoForm.type, url: fileID, thumb: thumbID, caption: photoForm.caption }
         })
         wx.showToast({ title: '已添加', icon: 'success' })
       }

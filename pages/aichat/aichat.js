@@ -1,8 +1,8 @@
 // pages/aichat/aichat.js
-// 小守 AI 伴聊页面 —— 支持记忆提取 | 反诈预警气泡 | 提醒确认
+// 小守 AI 伴聊页面 —— 支持记忆提取 | 反诈预警气泡 | 提醒确认 | 语音输入 | 语音朗读
 
 const app = getApp()
-const { chatAPI } = require('../../utils/api')
+const { chatAPI, speechAPI } = require('../../utils/api')
 
 const QUICK_ACTIONS = [
   { id: 'weather',   label: '查天气',   icon: '🌤️', text: '今天天气怎么样' },
@@ -34,8 +34,6 @@ function buildViewState(patch = {}) {
   const sending     = !!patch.sending
   const keyboardHeightRpx = Number(patch.keyboardHeightRpx || 0)
 
-  // 输入区本体（快捷栏 + 输入栏）的大致高度：用于给消息列表预留空间
-  // 这里用固定 rpx，避免复杂测量；视觉上足够稳定
   const inputAreaReserveRpx = elderlyMode ? 260 : 220
 
   const inputSectionStyle = keyboardHeightRpx > 0
@@ -77,7 +75,7 @@ Page({
     sending:        false,
     messages:       [],
     quickActions:   QUICK_ACTIONS,
-    capabilityTags: ['日常陪聊', '紧急协助', '反诈提醒',],
+    capabilityTags: ['日常陪聊', '紧急协助', '反诈提醒'],
     suggestions: [
       '今天天气怎么样',
       '我刚吃药了',
@@ -121,7 +119,7 @@ Page({
       ...buildViewState({ elderlyMode, autoSpeak: elderlyMode, keyboardHeightRpx: 0 })
     })
 
-    // 键盘弹出适配：弹起时输入栏顶住键盘，收起时回到底部 tabBar 上方
+    // 键盘弹出适配
     this._keyboardListener = (res) => {
       const heightPx = Number(res && res.height ? res.height : 0)
       const keyboardHeightRpx = Math.max(0, Math.round(heightPx * (this.data.rpxPerPx || rpxPerPx)))
@@ -129,7 +127,6 @@ Page({
         keyboardHeightRpx,
         ...buildViewState({ ...this.data, keyboardHeightRpx })
       })
-      // 键盘弹起后稍微延迟，确保滚动到底
       if (keyboardHeightRpx > 0) {
         setTimeout(() => this._scrollToBottom(), 80)
       }
@@ -142,6 +139,10 @@ Page({
     if (this._keyboardListener) {
       wx.offKeyboardHeightChange(this._keyboardListener)
       this._keyboardListener = null
+    }
+    if (this._audioContext) {
+      this._audioContext.destroy()
+      this._audioContext = null
     }
   },
 
@@ -255,6 +256,11 @@ Page({
         })
         this._scrollToBottom()
 
+        // ── 自动播报 ─────────────────────────────────────
+        if (this.data.autoSpeak && botMsg.text) {
+          this._speak(botMsg.text)
+        }
+
         // ── 反诈预警横幅 ─────────────────────────────────
         if (meta.fraudAlert) {
           const levelMap = { 3: '⚠️ 高危诈骗风险！', 2: '⚠️ 疑似诈骗', 1: '⚠️ 可疑内容' }
@@ -266,7 +272,6 @@ Page({
               bgClass:  meta.fraudAlert.level >= 3 ? 'banner-danger' : 'banner-warning'
             }
           })
-          // 高危自动震动提示
           if (meta.fraudAlert.level >= 3) {
             wx.vibrateShort({ type: 'heavy' })
             wx.showModal({
@@ -289,11 +294,10 @@ Page({
           })
         }
 
-        // ── 记忆存储提示（静默，不打扰老人）────────────────
+        // ── 记忆存储提示（静默）────────────────────────────
         if (meta.memorySaved) {
           console.log('[AIChat] 记忆已存储')
         }
-
       }
     } catch (e) {
       console.error('[AIChat] 发送失败:', e)
@@ -324,6 +328,158 @@ Page({
   // ── 关闭提醒横幅 ──────────────────────────────────────────
   closeRemindBanner() {
     this.setData({ remindBanner: null })
+  },
+
+  // ── 朗读指定消息气泡 ─────────────────────────────────────
+  speakMessage(e) {
+    const text = e.currentTarget.dataset.text || ''
+    if (!text) return
+    this._speak(text)
+  },
+
+  // ── 语音合成（固定四川话发音人）────────────────────────────
+  _speak(text) {
+    if (!text) return
+    // 销毁上一次播放
+    if (this._audioContext) {
+      this._audioContext.destroy()
+      this._audioContext = null
+    }
+    wx.showLoading({ title: '合成中…', mask: true })
+    speechAPI.tts(text, 'zh_cn', 'x3_yezi_sc')
+      .then(res => {
+        wx.hideLoading()
+        if (!res.success) {
+          wx.showToast({ title: res.message || '合成失败', icon: 'none' })
+          return
+        }
+        const filePath = `${wx.env.USER_DATA_PATH}/tts_${Date.now()}.mp3`
+        wx.getFileSystemManager().writeFile({
+          filePath,
+          data: res.data,
+          encoding: 'base64',
+          success: () => {
+            const audio = wx.createInnerAudioContext()
+            this._audioContext = audio
+            audio.src = filePath
+            audio.obeyMuteSwitch = false
+            audio.play()
+            audio.onError(err => {
+              console.error('[AIChat] 播放失败:', err)
+              wx.showToast({ title: '播放失败', icon: 'none' })
+            })
+          },
+          fail: err => {
+            console.error('[AIChat] 音频写入失败:', err)
+            wx.showToast({ title: '音频保存失败', icon: 'none' })
+          }
+        })
+      })
+      .catch(err => {
+        wx.hideLoading()
+        console.error('[AIChat] TTS 错误:', err)
+        wx.showToast({ title: '合成失败', icon: 'none' })
+      })
+  },
+
+  // ── 录音：按住开始 ───────────────────────────────────────
+  startRecord() {
+    if (this.data.isRecording) return
+    this._recordAudio = wx.getRecorderManager()
+    wx.authorize({
+      scope: 'scope.record',
+      success: () => {
+        this._recordAudio.start({
+          format: 'wav',
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          duration: 60000
+        })
+        this.setData({
+          isRecording: true,
+          ...buildViewState({ ...this.data, isRecording: true })
+        })
+        wx.showToast({ title: '录音中…', icon: 'none' })
+      },
+      fail: () => {
+        wx.showToast({ title: '请开启麦克风权限', icon: 'none' })
+      }
+    })
+    this._recordAudio.onError(err => {
+      console.error('[AIChat] 录音错误:', err)
+      this.setData({
+        isRecording: false,
+        ...buildViewState({ ...this.data, isRecording: false })
+      })
+      wx.showToast({ title: '录音失败', icon: 'none' })
+    })
+  },
+
+  // ── 录音：松手结束 ───────────────────────────────────────
+  stopRecord() {
+    if (!this.data.isRecording || !this._recordAudio) return
+    this._recordAudio.stop()
+    this.setData({
+      isRecording: false,
+      ...buildViewState({ ...this.data, isRecording: false })
+    })
+    wx.hideToast()
+    this._recordAudio.onStop(res => {
+      console.log('[AIChat] 录音文件:', res.tempFilePath)
+      this._recognizeSpeech(res.tempFilePath)
+    })
+  },
+
+  // ── 语音识别（识别后调 Dify 翻译成普通话）────────────────────
+  _recognizeSpeech(tempFilePath) {
+    wx.showLoading({ title: '识别中…', mask: true })
+    wx.getFileSystemManager().readFile({
+      filePath: tempFilePath,
+      encoding: 'base64',
+      success: async fileRes => {
+        if (!fileRes.data) {
+          wx.hideLoading()
+          wx.showToast({ title: '音频数据为空', icon: 'none' })
+          return
+        }
+        try {
+          const res = await speechAPI.asr(fileRes.data, 'zh_cn', 'mulacc')
+          if (!res.success) {
+            wx.hideLoading()
+            wx.showToast({ title: res.message || '识别失败', icon: 'none' })
+            return
+          }
+          const dialectText = res.data
+          // 调 Dify 翻译方言 → 普通话
+          wx.showLoading({ title: '翻译中…', mask: true })
+          try {
+            const transRes = await chatAPI.difyTranslate(dialectText)
+            wx.hideLoading()
+            const finalText = (transRes && transRes.code === 0 && transRes.data) ? transRes.data : dialectText
+            this.setData({
+              inputText: finalText,
+              ...buildViewState({ ...this.data, inputText: finalText })
+            })
+          } catch (e) {
+            wx.hideLoading()
+            // 翻译失败降级：直接用识别结果
+            this.setData({
+              inputText: dialectText,
+              ...buildViewState({ ...this.data, inputText: dialectText })
+            })
+          }
+        } catch (err) {
+          wx.hideLoading()
+          console.error('[AIChat] ASR 错误:', err)
+          wx.showToast({ title: '识别失败，请重试', icon: 'none' })
+        }
+      },
+      fail: err => {
+        wx.hideLoading()
+        console.error('[AIChat] 读取音频失败:', err)
+        wx.showToast({ title: '读取音频失败', icon: 'none' })
+      }
+    })
   },
 
   // ── 工具 ─────────────────────────────────────────────────

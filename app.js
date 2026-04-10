@@ -1,4 +1,6 @@
 // app.js
+const bleManager = require('./utils/ble')
+
 App({
   globalData: {
     // 当前登录用户信息
@@ -31,12 +33,18 @@ App({
     // 未读预警数量
     unreadAlerts: 0,
     // 后端服务地址（开发用 localhost，上线替换）
-    serverUrl: 'http://localhost:3000'
+    serverUrl: 'http://localhost:3000',
+    // BLE 硬件通知接口（BLE 连接成功后由 bleManager 自动注册）
+    // 结构：{ sendText(text), sendTts(text) }
+    bleNotify: null
   },
 
   onLaunch() {
     // 初始化云开发
     wx.cloud.init({ env: 'cloud1-3gzx0vun034c33f9' })
+
+    // 挂载全局 BLE 管理器（单例，生命周期跟随 App）
+    this.ble = bleManager
 
     // 从本地存储恢复登录态
     const token    = wx.getStorageSync('token')

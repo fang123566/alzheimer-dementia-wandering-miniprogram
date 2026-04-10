@@ -111,6 +111,18 @@ Page({
       showCancel: false,
       confirmText: '知道了'
     })
+
+    // ── 额外：通过 BLE 推送到硬件屏幕 + 语音 ──────────
+    const bleNotify = app.globalData.bleNotify
+    if (bleNotify) {
+      triggered.forEach(item => {
+        const text = `${item.icon || '⏰'} ${item.time} ${item.title}${item.note ? '，' + item.note : ''}`
+        // 1. 发文字到硬件屏幕
+        try { bleNotify.sendText(text) } catch (e) { console.error('[reminders] BLE sendText 失败', e) }
+        // 2. TTS 合成后发语音到硬件（异步，不阻塞弹窗）
+        try { bleNotify.sendTts(text) } catch (e) { console.error('[reminders] BLE sendTts 失败', e) }
+      })
+    }
   },
 
   // ── 模式切换 ──────────────────────────────────────
@@ -210,6 +222,23 @@ Page({
       return
     }
     const next = !this.data.autoRemind
+    // 开启时先请求订阅消息授权
+    if (next) {
+      try {
+        const subRes = await new Promise((resolve) => {
+          wx.requestSubscribeMessage({
+            tmplIds: ['5EfdaXcg118G3660FaPrQwSOM1FnXPLN0Aj9tciy0AI'],
+            success: resolve,
+            fail: resolve
+          })
+        })
+        const accepted = subRes['5EfdaXcg118G3660FaPrQwSOM1FnXPLN0Aj9tciy0AI'] === 'accept'
+        if (!accepted) {
+          wx.showToast({ title: '需要授权订阅消息才能开启提醒', icon: 'none' })
+          return
+        }
+      } catch (e) {}
+    }
     try {
       wx.showLoading({ title: next ? '开启中…' : '关闭中…', mask: true })
       const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
@@ -225,6 +254,49 @@ Page({
     } catch (e) {
       wx.hideLoading()
       wx.showToast({ title: '网络异常，请重试', icon: 'none' })
+    }
+  },
+
+  // ── 手动触发单条提醒推送 ──────────────────────────
+  async triggerRemind(e) {
+    const templateId = e.currentTarget.dataset.id
+    const eid = this._elderlyOpenid || this.data.elderlyOpenid || ''
+    const elderlyName = this.data.elderlyName || '您'
+    // 先请求订阅授权
+    try {
+      const subRes = await new Promise((resolve) => {
+        wx.requestSubscribeMessage({
+          tmplIds: ['5EfdaXcg118G3660FaPrQwSOM1FnXPLN0Aj9tciy0AI'],
+          success: resolve,
+          fail: resolve
+        })
+      })
+      const accepted = subRes['5EfdaXcg118G3660FaPrQwSOM1FnXPLN0Aj9tciy0AI'] === 'accept'
+      if (!accepted) {
+        wx.showToast({ title: '需要授权才能发送提醒', icon: 'none' })
+        return
+      }
+    } catch (e) {}
+    try {
+      wx.showLoading({ title: '发送中…', mask: true })
+      const r = await remindersAPI.triggerRemind(templateId, eid, elderlyName)
+      wx.hideLoading()
+      wx.showToast({ title: r.code === 0 ? '提醒已发送' : (r.msg || '发送失败'), icon: r.code === 0 ? 'success' : 'none' })
+
+      // ── 额外：BLE 推送到硬件 ──────────────────────
+      if (r.code === 0) {
+        // 从当前模板列表中找到这条提醒的内容
+        const tpl = (this.data.templates || []).find(t => t.id === templateId || t._id === templateId)
+        const bleNotify = app.globalData.bleNotify
+        if (bleNotify && tpl) {
+          const text = `${tpl.icon || '⏰'} ${tpl.time} ${tpl.title}${tpl.note ? '，' + tpl.note : ''}`
+          try { bleNotify.sendText(text) } catch (e) {}
+          try { bleNotify.sendTts(text) } catch (e) {}
+        }
+      }
+    } catch (e) {
+      wx.hideLoading()
+      wx.showToast({ title: '发送失败，请重试', icon: 'none' })
     }
   },
 

@@ -5,6 +5,7 @@ Page({
     activeFilter: 'all',
     filters: [
       { key: 'all',    label: '全部'     },
+      { key: 'sos',    label: 'SOS求助'  },
       { key: 'lost',   label: '走失预警' },
       { key: 'fraud',  label: '防诈拦截' },
       { key: 'fence',  label: '围栏异常' },

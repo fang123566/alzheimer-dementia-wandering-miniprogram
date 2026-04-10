@@ -85,7 +85,13 @@ const chatAPI = {
    * 可在设置/家庭看板页展示
    */
   getMemories: () =>
-    callCloud('aiChat', { action: 'getMemories' })
+    callCloud('aiChat', { action: 'getMemories' }),
+  /**
+   * 调用 Dify 将方言文字翻译成普通话
+   * @param {string} text 方言文字
+   */
+  difyTranslate: (text) =>
+    callCloud('aiChat', { action: 'difyTranslate', text })
 }
 // ── 记忆相册 ──────────────────────────────────────────
 const memoryAPI = {
@@ -178,11 +184,19 @@ const remindersAPI = {
   toggleAutoRemind: (enabled, elderlyOpenid) => {
     const role = getCurrentRole()
     return callCloud('reminders', { action: 'toggleAutoRemind', role, elderlyOpenid: elderlyOpenid || '', enabled })
+  },
+  triggerRemind: (templateId, elderlyOpenid, elderlyName) => {
+    const role = getCurrentRole()
+    return callCloud('reminders', { action: 'triggerRemind', role, elderlyOpenid: elderlyOpenid || '', templateId, elderlyName: elderlyName || '' })
+  },
+  sendSubscribeMsg: (templateId, elderlyOpenid, elderlyName) => {
+    const role = getCurrentRole()
+    return callCloud('reminders', { action: 'sendSubscribeMsg', role, elderlyOpenid: elderlyOpenid || '', templateId, elderlyName: elderlyName || '' })
   }
 }
 // ── SOS ───────────────────────────────────────────────
 const sosAPI = {
-  trigger: (data) => http.post('/sos', data)
+  trigger: (data) => callCloud('sos', data)
 }
 // ── 统计 ──────────────────────────────────────────────
 const statsAPI = {

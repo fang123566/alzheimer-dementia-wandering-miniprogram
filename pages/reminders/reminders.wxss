@@ -148,3 +148,5 @@
 
 /* 空状态 */
 .empty { text-align: center; padding: 32rpx; color: #6b8577; font-size: 26rpx; }
+
+.send-btn { margin-left: 12rpx; width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; background: rgba(34,118,77,0.08); border-radius: 50%; flex-shrink: 0; }

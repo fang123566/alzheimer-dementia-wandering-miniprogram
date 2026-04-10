@@ -3,14 +3,18 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 const db = cloud.database()
 const _ = db.command
-/** 在 elderly + family 两个集合中查找用户 */
+/** 在 elderly + family 两个集合中查找用户（兼容 _openid 和 openid 字段） */
 async function findUser(openid) {
-  const [eSnap, fSnap] = await Promise.all([
+  const [eSnap1, fSnap1, eSnap2, fSnap2] = await Promise.all([
     db.collection('elderly').where({ _openid: openid }).limit(1).get(),
-    db.collection('family').where({ _openid: openid }).limit(1).get()
+    db.collection('family').where({ _openid: openid }).limit(1).get(),
+    db.collection('elderly').where({ openid }).limit(1).get(),
+    db.collection('family').where({ openid }).limit(1).get()
   ])
-  if (eSnap.data.length) return { ...eSnap.data[0], role: 'elderly' }
-  if (fSnap.data.length) return { ...fSnap.data[0], role: 'family' }
+  if (eSnap1.data.length) return { ...eSnap1.data[0], role: 'elderly' }
+  if (fSnap1.data.length) return { ...fSnap1.data[0], role: 'family' }
+  if (eSnap2.data.length) return { ...eSnap2.data[0], role: 'elderly' }
+  if (fSnap2.data.length) return { ...fSnap2.data[0], role: 'family' }
   return null
 }
 /** 家属端查绑定的老人 openid */
@@ -26,10 +30,13 @@ async function findElderlyOpenid(familyOpenid) {
   if (binding.toPhone) {
     const { data: elders } = await db.collection('elderly')
       .where({ phone: binding.toPhone }).limit(1).get()
-    if (elders.length && elders[0]._openid) {
-      await db.collection('bindings').doc(binding._id)
-        .update({ data: { toOpenid: elders[0]._openid } }).catch(() => {})
-      return elders[0]._openid
+    if (elders.length) {
+      const eid = elders[0]._openid || elders[0].openid || ''
+      if (eid) {
+        await db.collection('bindings').doc(binding._id)
+          .update({ data: { toOpenid: eid } }).catch(() => {})
+        return eid
+      }
     }
   }
   return null
@@ -71,10 +78,6 @@ exports.main = async (event, context) => {
       return { code: 0, data: (snap.data || []).map(normalizeFenceDoc) }
     }
 
-    // 只允许家属端管理围栏（新增/修改/删除/开关）
-    if (user.role !== 'family') {
-      return { code: 403, msg: '仅家属端可管理安全围栏' }
-    }
     // ── 新增 ─────────────────────────────────────────
     if (action === 'add') {
       const name = String(event?.name || '').trim()

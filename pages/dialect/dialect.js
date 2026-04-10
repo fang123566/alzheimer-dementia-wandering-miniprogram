@@ -244,40 +244,57 @@ Page({
   },
 
   // ========== 补充：录音开始（原代码缺失的实现） ==========
-  startRecord() {
+  // ========== 修复：开始录音（正确API + 强制WAV + 权限校验）
+startRecord() {
     if (this.data.recording) return;
-    // 创建录音实例
-    this._recordAudio = wx.createRecorderManager()
-    // 配置录音参数
-    this._recordAudio.start({
-      duration: 60000, // 最长60秒
-      sampleRate: 16000,
-      numberOfChannels: 1,
-      encodeBitRate: 96000,
-      format: 'mp3'
-    })
+  
+    // 1. 正确获取录音管理器（修复报错核心）
+    this._recordAudio = wx.getRecorderManager();
+  
+    // 2. 先校验录音权限（小程序强制要求）
+    wx.authorize({
+      scope: 'scope.record',
+      success: () => {
+        // 3. 强制配置 WAV 格式录音
+        this._recordAudio.start({
+          format: 'wav',          // 核心：强制wav
+          sampleRate: 16000,      // 采样率
+          numberOfChannels: 1,    // 单声道
+          //encodeBitRate: 96000,  // 码率
+          duration: 60000         // 最长60秒
+        });
+  
+        // 监听录音开始
+        this.setData({ recording: true });
+        wx.showToast({ title: '录音中...', icon: 'none' });
+      },
+      fail: () => {
+        wx.showToast({ title: '请开启麦克风权限', icon: 'none' });
+      }
+    });
+  
     // 监听录音错误
     this._recordAudio.onError((err) => {
-      console.error('录音错误:', err)
-      this.setData({ recording: false })
-      wx.showToast({ title: '录音失败', icon: 'none' })
-    })
-    // 标记录音中
-    this.setData({ recording: true })
+      console.error('录音错误:', err);
+      this.setData({ recording: false });
+      wx.showToast({ title: '录音失败', icon: 'none' });
+    });
   },
-
-  // ========== 补充：录音结束（原代码缺失的实现） ==========
+  
+  // ========== 修复：结束录音
   stopRecord() {
     if (!this.data.recording || !this._recordAudio) return;
-    this.setData({ recording: false })
-    // 停止录音
-    this._recordAudio.stop()
-    // 监听录音完成
+    
+    this._recordAudio.stop();
+    this.setData({ recording: false });
+    wx.hideToast();
+  
+    // 监听录音完成，获取WAV文件
     this._recordAudio.onStop((res) => {
-      this.setData({ recordTempPath: res.tempFilePath })
-      // 识别语音
-      this._recognizeSpeech(res.tempFilePath)
-    })
+      console.log('录音文件(WAV):', res.tempFilePath);
+      this.setData({ recordTempPath: res.tempFilePath });
+      this._recognizeSpeech(res.tempFilePath);
+    });
   },
 
   // 选择本地音频文件（测试用）

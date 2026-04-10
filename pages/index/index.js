@@ -3,7 +3,6 @@ const app = getApp()
 const { locationAPI, alertsAPI, sosAPI, settingsAPI } = require('../../utils/api')
 const amap = require('../../utils/amap')
 
-
 Page({
   data: {
     statusBarHeight: 20,
@@ -98,6 +97,13 @@ Page({
       this._startAutoLocationTracking()
     }
 
+    // 硬件长按 SOS 触发后 → 刷新状态 + 预警数
+    if (app.globalData._sosTriggered) {
+      app.globalData._sosTriggered = false
+      this._updateStatusTag('emergency')
+      this._fetchData()
+    }
+
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().init()
     }
@@ -151,7 +157,25 @@ Page({
       this._formatAlerts(unreadCount)
 
       this.setData({ 'stats.aiChats': 0 })
-
+      // 家属端查老人今日 AI 聊天次数
+      const role = wx.getStorageSync('role') || 'family'
+      if (role === 'family') {
+        try {
+          const elderlyInfo = app.globalData.elderlyInfo || {}
+          const elderlyOpenid = elderlyInfo.openid || elderlyInfo._openid || elderlyInfo.openId || ''
+          if (elderlyOpenid) {
+            const countRes = await wx.cloud.callFunction({
+              name: 'aiChat',
+              data: { action: 'getCount', targetOpenid: elderlyOpenid }
+            })
+            if (countRes.result && countRes.result.code === 0) {
+              this.setData({ 'stats.aiChats': countRes.result.data.count || 0 })
+            }
+          }
+        } catch (e) {
+          console.warn('[首页] 获取 AI 关怀次数失败:', e)
+        }
+      }
       if (alertsRes.code === 0 && alertsRes.data) {
         console.log('[首页] 获取到预警数据:', alertsRes.data.length, '条')
         const recent = (alertsRes.data || []).slice(0, 3).map(a => ({
@@ -398,29 +422,55 @@ Page({
   },
 
   async triggerSOS() {
+    // 与硬件长按 SOS 完全一致的流程
+    wx.vibrateShort({ type: 'heavy' })
+    setTimeout(() => wx.vibrateShort({ type: 'heavy' }), 300)
+
     wx.showLoading({ title: 'SOS 发送中…', mask: true })
     try {
-      wx.getLocation({
-        type: 'wgs84',
-        success: async (loc) => {
-          await sosAPI.trigger({
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            address: app.globalData.currentLocation.address
-          })
-          wx.hideLoading()
-          wx.showToast({ title: 'SOS 已发送给家人！', icon: 'success' })
-          this._updateStatusTag('emergency')
-        },
-        fail: async () => {
-          await sosAPI.trigger({})
-          wx.hideLoading()
-          wx.showToast({ title: 'SOS 已发送给家人！', icon: 'success' })
-        }
+      // 1. 获取位置（失败不阻断）
+      const loc = await new Promise(resolve => {
+        wx.getLocation({
+          type: 'wgs84',
+          success: resolve,
+          fail: () => resolve(null)
+        })
       })
+
+      const address = app.globalData.currentLocation?.address || ''
+
+      // 2. 调 SOS 云函数 → 写 alerts、通知家属
+      const res = await sosAPI.trigger(
+        loc
+          ? { latitude: loc.latitude, longitude: loc.longitude, address }
+          : { address }
+      )
+
+      wx.hideLoading()
+
+      if (res && res.code === 0) {
+        // 三连震动
+        wx.vibrateShort({ type: 'heavy' })
+        setTimeout(() => wx.vibrateShort({ type: 'heavy' }), 200)
+        setTimeout(() => wx.vibrateShort({ type: 'heavy' }), 400)
+
+        wx.showModal({
+          title: '🆘 SOS 已发送',
+          content: `已通知 ${res.notified || 1} 位家人，请原地等待`,
+          showCancel: false,
+          confirmText: '知道了'
+        })
+
+        // 3. 刷新首页状态
+        this._updateStatusTag('emergency')
+        this._fetchData()
+      } else {
+        wx.showToast({ title: res?.msg || 'SOS 发送失败，请重试', icon: 'none' })
+      }
     } catch (e) {
       wx.hideLoading()
       wx.showToast({ title: 'SOS 发送失败，请重试', icon: 'none' })
+      console.error('[SOS] 异常:', e)
     }
   },
 

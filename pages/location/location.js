@@ -627,10 +627,6 @@ Page({
 
   // ── 围栏：点击编辑 ──────────────────────────────────────
   editFence(e) {
-    if (this.data.role !== 'family') {
-      wx.showToast({ title: '仅家属端可编辑围栏', icon: 'none' })
-      return
-    }
     const { id, index } = e.currentTarget.dataset
     const fences = this.data.fences || []
     const fence = fences.find(f => f.id === id)
@@ -665,10 +661,6 @@ Page({
 
   // ── 围栏：添加 ──────────────────────────────────────────
   addFence() {
-    if (this.data.role !== 'family') {
-      wx.showToast({ title: '仅家属端可添加围栏', icon: 'none' })
-      return
-    }
 
     const currentLat = this.data.location.latitude || 30.572815
     const currentLng = this.data.location.longitude || 104.066803

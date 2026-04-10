@@ -55,7 +55,8 @@
             <text class="bubble-text">{{item.text}}</text>
             <text class="emotion-note" wx:if="{{item.emotionNote}}">{{item.emotionNote}}</text>
             <text class="message-tip" wx:if="{{item.tip}}">{{item.tip}}</text>
-            <view class="speak-btn" wx:if="{{item.canSpeak}}" bindtap="onSpeakTap" data-text="{{item.text}}">
+            <!-- 朗读按钮：对应 js 中的 speakMessage 方法 -->
+            <view class="speak-btn" wx:if="{{item.canSpeak}}" bindtap="speakMessage" data-text="{{item.text}}">
               🔊 朗读
             </view>
           </view>
@@ -65,6 +66,7 @@
 
         <view class="msg-avatar avatar-user" wx:if="{{item.isUser}}">👴</view>
       </view>
+
       <!-- 底部占位，避免被输入框/键盘遮挡 -->
       <view class="chat-bottom-spacer" style="{{chatBottomSpacerStyle}}"></view>
     </view>
@@ -72,7 +74,7 @@
 
   <!-- 底部固定输入区 -->
   <view class="input-section" style="{{inputSectionStyle}}">
-    <!-- 输入框上方横向滚动快捷功能栏（scroll-view） -->
+    <!-- 快捷功能栏 -->
     <scroll-view class="quick-strip" scroll-x enhanced show-scrollbar="{{false}}" enable-flex>
       <view class="quick-strip-inner">
         <view class="quick-chip" wx:for="{{quickActions}}" wx:key="id" data-text="{{item.text}}" bindtap="onQuickAction">
@@ -83,15 +85,21 @@
     </scroll-view>
 
     <view class="input-bar">
-      <view class="voice-btn {{voiceBtnClass}}" bindtap="toggleRecording">
+      <!-- 语音按钮：按住开始录音，松手结束并识别，填入输入框 -->
+      <view
+        class="voice-btn {{voiceBtnClass}}"
+        bindtouchstart="startRecord"
+        bindtouchend="stopRecord"
+      >
         <text wx:if="{{!isRecording}}">🎙️</text>
-        <text wx:else>⏹ {{recordingDuration}}s</text>
+        <text wx:else>🔴 {{recordingDuration}}s</text>
       </view>
+
       <view class="input-wrap">
         <input
           type="text"
           class="text-input"
-          placeholder="发消息"
+          placeholder="{{isRecording ? '正在录音…' : '发消息'}}"
           placeholder-class="ph"
           value="{{inputText}}"
           bindinput="onInput"

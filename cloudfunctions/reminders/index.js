@@ -27,14 +27,29 @@ function normalizeTime(t) {
   return `${m[1].padStart(2, '0')}:${m[2]}`
 }
 
+// 北京时间（UTC+8）
+function getChinaDate() {
+  return new Date(Date.now() + 8 * 60 * 60 * 1000)
+}
+
 function todayKey() {
-  const d = new Date()
-  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`
+  const d = getChinaDate()
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`
+}
+
+function todayStr() {
+  const d = getChinaDate()
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
 }
 
 function getCurrentMinutes() {
-  const now = new Date()
-  return now.getHours() * 60 + now.getMinutes()
+  const d = getChinaDate()
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
+}
+
+function nowTimeStr() {
+  const d = getChinaDate()
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}:${String(d.getUTCSeconds()).padStart(2, '0')}`
 }
 
 /**
@@ -292,6 +307,60 @@ async function toggleAutoRemind(callerOpenid, role, { enabled, elderlyOpenid }) 
   return { code: 0, msg: enabled ? '已开启自动提醒' : '已关闭自动提醒' }
 }
 
+// ── sendSubscribeMsg（发送微信订阅消息）──────────────────
+
+const SUBSCRIBE_TEMPLATE_ID = '5EfdaXcg118G3660FaPrQwSOM1FnXPLN0Aj9tciy0AI'
+
+async function sendSubscribeMsg(toOpenid, { title, time, note, elderlyName }) {
+  const d = getChinaDate()
+  const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`
+  const timeStr = time ? `${time}:00` : `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}:00`
+  try {
+    await cloud.openapi.subscribeMessage.send({
+      touser: toOpenid,
+      templateId: SUBSCRIBE_TEMPLATE_ID,
+      page: 'pages/reminders/reminders',
+      data: {
+        thing1: { value: (title || '提醒').slice(0, 20) },
+        time5:  { value: timeStr },
+        date4:  { value: dateStr },
+        name3:  { value: (elderlyName || '您').slice(0, 10) },
+        thing16:{ value: (note || '请按时完成今日提醒').slice(0, 20) }
+      }
+    })
+    console.log('[reminders] 订阅消息发送成功 ->', toOpenid)
+    return { code: 0 }
+  } catch (e) {
+    console.error('[reminders] 订阅消息发送失败:', e.errMsg || e.message)
+    return { code: -1, msg: e.errMsg || e.message }
+  }
+}
+
+// ── triggerRemind（手动触发单条提醒推送）────────────────
+// 发给调用者自己（谁授权谁收到），同时也发给对端（家属↔老人）
+
+async function triggerRemind(callerOpenid, role, { templateId, elderlyOpenid, elderlyName }) {
+  if (!templateId) return { code: 1, msg: '缺少 templateId' }
+  try {
+    const docRes = await db.collection(COL).doc(templateId).get()
+    const t = docRes.data
+    if (!t) return { code: 404, msg: '提醒不存在' }
+
+    const payload = { title: t.title, time: t.time, note: t.note, elderlyName: elderlyName || '您' }
+
+    // 发给调用者自己（已授权）
+    const r = await sendSubscribeMsg(callerOpenid, payload)
+
+    // 同时尝试发给对端（不影响主流程）
+    const eid = await findElderlyOpenid(callerOpenid, role, elderlyOpenid)
+    if (eid && eid !== callerOpenid) {
+      sendSubscribeMsg(eid, payload).catch(() => {})
+    }
+
+    return r
+  } catch (e) { return { code: -1, msg: e.message } }
+}
+
 // ── 入口 ──────────────────────────────────────────────
 
 exports.main = async (event) => {
@@ -302,16 +371,18 @@ exports.main = async (event) => {
 
     const eid = params.elderlyOpenid || ''
     switch (action) {
-      case 'getTemplates':        return await getTemplates(OPENID, role, eid)
-      case 'addTemplate':         return await addTemplate(OPENID, role, params)
-      case 'updateTemplate':      return await updateTemplate(OPENID, role, params)
-      case 'deleteTemplate':      return await deleteTemplate(OPENID, role, params)
-      case 'batchDelete':         return await batchDelete(OPENID, role, params)
-      case 'getToday':            return await getToday(OPENID, role, eid)
-      case 'toggleDone':          return await toggleDone(OPENID, role, params)
+      case 'getTemplates':         return await getTemplates(OPENID, role, eid)
+      case 'addTemplate':          return await addTemplate(OPENID, role, params)
+      case 'updateTemplate':       return await updateTemplate(OPENID, role, params)
+      case 'deleteTemplate':       return await deleteTemplate(OPENID, role, params)
+      case 'batchDelete':          return await batchDelete(OPENID, role, params)
+      case 'getToday':             return await getToday(OPENID, role, eid)
+      case 'toggleDone':           return await toggleDone(OPENID, role, params)
       case 'getAutoRemindSetting': return await getAutoRemindSetting(OPENID, role, eid)
-      case 'toggleAutoRemind':    return await toggleAutoRemind(OPENID, role, params)
-      default:                    return { code: -1, msg: '未知 action' }
+      case 'toggleAutoRemind':     return await toggleAutoRemind(OPENID, role, params)
+      case 'triggerRemind':        return await triggerRemind(OPENID, role, params)
+      case 'sendSubscribeMsg':     return await sendSubscribeMsg(eid || OPENID, params)
+      default:                     return { code: -1, msg: '未知 action' }
     }
   } catch (err) {
     console.error('[reminders] error:', err)

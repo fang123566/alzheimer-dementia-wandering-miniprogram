@@ -92,6 +92,9 @@
             data-done="{{item.reminded}}">
         {{item.reminded ? '已提醒' : '未提醒'}}
       </view>
+      <view class="send-btn" bindtap="triggerRemind" data-id="{{item.templateId}}">
+        <text>📨</text>
+      </view>
     </view>
     <view wx:if="{{today.length === 0}}" class="empty">今日无提醒事项</view>
   </view>
