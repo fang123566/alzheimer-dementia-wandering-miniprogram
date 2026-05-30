@@ -181,66 +181,6 @@ AI 模块可用于：
 - 豆包：文案优化、适老化表达、项目材料辅助
 - 阿里云短信：预警短信推送
 
-## 项目目录结构
-
-```text
-yuyin/
-├── app.js                         # 小程序全局逻辑、云开发初始化、登录态恢复
-├── app.json                       # 页面注册、窗口配置、TabBar 配置、权限声明
-├── app.wxss                       # 全局样式、设计变量、适老化字号
-├── project.config.json            # 微信开发者工具项目配置
-├── sitemap.json                   # 小程序索引配置
-├── README.md                      # 项目说明文档
-│
-├── custom-tab-bar/                # 自定义底部导航栏
-│   ├── index.js
-│   ├── index.json
-│   ├── index.wxml
-│   └── index.wxss
-│
-├── pages/                         # 小程序页面
-│   ├── login/                     # 登录注册、角色选择
-│   ├── index/                     # 首页仪表盘
-│   ├── location/                  # 实时位置、地图、轨迹、安全围栏
-│   ├── alert/                     # 预警中心
-│   ├── profile/                   # 个人中心
-│   ├── aichat/                    # AI 伴聊
-│   ├── dialect/                   # 方言翻译
-│   ├── memory/                    # 记忆相册
-│   ├── binding/                   # 账号绑定
-│   ├── settings/                  # 设置
-│   ├── device/                    # 设备/状态页面
-│   ├── reminders/                 # 提醒事项
-│   └── family-group/              # 家庭组管理
-│
-├── utils/                         # 前端工具函数
-│   ├── api.js                     # 云函数 API 封装
-│   ├── request.js                 # 请求封装
-│   └── ble.js                     # BLE 相关工具
-│
-├── cloudfunctions/                # 微信云函数
-│   ├── auth/                      # 登录、注册、用户资料
-│   ├── binding/                   # 老人与家属绑定关系
-│   ├── alerts/                    # 预警记录查询与处理
-│   ├── locationUpdate/            # 位置上报与围栏检测
-│   ├── locationAlert/             # 位置预警与短信通知
-│   ├── locationFences/            # 安全围栏管理
-│   ├── locationGetCurrent/        # 获取当前最新位置
-│   ├── locationTrajectory/        # 历史轨迹查询
-│   ├── aiChat/                    # AI 伴聊与防诈提醒
-│   ├── reminders/                 # 提醒事项管理
-│   ├── settings/                  # 设置管理
-│   ├── memory/                    # 记忆相册管理
-│   ├── sos/                       # SOS 求助
-│   ├── asrTts/                    # 语音识别/合成
-│   ├── ASR/                       # 语音识别相关
-│   ├── shibie/                    # 识别相关功能
-│   └── xfyun-dialect/             # 讯飞方言能力相关
-│
-└── 智能体/                         # AI 智能体相关脚本
-    └── AI陪聊.py
-```
-
 ## 页面说明
 
 | 页面 | 路径 | 主要功能 |
@@ -536,6 +476,71 @@ AI 伴聊不仅用于聊天，还结合情绪安抚和诈骗风险识别，提�
 - 增强离线缓存与弱网场景处理
 - 增加家属 Web 管理后台
 
-## 项目说明
+## 项目展示
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<img width="500" alt="image" src="https://github.com/user-attachments/assets/39d481c7-353b-406e-a1ec-b6e86175e324" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/161728b2-592e-4235-b43d-bc0c2f1e0330" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/6a73cbf4-2d28-4cc3-a9e5-c774a54007d2" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/12b1158a-51fc-47bb-9fc1-8ad96d198b71" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/ba71678f-723e-4f36-99bb-b35433c87505" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/458b7eac-f33f-4408-a288-aa9b6507446b" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/945814da-c4d8-475c-8666-c61bf40cbf95" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/0d0a6635-ae47-4cc7-874a-c849973f6a87" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/6ee46b66-c9f7-4329-bfa7-035856a5d960" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/3542e275-1253-4c90-88fa-f96a108418ba" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/2dc78173-1dfc-4bbd-b84f-2ca852a56535" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/f7ba113e-70a3-4f01-895f-45c124915426" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/bf16759f-6fbb-4d02-b8af-94692f1ba438" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/983e74c5-3917-4778-9039-99c77a7cefa2" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/a655174b-9d4b-4069-92d3-7f97eb89cbdf" />
+<img width="500" alt="image" src="https://github.com/user-attachments/assets/ecff5962-1203-4f5d-9149-ecb03a70284d" />
 
-本项目主要用于中国大学生计算机设计大赛、课程设计、毕业设计或创新实践展示。项目代码仅用于学习、研究和比赛展示，如需上线使用，请进一步完善隐私协议、数据安全策略、短信服务配置和定位权限合规说明。
+
+
+
+
+
+
+
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
